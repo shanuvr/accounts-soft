@@ -237,7 +237,6 @@ function Sidebar({ active = 'dashboard', mobileOpen = false, onClose }) {
             </span>
             <div className="min-w-0 flex-1">
               <p className="truncate text-[13px] font-medium text-slate-800">{user.name}</p>
-              <p className="truncate text-[11px] text-slate-400">{user.role}</p>
             </div>
             <button type="button" className="text-slate-400 transition-colors hover:text-slate-600" aria-label="Sign out">
               {I.logout}

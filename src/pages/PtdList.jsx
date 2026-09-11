@@ -68,33 +68,33 @@ function PtdList() {
     ),
   };
 
-  const inputCls = 'h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-[13px] text-slate-700 placeholder:text-slate-400 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100';
+  const inputCls = 'h-8 w-full rounded-lg border border-slate-200 bg-white px-3 text-[13px] text-slate-700 placeholder:text-slate-400 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100';
 
   return (
     <Layout active="ptd">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">PTD</h1>
+        <h1 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">PTD</h1>
         <p className="mt-1 text-sm text-slate-500">Manage project technical data sheets.</p>
       </div>
 
       {/* Summary cards */}
-      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="mt-4 grid grid-cols-3 gap-2">
         {summary.map((s) => (
-          <div key={s.label} className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+          <div key={s.label} className="rounded-xl border border-slate-200 bg-white px-3 py-2.5">
             <div className="flex items-center justify-between">
-              <span className="text-[12px] font-medium text-slate-500">{s.label}</span>
-              <span className={`flex h-7 w-7 items-center justify-center rounded-lg text-white ${s.color}`}>{icons[s.icon]}</span>
+              <span className="text-[10.5px] font-medium uppercase tracking-wide text-slate-400">{s.label}</span>
+              <span className={`flex h-6 w-6 items-center justify-center rounded-md text-white ${s.color}`}>{icons[s.icon]}</span>
             </div>
-            <p className="mt-1.5 text-2xl font-semibold tracking-tight text-slate-900">{s.count}</p>
+            <p className="mt-1 text-[17px] font-semibold tracking-tight text-slate-900">{s.count}</p>
           </div>
         ))}
       </div>
 
       {/* Filters */}
       <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="relative">
+        <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
+          <div className="relative col-span-2 md:col-span-1">
             <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
               <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
                 <circle cx="11" cy="11" r="7" />
@@ -121,7 +121,7 @@ function PtdList() {
       {/* Table */}
       <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] text-left text-[13px]">
+          <table className="w-full min-w-[760px] text-left text-[12.5px]">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500">
                 <th className="px-3.5 py-2.5 font-semibold">PTD ID</th>
