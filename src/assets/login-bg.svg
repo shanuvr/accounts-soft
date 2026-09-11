@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" fill="none">
+  <defs>
+    <linearGradient id="base" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F1FAF4"/>
+      <stop offset="0.5" stop-color="#FBFFFC"/>
+      <stop offset="1" stop-color="#F4FBF6"/>
+    </linearGradient>
+    <radialGradient id="glowTop" cx="0" cy="0" r="1">
+      <stop offset="0" stop-color="#6EE7B7" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#6EE7B7" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowBot" cx="1" cy="1" r="1">
+      <stop offset="0" stop-color="#A7F3D0" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#A7F3D0" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowMid" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#D1FAE5" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#D1FAE5" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="64" height="64" patternUnits="userSpaceOnUse">
+      <path d="M64 0H0V64" fill="none" stroke="#059669" stroke-opacity="0.055" stroke-width="1"/>
+    </pattern>
+    <pattern id="dots" width="28" height="28" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.2" fill="#059669" fill-opacity="0.1"/>
+    </pattern>
+  </defs>
+
+  <rect width="1600" height="1000" fill="url(#base)"/>
+  <rect width="1600" height="1000" fill="url(#grid)"/>
+
+  <ellipse cx="180" cy="80" rx="560" ry="420" fill="url(#glowTop)"/>
+  <ellipse cx="1440" cy="920" rx="620" ry="460" fill="url(#glowBot)"/>
+  <ellipse cx="820" cy="500" rx="520" ry="380" fill="url(#glowMid)"/>
+
+  <path d="M-80 760C240 640 380 910 640 780C900 650 1040 820 1720 660L1720 1080L-80 1080Z" fill="#6EE7B7" fill-opacity="0.1"/>
+  <path d="M-80 840C260 730 460 960 760 830C1060 700 1280 900 1720 760L1720 1080L-80 1080Z" fill="#34D399" fill-opacity="0.08"/>
+  <path d="M-60 250C140 160 280 300 520 240C900 140 1100 340 1660 220" stroke="#34D399" stroke-opacity="0.18" stroke-width="1.5" fill="none"/>
+
+  <circle cx="240" cy="190" r="6" fill="#34D399" fill-opacity="0.25"/>
+  <circle cx="1330" cy="280" r="9" fill="#34D399" fill-opacity="0.18"/>
+  <circle cx="1380" cy="760" r="5" fill="#059669" fill-opacity="0.22"/>
+  <circle cx="1040" cy="170" r="4" fill="#059669" fill-opacity="0.2"/>
+  <circle cx="360" cy="820" r="7" fill="#34D399" fill-opacity="0.18"/>
+  <circle cx="560" cy="360" r="10" fill="#6EE7B7" fill-opacity="0.25"/>
+  <rect x="120" y="560" width="12" height="12" rx="2" fill="#34D399" fill-opacity="0.2"/>
+  <rect x="1500" y="520" width="14" height="14" rx="3" fill="#059669" fill-opacity="0.15"/>
+
+  <rect width="1600" height="1000" fill="url(#dots)"/>
+</svg>

@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes grow-bar {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@keyframes caret-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+@keyframes chip-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+
+.anim-fade-up { animation: fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-grow-bar { animation: grow-bar 1.6s cubic-bezier(0.22, 1, 0.36, 1) both; transform-origin: left; }
+.anim-caret { animation: caret-blink 1s steps(1) infinite; }
+.anim-float { animation: float-slow 7s ease-in-out infinite; }
+.anim-glow { animation: glow-pulse 3.5s ease-in-out infinite; }
+.anim-chip { animation: chip-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+:root {
+  color-scheme: light;
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+@media print {
+  .no-print { display: none !important; }
+  #ptd-print-area { display: block !important; }
+  #ptd-print-area * { visibility: visible !important; }
+  body { margin: 0; padding: 0; }
+}

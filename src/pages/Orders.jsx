@@ -1,0 +1,243 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import Layout from '../layouts/Layout';
+import { ORDERS, fmtINR, fmtDate } from '../data/mockData';
+
+const ORDER_STATUS_COLORS = {
+  'New': 'border-sky-200 bg-sky-50 text-sky-700',
+  'Under Review': 'border-amber-200 bg-amber-50 text-amber-700',
+  'In Progress': 'border-blue-200 bg-blue-50 text-blue-700',
+  'Partially Delivered': 'border-violet-200 bg-violet-50 text-violet-700',
+  'Delivered': 'border-teal-200 bg-teal-50 text-teal-700',
+  'Completed': 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  'On Hold': 'border-orange-200 bg-orange-50 text-orange-700',
+  'Cancelled': 'border-red-200 bg-red-50 text-red-700',
+};
+
+const PAYMENT_STATUS_COLORS = {
+  'Unpaid': 'border-slate-200 bg-slate-100 text-slate-600',
+  'Partially Paid': 'border-amber-200 bg-amber-50 text-amber-700',
+  'Paid': 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  'Overdue': 'border-red-200 bg-red-50 text-red-700',
+  'Refunded': 'border-indigo-200 bg-indigo-50 text-indigo-700',
+};
+
+function Badge({ status, map }) {
+  return (
+    <span className={`inline-flex items-center whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${map[status]}`}>
+      {status}
+    </span>
+  );
+}
+
+function Orders() {
+  const navigate = useNavigate();
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState('');
+  const [payment, setPayment] = useState('');
+  const [customer, setCustomer] = useState('');
+  const [salesPerson, setSalesPerson] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+
+  const overduedOrders = ORDERS.filter((o) => !['Completed', 'Delivered', 'Cancelled'].includes(o.orderStatus) && new Date(o.deliveryDate) < new Date());
+  const summary = [
+    { label: 'Total Orders', count: ORDERS.length, color: 'bg-emerald-600', icon: 'orders' },
+    { label: 'Completed', count: ORDERS.filter((o) => o.orderStatus === 'Completed').length, color: 'bg-emerald-500', icon: 'check' },
+    { label: 'In Progress', count: ORDERS.filter((o) => o.orderStatus === 'In Progress').length, color: 'bg-blue-500', icon: 'play' },
+    { label: 'Under Review', count: ORDERS.filter((o) => o.orderStatus === 'Under Review').length, color: 'bg-amber-500', icon: 'clock' },
+    { label: 'Overdue', count: overduedOrders.length, color: 'bg-red-500', icon: 'alert' },
+    { label: 'Cancelled', count: ORDERS.filter((o) => o.orderStatus === 'Cancelled').length, color: 'bg-slate-500', icon: 'x' },
+  ];
+
+  const filtered = ORDERS.filter((o) => {
+    if (search && !`${o.orderId} ${o.customer} ${o.leadId} ${o.salesPerson}`.toLowerCase().includes(search.toLowerCase())) return false;
+    if (status && o.orderStatus !== status) return false;
+    if (payment && o.paymentStatus !== payment) return false;
+    if (customer && o.customer !== customer) return false;
+    if (salesPerson && o.salesPerson !== salesPerson) return false;
+    if (dateFrom && o.orderDate < dateFrom) return false;
+    if (dateTo && o.orderDate > dateTo) return false;
+    return true;
+  });
+
+  const icons = {
+    orders: (
+      <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M6 2h12l2 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7l2-5Z" />
+        <path d="M4 7h16M9 12h6" />
+      </svg>
+    ),
+    check: (
+      <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="m5 13 4.5 4.5L19 7.5" />
+      </svg>
+    ),
+    play: (
+      <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M10 9.5v5l4-2.5-4-2.5Z" fill="currentColor" stroke="none" />
+      </svg>
+    ),
+    clock: (
+      <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 7v5l3 2" />
+      </svg>
+    ),
+    alert: (
+      <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 3 2.5 20h19L12 3Z" />
+        <path d="M12 10v4M12 17h.01" />
+      </svg>
+    ),
+    x: (
+      <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+        <path d="M6 6l12 12M18 6 6 18" />
+      </svg>
+    ),
+  };
+
+  const inputCls = 'h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-[13px] text-slate-700 placeholder:text-slate-400 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100';
+
+  return (
+    <Layout active="orders">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Orders</h1>
+          <p className="mt-1 text-sm text-slate-500">Manage confirmed orders and track their operational &amp; financial progress.</p>
+        </div>
+        <button
+          type="button"
+          className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-emerald-600/25 transition-colors hover:bg-emerald-500"
+        >
+          <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+          New Order
+        </button>
+      </div>
+
+      {/* Summary cards */}
+      <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6">
+        {summary.map((s) => (
+          <div key={s.label} className="rounded-xl border border-slate-200 bg-white p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[12px] font-medium text-slate-500">{s.label}</span>
+              <span className={`flex h-7 w-7 items-center justify-center rounded-lg text-white ${s.color}`}>{icons[s.icon]}</span>
+            </div>
+            <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">{s.count}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div className="mt-6 rounded-xl border border-slate-200 bg-white p-4">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+          <div className="relative lg:col-span-1">
+            <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+              <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                <circle cx="11" cy="11" r="7" />
+                <path d="m20 20-3.5-3.5" />
+              </svg>
+            </span>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search order, customer, sales person..."
+              className={`${inputCls} pl-9`}
+            />
+          </div>
+          <select value={status} onChange={(e) => setStatus(e.target.value)} className={inputCls}>
+            <option value="">All order statuses</option>
+            {Object.keys(ORDER_STATUS_COLORS).map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <select value={payment} onChange={(e) => setPayment(e.target.value)} className={inputCls}>
+            <option value="">All payment statuses</option>
+            {Object.keys(PAYMENT_STATUS_COLORS).map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <select value={salesPerson} onChange={(e) => setSalesPerson(e.target.value)} className={inputCls}>
+            <option value="">All sales persons</option>
+            {[...new Set(ORDERS.map((o) => o.salesPerson))].map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <select value={customer} onChange={(e) => setCustomer(e.target.value)} className={inputCls}>
+            <option value="">All customers</option>
+            {[...new Set(ORDERS.map((o) => o.customer))].map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <div className="grid grid-cols-2 gap-3">
+            <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className={inputCls} aria-label="Order date from" />
+            <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className={inputCls} aria-label="Order date to" />
+          </div>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[900px] text-left text-[13px]">
+            <thead>
+              <tr className="border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500">
+                <th className="px-4 py-3 font-semibold">Order ID</th>
+                <th className="px-4 py-3 font-semibold">Lead Order ID</th>
+                <th className="px-4 py-3 font-semibold">Customer</th>
+                <th className="px-4 py-3 font-semibold">Order Value</th>
+                <th className="px-4 py-3 font-semibold">Order Date</th>
+                <th className="px-4 py-3 font-semibold">Delivery Date</th>
+                <th className="px-4 py-3 font-semibold">Order Status</th>
+                <th className="px-4 py-3 font-semibold">Payment Status</th>
+                <th className="px-4 py-3 font-semibold">Sales Person</th>
+                <th className="px-4 py-3 text-right font-semibold">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((o) => (
+                <tr key={o.orderId} onClick={() => navigate(`/orders/${o.orderId}`)} className="cursor-pointer border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50/60">
+                  <td className="whitespace-nowrap px-4 py-3">
+                    <span className="font-semibold text-emerald-700 hover:underline">{o.orderId}</span>
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 font-mono text-[12px] text-slate-500">{o.leadId}</td>
+                  <td className="max-w-[220px] truncate px-4 py-3 text-slate-800">{o.customer}</td>
+                  <td className="whitespace-nowrap px-4 py-3 font-semibold text-slate-800">{fmtINR(o.value)}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">{fmtDate(o.orderDate)}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">{fmtDate(o.deliveryDate)}</td>
+                  <td className="whitespace-nowrap px-4 py-3"><Badge status={o.orderStatus} map={ORDER_STATUS_COLORS} /></td>
+                  <td className="whitespace-nowrap px-4 py-3"><Badge status={o.paymentStatus} map={PAYMENT_STATUS_COLORS} /></td>
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-700">{o.salesPerson}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-right">
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); navigate(`/orders/${o.orderId}`); }}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-600"
+                      aria-label={`View ${o.orderId}`}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12Z" />
+                        <circle cx="12" cy="12" r="2.5" />
+                      </svg>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan="10" className="px-4 py-12 text-center text-sm text-slate-400">No orders match your filters.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50/50 px-4 py-3 text-[12px] text-slate-500">
+          <span>Showing {filtered.length} of {ORDERS.length} orders</span>
+          <div className="flex items-center gap-1">
+            <button type="button" disabled className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-slate-400">Previous</button>
+            <button type="button" className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-slate-700">Next</button>
+          </div>
+        </div>
+      </div>
+    </Layout>
+  );
+}
+
+export default Orders;
