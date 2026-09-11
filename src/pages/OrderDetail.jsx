@@ -14,6 +14,7 @@ import { createOrSyncDelivery, deleteDeliveryFor } from '../store/deliveryStore'
 import { usePaymentMethods } from '../store/paymentMethodStore';
 import { useTaxMaster } from '../store/taxStore';
 import { useAuth } from '../store/authStore';
+import { useOrderHours, getOrderHoursSummary, setOrderHours } from '../store/orderHoursStore';
 import PtdFields from '../components/PtdFields';
 
 const SERVICE_STATUS = {
@@ -226,7 +227,7 @@ function PtdModal({ order, service, onClose, onSave }) {
   );
 }
 
-function AssignModal({ order, service, assigner, onClose, onAssign }) {
+function AssignModal({ order, service, assigner, hoursSummary, onClose, onAssign }) {
   const employees = useEmployees();
   const departments = useDepartments();
   const defaultHours = getServiceByName(service.name)?.hours ?? 0;
@@ -234,12 +235,13 @@ function AssignModal({ order, service, assigner, onClose, onAssign }) {
   const [team, setTeam] = useState('');
   const [assignedOn, setAssignedOn] = useState(new Date().toISOString().slice(0, 10));
   const [expectedDelivery, setExpectedDelivery] = useState(service.deliveryDate || order.deliveryDate || '');
-  const [estimatedHours, setEstimatedHours] = useState(defaultHours);
   const [allocatedHours, setAllocatedHours] = useState(defaultHours);
   const [priority, setPriority] = useState('Normal');
   const [instructions, setInstructions] = useState('');
 
   const valid = employee && team && assignedOn && expectedDelivery;
+  const newUsed = hoursSummary.used + (Number(allocatedHours) || 0);
+  const wouldExceed = hoursSummary.total > 0 && newUsed > hoursSummary.total;
 
   const onPickEmployee = (name) => {
     setEmployee(name);
@@ -249,7 +251,7 @@ function AssignModal({ order, service, assigner, onClose, onAssign }) {
 
   const submit = () => {
     if (!valid) return;
-    onAssign(service.id, { assignedTo: employee, assignedTeam: team, assignedOn, expectedDelivery, estimatedHours: Number(estimatedHours) || 0, allocatedHours: Number(allocatedHours) || 0, priority, instructions });
+    onAssign(service.id, { assignedTo: employee, assignedTeam: team, assignedOn, expectedDelivery, allocatedHours: Number(allocatedHours) || 0, priority, instructions });
   };
 
   const fieldCls = 'h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[13px] text-slate-700 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100';
@@ -312,22 +314,40 @@ function AssignModal({ order, service, assigner, onClose, onAssign }) {
               </select>
             </div>
             <div>
-              <label htmlFor="asn-estimate" className="mb-1 block text-[12px] font-medium text-slate-600">Estimated Hours</label>
-              <div className="relative">
-                <input id="asn-estimate" type="number" step="0.5" min="0" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} className={`${fieldCls} pr-9`} />
-                <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[12px] text-slate-400">hrs</span>
-              </div>
-              <p className="mt-1 text-[11px] text-slate-400">Default from Service Master</p>
-            </div>
-            <div>
               <label htmlFor="asn-allocated" className="mb-1 block text-[12px] font-medium text-slate-600">Allocated Hours</label>
               <div className="relative">
                 <input id="asn-allocated" type="number" step="0.5" min="0" value={allocatedHours} onChange={(e) => setAllocatedHours(e.target.value)} className={`${fieldCls} pr-9`} />
                 <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[12px] text-slate-400">hrs</span>
               </div>
-              <p className="mt-1 text-[11px] text-slate-400">Hours the assignee is committed to</p>
+              {hoursSummary.total > 0 && (
+                <p className="mt-1 text-[11px]">
+                  {wouldExceed ? (
+                    <span className="font-medium text-red-500">Would exceed budget — {hoursSummary.remaining} hrs left</span>
+                  ) : (
+                    <span className="text-slate-400"><span className="font-medium text-slate-600">{hoursSummary.remaining - (Number(allocatedHours) || 0)} hrs</span> will remain after this</span>
+                  )}
+                </p>
+              )}
+              {hoursSummary.total === 0 && (
+                <p className="mt-1 text-[11px] text-slate-400">Hours to assign to this service. Set a project total hours in Order Information to track budget.</p>
+              )}
             </div>
           </div>
+          {hoursSummary.total > 0 && (
+            <div className={`mt-3.5 flex items-center gap-3 rounded-lg border px-3 py-2.5 text-[12.5px] ${wouldExceed ? 'border-red-200 bg-red-50' : 'border-emerald-200 bg-emerald-50/60'}`}>
+              <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-bold ${wouldExceed ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-700'}`}>
+                {wouldExceed ? '!' : '✓'}
+              </span>
+              <div>
+                <p className={`font-semibold ${wouldExceed ? 'text-red-700' : 'text-emerald-700'}`}>
+                  {wouldExceed ? 'Exceeds project budget' : 'Within budget'}
+                </p>
+                <p className={`text-[11.5px] ${wouldExceed ? 'text-red-600' : 'text-emerald-600'}`}>
+                  Project: {hoursSummary.used} + {Number(allocatedHours) || 0} = {newUsed} of {hoursSummary.total} hrs {wouldExceed ? `(${newUsed - hoursSummary.total} over)` : `(${hoursSummary.total - newUsed} left)`}
+                </p>
+              </div>
+            </div>
+          )}
           <div className="mt-3.5">
             <label htmlFor="asn-instructions" className="mb-1 block text-[12px] font-medium text-slate-600">Instructions</label>
             <textarea id="asn-instructions" rows={3} value={instructions} onChange={(e) => setInstructions(e.target.value)} placeholder="Notes for the assignee..."
@@ -871,6 +891,8 @@ function OrderDetail() {
   usePaymentPlans();
   useInvoices();
   const catalog = useServices();
+  useOrderHours();
+  const [editingHours, setEditingHours] = useState(false);
 
   const initialServices = (ORDER_SERVICES[order?.orderId] ?? []).map((s) => {
     const ptd = getPtdFor(order?.orderId, s.name);
@@ -889,6 +911,8 @@ function OrderDetail() {
   const [assignService, setAssignService] = useState(null);
   const [payModal, setPayModal] = useState(false);
   const [scheduleModal, setScheduleModal] = useState(false);
+  const hoursSummary = useMemo(() => getOrderHoursSummary(orderId, services.filter((s) => s.assignment).map((s) => s.assignment)), [orderId, services]);
+  const [hoursInput, setHoursInput] = useState(String(hoursSummary.total || ''));
   const [invoiceModal, setInvoiceModal] = useState(false);
 
   const openForm = () => {
@@ -1051,6 +1075,56 @@ function OrderDetail() {
             <InfoRow label="Customer">{order.customer}</InfoRow>
           </div>
         </div>
+
+        {/* Hours budget */}
+        <div className="border-t border-slate-200 px-6 py-4">
+          <div className="flex flex-wrap items-center gap-6">
+            <div className="min-w-[180px]">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Project Hours</p>
+              {editingHours ? (
+                <div className="mt-1.5 flex items-center gap-2">
+                  <div className="relative">
+                    <input type="number" step="0.5" min="0" value={hoursInput} onChange={(e) => setHoursInput(e.target.value)} autoFocus className="h-9 w-28 rounded-lg border border-emerald-400 bg-white px-2.5 pr-9 text-[15px] font-semibold text-slate-800 outline-none ring-2 ring-emerald-100" />
+                    <span className="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-[12px] text-slate-400">hrs</span>
+                  </div>
+                  <button type="button" onClick={() => { setOrderHours(order.orderId, Number(hoursInput) || 0); setEditingHours(false); }} className="rounded-lg bg-emerald-600 px-3 py-2 text-[12.5px] font-semibold text-white hover:bg-emerald-500">Save</button>
+                  <button type="button" onClick={() => { setHoursInput(String(hoursSummary.total || '')); setEditingHours(false); }} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-[12.5px] font-medium text-slate-500 hover:bg-slate-50">Cancel</button>
+                </div>
+              ) : (
+                <button type="button" onClick={() => setEditingHours(true)} className="group mt-1.5 flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 transition-colors hover:border-emerald-300 hover:bg-emerald-50/50">
+                  <span className="text-[20px] font-semibold text-slate-800">{hoursSummary.total || '0'}</span>
+                  <span className="text-[12px] text-slate-400">hrs</span>
+                  <span className={`ml-0.5 inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold transition-colors ${hoursSummary.total ? 'bg-emerald-100 text-emerald-700 group-hover:bg-emerald-200' : 'bg-emerald-600 text-white'}`}>
+                    <svg viewBox="0 0 24 24" fill="none" className="h-3 w-3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                    </svg>
+                    {hoursSummary.total ? 'Edit' : 'Set'}
+                  </span>
+                </button>
+              )}
+            </div>
+
+            <div className="min-w-[220px] flex-1">
+              {hoursSummary.total > 0 ? (
+                <>
+                  <div className="flex items-center justify-between text-[12px]">
+                    <span className="text-slate-500">Allocated: <span className="font-semibold text-slate-700">{hoursSummary.used} hrs</span></span>
+                    <span className={`font-semibold ${hoursSummary.overBudget ? 'text-red-600' : 'text-emerald-600'}`}>{hoursSummary.overBudget ? 'Over' : 'Remaining'}: {hoursSummary.overBudget ? hoursSummary.used - hoursSummary.total : hoursSummary.remaining} hrs</span>
+                  </div>
+                  <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                    <div className={`h-full rounded-full transition-all ${hoursSummary.overBudget ? 'bg-red-400' : hoursSummary.used > hoursSummary.total * 0.8 ? 'bg-amber-400' : 'bg-emerald-400'}`} style={{ width: `${Math.min(100, (hoursSummary.used / hoursSummary.total) * 100)}%` }} />
+                  </div>
+                  <p className="mt-1 text-[11px] text-slate-400">Every service allocated hours in Assign Service reduces this total.</p>
+                </>
+              ) : (
+                <div className="rounded-lg border border-dashed border-emerald-200 bg-emerald-50/40 px-3 py-2">
+                  <p className="text-[12px] font-medium text-emerald-700">No total hours set yet.</p>
+                  <p className="mt-0.5 text-[11.5px] text-emerald-600/80">Click <span className="font-semibold">Set</span> to add the total hours budget for this project. Assigned hours will reduce it as you add services.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Services */}
@@ -1181,8 +1255,6 @@ function OrderDetail() {
 
                   {s.assignment && (
                     <p className="mt-2 text-[12px] text-slate-500">
-                      Estimated: <span className="font-medium text-slate-600">{s.assignment.estimatedHours ?? 0} hrs</span>
-                      <span className="mx-1.5 text-slate-300">·</span>
                       Allocated: <span className="font-medium text-slate-600">{s.assignment.allocatedHours ?? 0} hrs</span>
                       <span className="mx-1.5 text-slate-300">·</span>
                       Expected completion: <span className="font-medium text-slate-600">{fmtDate(s.assignment.expectedDelivery || s.deliveryDate || order.deliveryDate)}</span>
@@ -1464,6 +1536,7 @@ function OrderDetail() {
           order={order}
           service={assignService}
           assigner={user}
+          hoursSummary={hoursSummary}
           onClose={() => setAssignService(null)}
           onAssign={assignServiceHandler}
         />

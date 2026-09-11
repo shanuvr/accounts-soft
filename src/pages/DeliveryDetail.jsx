@@ -150,7 +150,6 @@ function DeliveryDetail() {
                 <InfoRow label="Assigned To" value={assignment.assignedTo} />
                 <InfoRow label="Assigned Team" value={assignment.assignedTeam} />
                 <InfoRow label="Assigned By" value={assignment.assignedBy} />
-                <InfoRow label="Estimated Hours" value={`${assignment.estimatedHours ?? 0} hrs`} />
                 <InfoRow label="Allocated Hours" value={`${assignment.allocatedHours ?? 0} hrs`} />
                 <InfoRow label="Expected Completion" value={assignment.expectedDelivery ? fmtDate(assignment.expectedDelivery) : null} />
                 <InfoRow label="Assignment Status" value={assignment.status} />

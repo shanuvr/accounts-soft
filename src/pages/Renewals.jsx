@@ -5,6 +5,7 @@ import {
   RENEWAL_TYPES,
   addRenewable,
   markRenewableNotified,
+  renewRenewable,
   deleteRenewable,
   getRenewalStatus,
 } from '../store/renewableStore';
@@ -106,6 +107,70 @@ function AddRenewalModal({ onClose, onSave }) {
   );
 }
 
+function RenewModal({ record, onClose, onSave }) {
+  const [expiryDate, setExpiryDate] = useState(() => {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() + 1);
+    return d.toISOString().slice(0, 10);
+  });
+  const [amount, setAmount] = useState(record.amount ?? '');
+
+  const valid = expiryDate;
+  const submit = () => {
+    if (!valid) return;
+    onSave({ expiryDate, amount: Number(amount) || 0 });
+  };
+
+  const fieldCls = 'h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[13px] text-slate-700 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100';
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+      <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <div className="border-b border-slate-200 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-[15px] font-semibold text-slate-900">Renew Item</h3>
+            <button type="button" onClick={onClose} aria-label="Close" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-50 hover:text-slate-600">
+              <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M6 6l12 12M18 6 6 18" />
+              </svg>
+            </button>
+          </div>
+          <p className="mt-1 text-[12px] text-slate-500">Set the new expiry date so the item stops triggering renewal alerts.</p>
+        </div>
+
+        <div className="px-6 py-5">
+          <div className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/60 p-3">
+            <span className={`inline-flex items-center whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${TYPE_COLORS[record.type] ?? TYPE_COLORS.Other}`}>{record.type}</span>
+            <div className="min-w-0">
+              <p className="truncate text-[13px] font-semibold text-slate-800">{record.name}</p>
+              <p className="truncate text-[11.5px] text-slate-500">{record.customer} · Expires {fmtDate(record.expiryDate)}</p>
+            </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+            <div>
+              <label htmlFor="rnw-renew-expiry" className="mb-1 block text-[12px] font-medium text-slate-600">New Expiry Date <span className="text-red-400">*</span></label>
+              <input id="rnw-renew-expiry" type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} className={fieldCls} />
+            </div>
+            <div>
+              <label htmlFor="rnw-renew-amount" className="mb-1 block text-[12px] font-medium text-slate-600">Renewal Amount (₹)</label>
+              <input id="rnw-renew-amount" type="number" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" className={fieldCls} />
+            </div>
+          </div>
+          <p className="mt-3.5 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-[12px] text-sky-700">
+            Renewing updates the expiry date, records a renewal and clears the <span className="font-semibold">Called</span> status so the next cycle starts fresh.
+          </p>
+        </div>
+
+        <div className="flex items-center justify-end gap-2 border-t border-slate-200 px-6 py-4">
+          <button type="button" onClick={onClose} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-[13px] font-medium text-slate-600 transition-colors hover:bg-slate-50">Cancel</button>
+          <button type="button" onClick={submit} disabled={!valid} className="rounded-lg bg-emerald-600 px-3 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40">Renew Item</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Renewals() {
   const records = useRenewables();
   const [filter, setFilter] = useState('');
@@ -113,6 +178,7 @@ function Renewals() {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
+  const [renewing, setRenewing] = useState(null);
   const [confirm, setConfirm] = useState(null);
 
   const withStatus = records.map((r) => ({ ...r, status: getRenewalStatus(r) }));
@@ -131,6 +197,11 @@ function Renewals() {
   const save = (payload) => {
     const res = addRenewable(payload);
     if (res.ok) setModalOpen(false);
+  };
+
+  const handleRenew = (payload) => {
+    const res = renewRenewable(renewing.id, payload);
+    if (res.ok) setRenewing(null);
   };
 
   const markCalled = (r) => {
@@ -233,27 +304,33 @@ function Renewals() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[680px] text-left text-[13px]">
+          <table className="w-full min-w-[760px] text-left text-[12.5px]">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500">
-                <th className="px-3 py-2.5 font-semibold">Item</th>
-                <th className="px-3 py-2.5 font-semibold">Type</th>
-                <th className="px-3 py-2.5 font-semibold">Customer</th>
-                <th className="px-3 py-2.5 font-semibold">Expiry</th>
-                <th className="px-3 py-2.5 font-semibold">Status</th>
-                <th className="px-3 py-2.5 text-right font-semibold">Amount</th>
-                <th className="px-3 py-2.5 font-semibold">Notified</th>
-                <th className="px-3 py-2.5 text-right font-semibold">Actions</th>
+                <th className="px-2.5 py-2 font-semibold">Item</th>
+                <th className="px-2.5 py-2 font-semibold">Type</th>
+                <th className="px-2.5 py-2 font-semibold">Customer</th>
+                <th className="px-2.5 py-2 font-semibold">Expiry</th>
+                <th className="px-2.5 py-2 font-semibold">Status</th>
+                <th className="px-2.5 py-2 text-right font-semibold">Amount</th>
+                <th className="px-2.5 py-2 font-semibold">Notified</th>
+                <th className="px-2.5 py-2 text-right font-semibold">Renew</th>
+                <th className="px-2.5 py-2 text-right font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((r) => (
                 <tr key={r.id} className="border-b border-slate-100 last:border-0">
-                  <td className="whitespace-nowrap px-3 py-2.5 font-semibold text-slate-800">{r.name}</td>
-                  <td className="whitespace-nowrap px-3 py-2.5"><Badge status={r.type} map={TYPE_COLORS} /></td>
-                  <td className="max-w-[200px] truncate px-3 py-2.5 text-slate-600">{r.customer}</td>
-                  <td className="whitespace-nowrap px-3 py-2.5 text-slate-600">{fmtDate(r.expiryDate)}</td>
-                  <td className="whitespace-nowrap px-3 py-2.5">
+                  <td className="whitespace-nowrap px-2.5 py-2 font-semibold text-slate-800">{r.name}</td>
+                  <td className="whitespace-nowrap px-2.5 py-2"><Badge status={r.type} map={TYPE_COLORS} /></td>
+                  <td className="max-w-[200px] truncate px-2.5 py-2 text-slate-600">{r.customer}</td>
+                  <td className="whitespace-nowrap px-2.5 py-2 text-slate-600">
+                    <span className="block">{fmtDate(r.expiryDate)}</span>
+                    {r.lastRenewedAt && (
+                      <span className="mt-0.5 block text-[11px] text-emerald-600">Renewed {fmtDate(r.lastRenewedAt)}</span>
+                    )}
+                  </td>
+                  <td className="whitespace-nowrap px-2.5 py-2">
                     <span className="flex items-center gap-1.5">
                       <Badge status={r.status.key} map={STATUS_COLORS} />
                       {r.status.key === 'Active' && r.status.daysLeft > 0 && (
@@ -261,15 +338,28 @@ function Renewals() {
                       )}
                     </span>
                   </td>
-                  <td className="whitespace-nowrap px-3 py-2.5 text-right font-medium text-slate-800">{r.amount ? fmtINR(r.amount) : '—'}</td>
-                  <td className="whitespace-nowrap px-3 py-2.5">
+                  <td className="whitespace-nowrap px-2.5 py-2 text-right font-medium text-slate-800">{r.amount ? fmtINR(r.amount) : '—'}</td>
+                  <td className="whitespace-nowrap px-2.5 py-2">
                     {r.notified ? (
                       <Badge status="Notified" map={{ Notified: 'border-emerald-200 bg-emerald-50 text-emerald-700' }} />
                     ) : (
                       <span className="text-[11px] text-slate-400">No</span>
                     )}
                   </td>
-                  <td className="whitespace-nowrap px-3 py-2.5 text-right">
+                  <td className="whitespace-nowrap px-2.5 py-2 text-right">
+                    <button
+                      type="button"
+                      onClick={() => setRenewing(r)}
+                      aria-label={`Renew ${r.name}`}
+                      title="Renew"
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 transition-colors hover:bg-emerald-100"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6" />
+                      </svg>
+                    </button>
+                  </td>
+                  <td className="whitespace-nowrap px-2.5 py-2 text-right">
                     {!r.notified && (
                       <button
                         type="button"
@@ -297,7 +387,7 @@ function Renewals() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan="8" className="px-4 py-12 text-center text-sm text-slate-400">
+                  <td colSpan="9" className="px-4 py-12 text-center text-sm text-slate-400">
                     No renewal items found.
                     {filter && ` Try a different type, or `}
                     <button type="button" onClick={() => setModalOpen(true)} className="font-medium text-emerald-600 hover:underline">register one</button>.
@@ -308,12 +398,13 @@ function Renewals() {
           </table>
         </div>
 
-        <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50/50 px-3 py-2.5 text-[12px] text-slate-500">
+        <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50/50 px-2.5 py-2 text-[12px] text-slate-500">
           <span>Expiring Soon = within 30 days · Overdue = past expiry date</span>
         </div>
       </div>
 
       {modalOpen && <AddRenewalModal onClose={() => setModalOpen(false)} onSave={save} />}
+      {renewing && <RenewModal record={renewing} onClose={() => setRenewing(null)} onSave={handleRenew} />}
       <ConfirmDialog open={Boolean(confirm)} title={confirm?.title} message={confirm?.message} confirmLabel={confirm?.confirmLabel} destructive={confirm?.destructive} onConfirm={confirm?.onConfirm} onCancel={() => setConfirm(null)} />
     </Layout>
   );

@@ -4,6 +4,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
 import Layout from '../layouts/Layout';
 import { usePtds, createOrUpdatePtd } from '../store/ptdStore';
+import { useAssignments } from '../store/assignmentStore';
 import PtdFields from '../components/PtdFields';
 import { PTD_TEMPLATES } from '../data/ptdTemplates';
 import { fmtDate, fmtINR } from '../data/mockData';
@@ -23,7 +24,7 @@ function Badge({ status }) {
 
 function Info({ label, children }) {
   return (
-    <div className="flex items-center justify-between py-2.5">
+    <div className="flex items-center justify-between py-2">
       <span className="text-[13px] text-slate-500">{label}</span>
       <span className="text-[13px] font-medium text-slate-800">{children}</span>
     </div>
@@ -35,7 +36,9 @@ function PtdDetail() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const ptds = usePtds();
+  const assignments = useAssignments();
   const record = ptds.find((p) => p.id === ptdId);
+  const allocatedHours = record ? assignments.find((a) => a.orderId === record.orderId && a.serviceName === record.serviceName)?.allocatedHours ?? 0 : 0;
 
   const [editing, setEditing] = useState(searchParams.get('edit') === '1');
   const [draft, setDraft] = useState(() => (record ? { ...record.data } : {}));
@@ -184,7 +187,7 @@ function PtdDetail() {
             </svg>
             Back to PTD
           </button>
-          <div className="mt-3 flex flex-wrap items-center gap-3">
+          <div className="mt-2 flex flex-wrap items-center gap-3">
             <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{record.id}</h1>
             <span className="text-slate-400">/</span>
             <span className="text-[15px] text-slate-600">{record.serviceName}</span>
@@ -219,11 +222,11 @@ function PtdDetail() {
       </div>
 
       {/* Info + fields */}
-      <div className="mt-6 rounded-xl border border-slate-200 bg-white">
-        <div className="border-b border-slate-200 px-6 py-4">
+      <div className="mt-4 rounded-xl border border-slate-200 bg-white">
+        <div className="border-b border-slate-200 px-5 py-3">
           <h2 className="text-[13px] font-semibold uppercase tracking-wider text-slate-500">PTD Information</h2>
         </div>
-        <div className="grid grid-cols-1 gap-x-10 px-6 py-2 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-x-10 px-5 py-1 sm:grid-cols-2">
           <div className="divide-y divide-slate-100">
             <Info label="Order">
               <button type="button" onClick={() => navigate(`/orders/${record.orderId}`)} className="font-medium text-emerald-600 hover:underline">
@@ -235,6 +238,7 @@ function PtdDetail() {
           </div>
           <div className="divide-y divide-slate-100">
             <Info label="Customer">{record.customer}</Info>
+            <Info label="Allocated Hours">{allocatedHours > 0 ? <>{allocatedHours} hrs</> : '—'}</Info>
             <Info label="Status"><Badge status={record.status} /></Info>
             <Info label="Billing">
               {editing ? (
@@ -286,11 +290,11 @@ function PtdDetail() {
       </div>
 
       {/* Technical fields */}
-      <div className="mt-6 rounded-xl border border-slate-200 bg-white">
-        <div className="border-b border-slate-200 px-6 py-4">
+      <div className="mt-4 rounded-xl border border-slate-200 bg-white">
+        <div className="border-b border-slate-200 px-5 py-3">
           <h2 className="text-[13px] font-semibold uppercase tracking-wider text-slate-500">Technical Information</h2>
         </div>
-        <div className="px-6 py-4">
+        <div className="px-5 py-3">
           <PtdFields
             template={record.template}
             values={editing ? draft : record.data}
@@ -300,7 +304,7 @@ function PtdDetail() {
         </div>
 
         {/* Actions */}
-        <div className="flex items-center justify-end gap-2 border-t border-slate-200 px-6 py-4">
+        <div className="flex items-center justify-end gap-2 border-t border-slate-200 px-5 py-3">
           {editing ? (
             <>
               <button type="button" onClick={() => setEditing(false)} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-[13px] font-medium text-slate-600 transition-colors hover:bg-slate-50">

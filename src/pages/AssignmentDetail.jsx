@@ -162,7 +162,6 @@ function AssignmentDetail() {
       assignedTeam: assignment.assignedTeam,
       assignedOn: assignment.assignedOn,
       expectedDelivery: assignment.expectedDelivery,
-      estimatedHours: assignment.estimatedHours ?? 0,
       allocatedHours: assignment.allocatedHours ?? 0,
       priority: assignment.priority,
       status: assignment.status,
@@ -270,13 +269,6 @@ function AssignmentDetail() {
                 </select>
               </div>
               <div>
-                <label htmlFor="edit-estimate" className="mb-1 block text-[12px] font-medium text-slate-600">Estimated Hours</label>
-                <div className="relative">
-                  <input id="edit-estimate" type="number" step="0.5" min="0" value={draft.estimatedHours} onChange={(e) => setDraft((d) => ({ ...d, estimatedHours: e.target.value }))} className={`${fieldCls} pr-9`} />
-                  <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[12px] text-slate-400">hrs</span>
-                </div>
-              </div>
-              <div>
                 <label htmlFor="edit-allocated" className="mb-1 block text-[12px] font-medium text-slate-600">Allocated Hours</label>
                 <div className="relative">
                   <input id="edit-allocated" type="number" step="0.5" min="0" value={draft.allocatedHours} onChange={(e) => setDraft((d) => ({ ...d, allocatedHours: e.target.value }))} className={`${fieldCls} pr-9`} />
@@ -330,7 +322,6 @@ function AssignmentDetail() {
               <Info label="Assigned By">{assignment.assignedBy || '—'}</Info>
               <Info label="Assigned On">{assignment.assignedOn ? fmtDate(assignment.assignedOn) : '—'}</Info>
               <Info label="Expected Completion">{assignment.expectedDelivery ? fmtDate(assignment.expectedDelivery) : '—'}</Info>
-              <Info label="Estimated Hours">{assignment.estimatedHours ?? 0} hrs</Info>
               <Info label="Allocated Hours">{assignment.allocatedHours ?? 0} hrs</Info>
               <Info label="Priority"><PriorityBadge priority={assignment.priority} /></Info>
               <Info label="Status"><Badge status={assignment.status} /></Info>

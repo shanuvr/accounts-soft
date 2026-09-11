@@ -13,7 +13,7 @@ const SEED = [
   { type: 'Hosting', name: 'abctech.com hosting', customer: 'ABC Technologies Pvt Ltd', expiryDate: daysFromNow(8), amount: 8000 },
   { type: 'SSL', name: 'SSL abctech.com', customer: 'ABC Technologies Pvt Ltd', expiryDate: daysFromNow(14), amount: 2500 },
   { type: 'Domain', name: 'blueskymedia.in', customer: 'BlueSky Media', expiryDate: daysFromNow(33), amount: 900 },
-  { type: 'Email', name: 'Google Workspace - info@abctech.com', customer: 'ABC Technologies Pvt Ltd', expiryDate: daysFromNow(120), amount: 3600 },
+  { type: 'Email', name: 'Google Workspacc', customer: 'ABC Technologies Pvt Ltd', expiryDate: daysFromNow(120), amount: 3600 },
   { type: 'SMS', name: 'Bulk SMS pack (1800)', customer: 'Zenith Corp', expiryDate: daysFromNow(-4), amount: 1200 },
 ];
 
@@ -81,6 +81,25 @@ export function markRenewableNotified(id) {
   records = records.map((r) => (r.id === id ? { ...r, notified: true, notifiedAt: new Date().toISOString().slice(0, 10) } : r));
   emit();
   return records.find((r) => r.id === id);
+}
+
+export function renewRenewable(id, data) {
+  const existing = records.find((r) => r.id === id);
+  if (!existing) return { ok: false, reason: 'notfound' };
+  const expiryDate = data?.expiryDate;
+  if (!expiryDate) return { ok: false, reason: 'expiry' };
+  const next = {
+    ...existing,
+    expiryDate,
+    amount: data.amount != null ? Math.max(0, Number(data.amount) || 0) : existing.amount,
+    renewals: (existing.renewals || 0) + 1,
+    lastRenewedAt: new Date().toISOString().slice(0, 10),
+    notified: false,
+    notifiedAt: undefined,
+  };
+  records = records.map((r) => (r.id === id ? next : r));
+  emit();
+  return { ok: true, record: next };
 }
 
 export function deleteRenewable(id) {
