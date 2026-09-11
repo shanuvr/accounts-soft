@@ -21,6 +21,7 @@ import Payments from './pages/Payments'
 import PaymentDetail from './pages/PaymentDetail'
 import InvoiceList from './pages/InvoiceList'
 import InvoiceDetail from './pages/InvoiceDetail'
+import Renewals from './pages/Renewals'
 import Layout from './layouts/Layout'
 import { useEffect } from 'react'
 
@@ -62,6 +63,7 @@ function App() {
       <Route path="/payments/:paymentId" element={<PaymentDetail />} />
       <Route path="/invoices" element={<InvoiceList />} />
       <Route path="/invoices/:invoiceId" element={<InvoiceDetail />} />
+      <Route path="/renewals" element={<Renewals />} />
       <Route path="/reports" element={<Placeholder title="Reports" />} />
       <Route path="/masters" element={<Placeholder title="Masters" />} />
       <Route path="/users" element={<Placeholder title="Users & Roles" />} />

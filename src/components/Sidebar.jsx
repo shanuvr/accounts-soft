@@ -64,6 +64,12 @@ const I = {
       <path d="M9 8h6M9 12h6M9 16h3" />
     </svg>
   ),
+  renewals: (
+    <svg viewBox="0 0 24 24" {...stroke} className="h-[18px] w-[18px]">
+      <path d="M4 15h3l1.5-4 2 6 2-8 2 6 1.5-4h4" />
+      <path d="M21 9V4l-2 2a8 8 0 1 0 1 4h1Z" />
+    </svg>
+  ),
   reports: (
     <svg viewBox="0 0 24 24" {...stroke} className="h-[18px] w-[18px]">
       <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
@@ -111,6 +117,7 @@ const MAIN_NAV = [
   { id: 'delivery', label: 'Delivery Tracking', icon: 'delivery' },
   { id: 'payments', label: 'Payments', icon: 'payments' },
   { id: 'invoices', label: 'Invoices', icon: 'invoices' },
+  { id: 'renewals', label: 'Renewals', icon: 'renewals' },
 ];
 
 const PATHS = {
@@ -122,6 +129,7 @@ const PATHS = {
   delivery: '/delivery',
   payments: '/payments',
   invoices: '/invoices',
+  renewals: '/renewals',
 };
 
 const MASTER_NAV = [

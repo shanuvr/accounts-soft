@@ -41,6 +41,32 @@ export function getPlanView(orderId, payments) {
   return { ...plan, stages: plan.stages.map((s) => ({ ...s, status: getStageStatus(s, orderId, payments) })) };
 }
 
+export function getScheduledStages(payments) {
+  const out = [];
+  for (const plan of plans) {
+    for (const stage of plan.stages) {
+      const received = payments
+        .filter((p) => p.orderId === plan.orderId && p.planStage === stage.title)
+        .reduce((s, p) => s + p.amount, 0);
+      out.push({
+        orderId: plan.orderId,
+        customer: plan.customer,
+        planId: plan.planId,
+        planName: plan.name,
+        planType: plan.type,
+        stageId: stage.stageId,
+        stageTitle: stage.title,
+        amount: Number(stage.amount),
+        dueDate: stage.dueDate,
+        received: Number(received),
+        remaining: Math.max(0, Number(stage.amount) - Number(received)),
+        status: getStageStatus(stage, plan.orderId, payments),
+      });
+    }
+  }
+  return out.sort((a, b) => (a.dueDate ?? '').localeCompare(b.dueDate ?? ''));
+}
+
 export function createPaymentPlan({ orderId, customer, name, type, stages }) {
   const existing = plans.find((p) => p.orderId === orderId);
   const nextStages = stages.map((s, i) => ({
