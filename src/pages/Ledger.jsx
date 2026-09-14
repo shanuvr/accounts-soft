@@ -3,10 +3,9 @@ import Layout from '../layouts/Layout';
 import { useLedger } from '../store/ledgerStore';
 import { fmtINR, fmtDate } from '../data/mockData';
 
-const TYPE_BADGE = {
-  Invoice: 'border-sky-200 bg-sky-50 text-sky-700',
-  Payment: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  Refund: 'border-indigo-200 bg-indigo-50 text-indigo-700',
+const BOOK_BADGE = {
+  Bank: 'border-sky-200 bg-sky-50 text-sky-700',
+  Cash: 'border-amber-200 bg-amber-50 text-amber-700',
 };
 
 function Ledger() {
@@ -18,7 +17,7 @@ function Ledger() {
   const filtered = useMemo(
     () =>
       entries.filter((e) => {
-        if (type !== 'All' && e.docType !== type) return false;
+        if (type !== 'All' && e.book !== type) return false;
         if (dateFrom && e.date < dateFrom) return false;
         if (dateTo && e.date > dateTo) return false;
         return true;
@@ -56,10 +55,9 @@ function Ledger() {
           <div>
             <label className={labelCls}>Type</label>
             <select value={type} onChange={(e) => setType(e.target.value)} className={inputCls}>
-              <option value="All">All types</option>
-              <option value="Invoice">Invoice</option>
-              <option value="Payment">Payment</option>
-              <option value="Refund">Refund</option>
+              <option value="All">All</option>
+              <option value="Bank">Bank</option>
+              <option value="Cash">Cash</option>
             </select>
           </div>
           <div className="flex items-end">
@@ -95,8 +93,8 @@ function Ledger() {
                     <span className="ml-2 text-slate-500">{e.reference}</span>
                   </td>
                   <td className="whitespace-nowrap px-4 py-3">
-                    <span className={`inline-flex items-center whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${TYPE_BADGE[e.docType] ?? 'border-slate-200 bg-slate-100 text-slate-600'}`}>
-                      {e.docType}
+                    <span className={`inline-flex items-center whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${BOOK_BADGE[e.book] ?? 'border-slate-200 bg-slate-100 text-slate-400'}`}>
+                      {e.book ?? '—'}
                     </span>
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-right font-medium text-slate-800">

@@ -23,9 +23,14 @@ export function entryForInvoice(inv) {
     invoiceId: inv.invoiceId,
     paymentId: null,
     method: null,
+    book: null,
     debit: Number(inv.total) || 0,
     credit: 0,
   };
+}
+
+function bookFor(method) {
+  return method === 'Cash' ? 'Cash' : method ? 'Bank' : null;
 }
 
 export function entryForPayment(p) {
@@ -41,6 +46,7 @@ export function entryForPayment(p) {
       invoiceId: p.invoiceId ?? null,
       paymentId: p.paymentId,
       method: p.method,
+      book: bookFor(p.method),
       debit: Number(p.amount) || 0,
       credit: 0,
     };
@@ -55,6 +61,7 @@ export function entryForPayment(p) {
     invoiceId: p.invoiceId ?? null,
     paymentId: p.paymentId,
     method: p.method,
+    book: bookFor(p.method),
     debit: 0,
     credit: Number(p.amount) || 0,
   };

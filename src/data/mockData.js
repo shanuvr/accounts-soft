@@ -27,6 +27,7 @@ export const PAYMENTS = [
   { paymentId: 'PAY-001', orderId: 'ORD-1024', customer: 'ABC Technologies Pvt Ltd', amount: 75000, date: '2026-09-08', method: 'Bank Transfer', reference: 'NEFT/UTR-00088231', receivedBy: 'Priya Nair', notes: 'Part payment against INV-001', status: 'Received', planStage: '', invoiceId: 'INV-001' },
   { paymentId: 'PAY-002', orderId: 'ORD-1021', customer: 'Nova Systems', amount: 230000, date: '2026-09-01', method: 'Bank Transfer', reference: 'NEFT/UTR-00077110', receivedBy: 'Priya Nair', notes: 'Full settlement of INV-003', status: 'Received', planStage: '', invoiceId: 'INV-003' },
   { paymentId: 'PAY-003', orderId: 'ORD-1023', customer: 'BlueSky Media', amount: 20000, date: '2026-09-06', method: 'UPI', reference: 'UPI@bluesky038812', receivedBy: 'Priya Nair', notes: 'Refunded — invalid payment', status: 'Refunded', planStage: '', invoiceId: 'INV-002' },
+  { paymentId: 'PAY-004', orderId: 'ORD-1024', customer: 'ABC Technologies Pvt Ltd', amount: 20000, date: '2026-09-11', method: 'Cash', reference: 'Cash receipt — walk-in', receivedBy: 'Priya Nair', notes: 'Cash payment against INV-001', status: 'Received', planStage: '', invoiceId: 'INV-001' },
 ];
 
 export const ORDER_SERVICES = {};
