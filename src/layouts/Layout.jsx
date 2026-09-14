@@ -39,9 +39,6 @@ function Layout({ active, children }) {
               </span>
               {user.name}
             </span>
-            <span className="hidden rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-medium text-slate-500 sm:inline">
-              {user.role}
-            </span>
           </div>
         </header>
 
