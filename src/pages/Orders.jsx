@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../layouts/Layout';
 import { ORDERS, fmtINR, fmtDate } from '../data/mockData';
+import { usePtds } from '../store/ptdStore';
 
 const ORDER_STATUS_COLORS = {
   'New': 'border-sky-200 bg-sky-50 text-sky-700',
@@ -30,8 +31,18 @@ function Badge({ status, map }) {
   );
 }
 
+function orderAge(dateStr) {
+  const ms = new Date() - new Date(dateStr + 'T00:00:00');
+  const d = Math.floor(ms / (1000 * 60 * 60 * 24));
+  if (d < 0) return { label: '—', cls: 'text-slate-400' };
+  if (d < 30) return { label: `${d}d`, cls: 'text-emerald-600' };
+  if (d < 365) return { label: `${Math.floor(d / 30)}m ${d % 30}d`, cls: 'text-amber-600' };
+  return { label: `${Math.floor(d / 365)}y ${Math.floor((d % 365) / 30)}m`, cls: 'text-red-600' };
+}
+
 function Orders() {
   const navigate = useNavigate();
+  const ptds = usePtds();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [payment, setPayment] = useState('');
@@ -51,8 +62,12 @@ function Orders() {
   ];
 
   const filtered = ORDERS.filter((o) => {
-    if (search && !`${o.orderId} ${o.customer} ${o.leadId} ${o.salesPerson}`.toLowerCase().includes(search.toLowerCase())) return false;
-    if (status && o.orderStatus !== status) return false;
+    if (search && !`${o.orderId} ${o.customer} ${o.salesPerson}`.toLowerCase().includes(search.toLowerCase())) return false;
+    if (status) {
+      if (o.orderStatus !== status) return false;
+    } else if (o.orderStatus === 'Completed') {
+      return false;
+    }
     if (payment && o.paymentStatus !== payment) return false;
     if (customer && o.customer !== customer) return false;
     if (salesPerson && o.salesPerson !== salesPerson) return false;
@@ -150,7 +165,7 @@ function Orders() {
             />
           </div>
           <select value={status} onChange={(e) => setStatus(e.target.value)} className={inputCls}>
-            <option value="">All statuses</option>
+            <option value="">Active orders</option>
             {Object.keys(ORDER_STATUS_COLORS).map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
           <select value={payment} onChange={(e) => setPayment(e.target.value)} className={inputCls}>
@@ -177,10 +192,11 @@ function Orders() {
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500">
                 <th className="px-3.5 py-2.5 font-semibold">Order ID</th>
-                <th className="px-3.5 py-2.5 font-semibold">Lead Order ID</th>
                 <th className="px-3.5 py-2.5 font-semibold">Customer</th>
                 <th className="px-3.5 py-2.5 font-semibold">Order Value</th>
                 <th className="px-3.5 py-2.5 font-semibold">Order Date</th>
+                <th className="px-3.5 py-2.5 font-semibold">Age</th>
+                <th className="px-3.5 py-2.5 font-semibold">PTD</th>
                 <th className="px-3.5 py-2.5 font-semibold">Delivery Date</th>
                 <th className="px-3.5 py-2.5 font-semibold">Order Status</th>
                 <th className="px-3.5 py-2.5 font-semibold">Payment Status</th>
@@ -194,10 +210,17 @@ function Orders() {
                   <td className="whitespace-nowrap px-3.5 py-2.5">
                     <span className="font-semibold text-emerald-700 hover:underline">{o.orderId}</span>
                   </td>
-                  <td className="whitespace-nowrap px-3.5 py-2.5 font-mono text-[11.5px] text-slate-500">{o.leadId}</td>
                   <td className="max-w-[200px] truncate px-3.5 py-2.5 text-slate-800">{o.customer}</td>
                   <td className="whitespace-nowrap px-3.5 py-2.5 font-semibold text-slate-800">{fmtINR(o.value)}</td>
                   <td className="whitespace-nowrap px-3.5 py-2.5 text-slate-600">{fmtDate(o.orderDate)}</td>
+                  <td className="whitespace-nowrap px-3.5 py-2.5">
+                    <span className={`font-semibold ${orderAge(o.orderDate).cls}`}>{orderAge(o.orderDate).label}</span>
+                  </td>
+                  <td className="whitespace-nowrap px-3.5 py-2.5">
+                    <span className={`font-semibold ${ptds.some((p) => p.orderId === o.orderId) ? 'text-emerald-700' : 'text-slate-400'}`}>
+                      {ptds.filter((p) => p.orderId === o.orderId).length}
+                    </span>
+                  </td>
                   <td className="whitespace-nowrap px-3.5 py-2.5 text-slate-600">{fmtDate(o.deliveryDate)}</td>
                   <td className="whitespace-nowrap px-3.5 py-2.5"><Badge status={o.orderStatus} map={ORDER_STATUS_COLORS} /></td>
                   <td className="whitespace-nowrap px-3.5 py-2.5"><Badge status={o.paymentStatus} map={PAYMENT_STATUS_COLORS} /></td>
@@ -219,7 +242,7 @@ function Orders() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan="10" className="px-4 py-12 text-center text-sm text-slate-400">No orders match your filters.</td>
+                  <td colSpan="12" className="px-4 py-12 text-center text-sm text-slate-400">No orders match your filters.</td>
                 </tr>
               )}
             </tbody>

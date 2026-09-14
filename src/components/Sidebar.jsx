@@ -58,6 +58,12 @@ const I = {
       <path d="M2.5 10h19M6.5 15h4" />
     </svg>
   ),
+  ledger: (
+    <svg viewBox="0 0 24 24" {...stroke} className="h-[18px] w-[18px]">
+      <path d="M6 3h12v18H6z" />
+      <path d="M9 7h6M9 11h6M9 15h3M6 3l-2 3 2 3M18 3l2 3-2 3" />
+    </svg>
+  ),
   invoices: (
     <svg viewBox="0 0 24 24" {...stroke} className="h-[18px] w-[18px]">
       <path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Z" />
@@ -115,8 +121,9 @@ const MAIN_NAV = [
   { id: 'customers', label: 'Customers', icon: 'customers' },
   { id: 'assignments', label: 'Assignments', icon: 'assignments' },
   { id: 'delivery', label: 'Delivery Tracking', icon: 'delivery' },
-  { id: 'payments', label: 'Payments', icon: 'payments' },
   { id: 'invoices', label: 'Invoices', icon: 'invoices' },
+  { id: 'payments', label: 'Payments', icon: 'payments' },
+  { id: 'ledger', label: 'Ledger', icon: 'ledger' },
   { id: 'renewals', label: 'Renewals', icon: 'renewals' },
 ];
 
@@ -128,6 +135,7 @@ const PATHS = {
   assignments: '/assignments',
   delivery: '/delivery',
   payments: '/payments',
+  ledger: '/ledger',
   invoices: '/invoices',
   renewals: '/renewals',
 };

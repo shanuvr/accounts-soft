@@ -1,7 +1,70 @@
 import { useSyncExternalStore } from 'react';
 
-let invoices = [];
-let invoiceCounter = 1;
+const SEED_INVOICES = [
+  {
+    invoiceId: 'INV-001',
+    orderId: 'ORD-1024',
+    customer: 'ABC Technologies Pvt Ltd',
+    invoiceType: 'Full Invoice',
+    planId: null,
+    planStage: null,
+    invoiceDate: '2026-09-06',
+    dueDate: '2026-09-20',
+    paymentTerms: 'Net 14',
+    items: [{ name: 'IT services — Phase 1', quantity: 1, price: 147500 }],
+    subtotal: 147500,
+    discount: 0,
+    tax: 0,
+    taxRate: 0,
+    total: 147500,
+    status: 'Issued',
+    notes: '',
+    sentAt: '2026-09-06',
+  },
+  {
+    invoiceId: 'INV-002',
+    orderId: 'ORD-1023',
+    customer: 'BlueSky Media',
+    invoiceType: 'Full Invoice',
+    planId: null,
+    planStage: null,
+    invoiceDate: '2026-09-05',
+    dueDate: '2026-08-28',
+    paymentTerms: 'Due on Receipt',
+    items: [{ name: 'Digital marketing campaign', quantity: 1, price: 45000 }],
+    subtotal: 45000,
+    discount: 0,
+    tax: 0,
+    taxRate: 0,
+    total: 45000,
+    status: 'Issued',
+    notes: '',
+    sentAt: '2026-09-05',
+  },
+  {
+    invoiceId: 'INV-003',
+    orderId: 'ORD-1021',
+    customer: 'Nova Systems',
+    invoiceType: 'Full Invoice',
+    planId: null,
+    planStage: null,
+    invoiceDate: '2026-08-26',
+    dueDate: '2026-09-02',
+    paymentTerms: 'Net 7',
+    items: [{ name: 'Infrastructure setup', quantity: 1, price: 230000 }],
+    subtotal: 230000,
+    discount: 0,
+    tax: 0,
+    taxRate: 0,
+    total: 230000,
+    status: 'Issued',
+    notes: '',
+    sentAt: '2026-08-26',
+  },
+];
+
+let invoices = SEED_INVOICES.map((i) => ({ ...i }));
+let invoiceCounter = 10;
 const listeners = new Set();
 
 const todayISO = () => new Date().toISOString().slice(0, 10);

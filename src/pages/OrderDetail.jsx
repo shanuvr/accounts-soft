@@ -1066,7 +1066,6 @@ function OrderDetail() {
         <div className="grid grid-cols-1 gap-x-10 px-6 py-2 sm:grid-cols-2">
           <div className="divide-y divide-slate-100">
             <InfoRow label="Order Date">{fmtDate(order.orderDate)}</InfoRow>
-            <InfoRow label="Lead Order ID"><span className="font-mono text-[12px] text-slate-500">{order.leadId}</span></InfoRow>
             <InfoRow label="Sales Person">{order.salesPerson}</InfoRow>
           </div>
           <div className="divide-y divide-slate-100">

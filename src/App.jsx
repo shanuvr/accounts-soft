@@ -19,6 +19,7 @@ import EmployeeMaster from './pages/EmployeeMaster'
 import DepartmentMaster from './pages/DepartmentMaster'
 import Payments from './pages/Payments'
 import PaymentDetail from './pages/PaymentDetail'
+import Ledger from './pages/Ledger'
 import InvoiceList from './pages/InvoiceList'
 import InvoiceDetail from './pages/InvoiceDetail'
 import Renewals from './pages/Renewals'
@@ -61,6 +62,7 @@ function App() {
       <Route path="/delivery/:deliveryId" element={<DeliveryDetail />} />
       <Route path="/payments" element={<Payments />} />
       <Route path="/payments/:paymentId" element={<PaymentDetail />} />
+      <Route path="/ledger" element={<Ledger />} />
       <Route path="/invoices" element={<InvoiceList />} />
       <Route path="/invoices/:invoiceId" element={<InvoiceDetail />} />
       <Route path="/renewals" element={<Renewals />} />

@@ -42,7 +42,7 @@ const DOCUMENTS = [
   { name: 'Dealership Agreement.pdf', type: 'Legal', size: '2.4 MB', uploadedOn: '2026-09-05' },
 ];
 
-const TABS = ['Overview', 'Orders', 'Services', 'Payments', 'Documents', 'Activity'];
+const TABS = ['Overview', 'Orders', 'Services', 'History', 'Payments', 'Documents', 'Activity'];
 
 function Badge({ cls, children }) {
   return <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${cls}`}>{children}</span>;
@@ -75,26 +75,38 @@ function CustomerDetail() {
     const completed = orders.filter((o) => o.orderStatus === 'Completed' || o.orderStatus === 'Delivered').length;
     const customerPtds = ptds.filter((p) => p.customer === customer.name);
     const donePtds = customerPtds.filter((p) => p.status === 'Completed');
-    const serviceRows = orders.flatMap((o) =>
-      (ORDER_SERVICES[o.orderId] ?? []).map((s) => {
-        const ptd = customerPtds.find((p) => p.orderId === o.orderId && p.serviceName === s.name);
-        const asn = assignments.find((a) => a.orderId === o.orderId && a.serviceName === s.name);
-        return { ...s, order: o, ptd, asn };
-      })
+    const existingKeys = new Set();
+    orders.forEach((o) =>
+      (ORDER_SERVICES[o.orderId] ?? []).forEach((s) => existingKeys.add(`${o.orderId}|${s.name}`))
     );
-    return { orders, payments, received, totalValue, pending: Math.max(0, totalValue - received), completed, activeServices: donePtds.length, donePtds, serviceRows };
+    const serviceRows = [
+      ...orders.flatMap((o) =>
+        (ORDER_SERVICES[o.orderId] ?? []).map((s) => {
+          const ptd = customerPtds.find((p) => p.orderId === o.orderId && p.serviceName === s.name);
+          const asn = assignments.find((a) => a.orderId === o.orderId && a.serviceName === s.name);
+          return { ...s, order: o, ptd, asn };
+        })
+      ),
+      ...customerPtds
+        .filter((p) => !existingKeys.has(`${p.orderId}|${p.serviceName}`))
+        .map((p) => {
+          const order = orders.find((o) => o.orderId === p.orderId) ?? { orderId: p.orderId, deliveryDate: p.updatedAt, value: p.price, orderStatus: p.status };
+          const asn = assignments.find((a) => a.orderId === p.orderId && a.serviceName === p.serviceName);
+          return { name: p.serviceName, order, ptd: p, asn, amount: p.price ?? 0, quantity: 1 };
+        }),
+    ];
+    const worksDone = [
+      ...donePtds.map((p) => ({ kind: 'PTD', id: p.id, service: p.serviceName, order: p.orderId, date: p.updatedAt, template: p.template, billable: p.billable, price: p.price ?? 0 })),
+      ...assignments
+        .filter((a) => a.customer === customer.name && a.status === 'Completed')
+        .map((a) => ({ kind: 'Assignment', id: a.id, service: a.serviceName, order: a.orderId, date: a.assignedOn, template: a.assignedTo, billable: null, price: 0 })),
+    ].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+    return { orders, payments, received, totalValue, pending: Math.max(0, totalValue - received), completed, activeServices: donePtds.length, donePtds, serviceRows, worksDone };
   }, [customer, ptds, assignments]);
-
-  if (!customer || !data) {
-    return (
-      <Layout active="customers">
-        <div className="p-6 text-[13px] text-slate-500">Customer not found. <button type="button" onClick={() => navigate('/customers')} className="text-emerald-600 hover:underline">Back to customers</button></div>
-      </Layout>
-    );
-  }
 
   // Activity timeline
   const activity = useMemo(() => {
+    if (!customer || !data) return [];
     const events = [];
     for (const o of data.orders) {
       events.push({ date: o.orderDate, kind: 'order', text: `${o.orderId} received from Lead Soft`, sub: `${fmtINR(o.value)} · ${o.orderStatus}` });
@@ -115,6 +127,14 @@ function CustomerDetail() {
     const key = p.data?.domainName ?? p.data?.certDomain ?? (p.template === 'website' ? p.data?.projectName ?? 'Website' : p.data?.hostingPlan ?? p.serviceName);
     return { key, expiry: p.data?.expiryDate ?? p.data?.expectedCompletion ?? null, project: p.template === 'website' };
   };
+
+  if (!customer || !data) {
+    return (
+      <Layout active="customers">
+        <div className="p-6 text-[13px] text-slate-500">Customer not found. <button type="button" onClick={() => navigate('/customers')} className="text-emerald-600 hover:underline">Back to customers</button></div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout active="customers">
@@ -191,25 +211,48 @@ function CustomerDetail() {
               </div>
 
               {data.donePtds.length > 0 && (
-                <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6">
-                  <h2 className="mb-4 text-[13px] font-semibold uppercase tracking-wider text-slate-500">Active Services</h2>
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {data.donePtds.map((p) => {
-                      const { key, expiry, project } = activeIcon(p);
-                      return (
-                        <div key={p.id} className="rounded-lg border border-slate-200 p-4">
-                          <div className="flex items-center justify-between">
-                            <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-400">{p.serviceName}</p>
-                            <Badge cls={PTD_STATUS_COLORS[p.status] ?? PTD_STATUS_COLORS.Draft}>{p.status}</Badge>
-                          </div>
-                          <p className="mt-1 text-[14px] font-semibold text-slate-800">{key}</p>
-                          {expiry
-                            ? <p className="mt-1 text-[12px] text-slate-500">Expires: <span className="font-medium text-slate-700">{fmtDate(expiry)}</span></p>
-                            : project && <p className="mt-1 text-[12px] text-slate-500">Status: <span className="font-medium text-slate-700">{p.status}</span></p>}
-                          <p className="mt-1 text-[11.5px] text-slate-400">Order: {p.orderId}</p>
-                        </div>
-                      );
-                    })}
+                <div className="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white">
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-6 py-4">
+                    <div>
+                      <h2 className="text-[13px] font-semibold uppercase tracking-wider text-slate-500">Active Services</h2>
+                      <p className="mt-0.5 text-[12px] text-slate-400">Completed technical assets and services currently active for this customer.</p>
+                    </div>
+                    <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-200">
+                      {data.donePtds.length} active
+                    </span>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[780px] text-left text-[13px]">
+                      <thead>
+                        <tr className="border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500">
+                          <th className="px-4 py-3 font-semibold">Service</th>
+                          <th className="px-4 py-3 font-semibold">Asset / Detail</th>
+                          <th className="px-4 py-3 font-semibold">Order</th>
+                          <th className="px-4 py-3 font-semibold">Status</th>
+                          <th className="px-4 py-3 font-semibold">Expires / Completion</th>
+                          <th className="px-4 py-3 text-right font-semibold">Billing</th>
+                          <th className="px-4 py-3 text-right font-semibold">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data.donePtds.map((p) => {
+                          const { key, expiry, project } = activeIcon(p);
+                          return (
+                            <tr key={p.id} onClick={() => navigate(`/ptd/${p.id}`)} className="cursor-pointer border-b border-slate-100 transition-colors last:border-0 hover:bg-emerald-50/40">
+                              <td className="px-4 py-3 font-semibold text-slate-800">{p.serviceName}</td>
+                              <td className="px-4 py-3 text-slate-600">{key}</td>
+                              <td className="px-4 py-3 text-slate-500">{p.orderId}</td>
+                              <td className="px-4 py-3"><Badge cls={PTD_STATUS_COLORS[p.status] ?? PTD_STATUS_COLORS.Draft}>{p.status}</Badge></td>
+                              <td className="px-4 py-3 text-slate-500">{expiry ? fmtDate(expiry) : project ? p.status : '—'}</td>
+                              <td className="px-4 py-3 text-right font-semibold text-slate-700">{p.billable === false ? 'Non-Billable' : fmtINR(p.price ?? 0)}</td>
+                              <td className="px-4 py-3 text-right">
+                                <button type="button" onClick={(e) => { e.stopPropagation(); navigate(`/ptd/${p.id}`); }} className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-[12px] font-medium text-slate-600 transition-colors hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700">View</button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               )}
@@ -290,10 +333,68 @@ function CustomerDetail() {
                         <td className="px-4 py-3 text-slate-600">{s.quantity}</td>
                       </tr>
                     ))}
+                    {data.serviceRows.length === 0 && (
+                      <tr><td colSpan={7} className="px-4 py-10 text-center text-slate-400">No services attached to this customer yet.</td></tr>
+                    )}
                   </tbody>
                 </table>
               </div>
             </div>
+          )}
+
+          {/* HISTORY — work done */}
+          {tab === 'History' && (
+            <>
+              <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <StatCard label="Works Completed" value={data.worksDone.length} accent />
+                <StatCard label="Active Services" value={data.activeServices} />
+                <StatCard label="Orders Completed" value={`${data.completed} / ${data.orders.length}`} />
+              </div>
+              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-6 py-4">
+                  <div>
+                    <h2 className="text-[13px] font-semibold uppercase tracking-wider text-slate-500">Work Done</h2>
+                    <p className="mt-0.5 text-[12px] text-slate-400">All completed work for this customer — technical data sheets, assignments and more.</p>
+                  </div>
+                  <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-200">
+                    {data.worksDone.length} completed
+                  </span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[720px] text-left text-[13px]">
+                    <thead>
+                      <tr className="border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500">
+                        <th className="px-4 py-3 font-semibold">Work / Service</th>
+                        <th className="px-4 py-3 font-semibold">Type</th>
+                        <th className="px-4 py-3 font-semibold">Order</th>
+                        <th className="px-4 py-3 font-semibold">Detail</th>
+                        <th className="px-4 py-3 font-semibold">Completed On</th>
+                        <th className="px-4 py-3 text-right font-semibold">Billing</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.worksDone.map((w) => (
+                        <tr key={`${w.kind}-${w.id}`} onClick={() => navigate(`/ptd/${w.id}`)} className="cursor-pointer border-b border-slate-100 transition-colors last:border-0 hover:bg-emerald-50/40">
+                          <td className="px-4 py-3 font-semibold text-slate-800">{w.service}</td>
+                          <td className="px-4 py-3">
+                            <Badge cls={w.kind === 'PTD' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-blue-200 bg-blue-50 text-blue-700'}>{w.kind}</Badge>
+                          </td>
+                          <td className="px-4 py-3 text-slate-500">{w.order}</td>
+                          <td className="px-4 py-3 text-slate-600">{w.template}</td>
+                          <td className="px-4 py-3 text-slate-500">{fmtDate(w.date)}</td>
+                          <td className="px-4 py-3 text-right font-semibold text-slate-700">
+                            {w.billable === false ? 'Non-Billable' : w.price > 0 ? fmtINR(w.price) : '—'}
+                          </td>
+                        </tr>
+                      ))}
+                      {data.worksDone.length === 0 && (
+                        <tr><td colSpan={6} className="px-4 py-10 text-center text-slate-400">No completed work for this customer yet.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
           )}
 
           {/* PAYMENTS */}

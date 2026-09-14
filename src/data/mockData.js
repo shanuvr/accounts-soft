@@ -1,15 +1,15 @@
 export const ORDERS = [
-  { orderId: 'ORD-1024', leadId: 'LEAD-ORD-2045', customer: 'ABC Technologies Pvt Ltd', value: 147500, orderDate: '2026-09-05', deliveryDate: '2026-09-30', orderStatus: 'In Progress', paymentStatus: 'Partially Paid', salesPerson: 'Rahul Sharma' },
-  { orderId: 'ORD-1016', leadId: 'LEAD-ORD-2030', customer: 'ABC Technologies Pvt Ltd', value: 120000, orderDate: '2026-07-05', deliveryDate: '2026-07-28', orderStatus: 'Completed', paymentStatus: 'Paid', salesPerson: 'Anita Desai' },
-  { orderId: 'ORD-1014', leadId: 'LEAD-ORD-2028', customer: 'ABC Technologies Pvt Ltd', value: 220000, orderDate: '2026-06-15', deliveryDate: '2026-07-12', orderStatus: 'Completed', paymentStatus: 'Paid', salesPerson: 'Priya Nair' },
-  { orderId: 'ORD-1012', leadId: 'LEAD-ORD-2025', customer: 'ABC Technologies Pvt Ltd', value: 85000, orderDate: '2026-05-20', deliveryDate: '2026-08-08', orderStatus: 'Completed', paymentStatus: 'Paid', salesPerson: 'Karan Malhotra' },
-  { orderId: 'ORD-1023', leadId: 'LEAD-ORD-2044', customer: 'BlueSky Media', value: 45000, orderDate: '2026-09-04', deliveryDate: '2026-09-18', orderStatus: 'Under Review', paymentStatus: 'Unpaid', salesPerson: 'Anita Desai' },
-  { orderId: 'ORD-1022', leadId: 'LEAD-ORD-2043', customer: 'GreenLeaf Organics', value: 89000, orderDate: '2026-08-28', deliveryDate: '2026-09-14', orderStatus: 'Completed', paymentStatus: 'Paid', salesPerson: 'Rahul Sharma' },
-  { orderId: 'ORD-1021', leadId: 'LEAD-ORD-2042', customer: 'Nova Systems', value: 230000, orderDate: '2026-08-25', deliveryDate: '2026-09-28', orderStatus: 'In Progress', paymentStatus: 'Partially Paid', salesPerson: 'Priya Nair' },
-  { orderId: 'ORD-1020', leadId: 'LEAD-ORD-2041', customer: 'Zenith Corp', value: 67500, orderDate: '2026-08-20', deliveryDate: '2026-09-05', orderStatus: 'Delivered', paymentStatus: 'Overdue', salesPerson: 'Karan Malhotra' },
-  { orderId: 'ORD-1019', leadId: 'LEAD-ORD-2040', customer: 'Fusion Retail', value: 120000, orderDate: '2026-08-15', deliveryDate: '2026-09-10', orderStatus: 'On Hold', paymentStatus: 'Unpaid', salesPerson: 'Anita Desai' },
-  { orderId: 'ORD-1018', leadId: 'LEAD-ORD-2039', customer: 'Volt Energy', value: 56000, orderDate: '2026-08-10', deliveryDate: '2026-08-28', orderStatus: 'Cancelled', paymentStatus: 'Refunded', salesPerson: 'Priya Nair' },
-  { orderId: 'ORD-1017', leadId: 'LEAD-ORD-2038', customer: 'Orbit Logistics', value: 78000, orderDate: '2026-08-06', deliveryDate: '2026-09-12', orderStatus: 'In Progress', paymentStatus: 'Unpaid', salesPerson: 'Karan Malhotra' },
+  { orderId: 'ORD-1024',  customer: 'ABC Technologies Pvt Ltd', value: 147500, orderDate: '2026-09-05', deliveryDate: '2026-09-30', orderStatus: 'In Progress', paymentStatus: 'Partially Paid', salesPerson: 'Rahul Sharma' },
+  { orderId: 'ORD-1016',  customer: 'ABC Technologies Pvt Ltd', value: 120000, orderDate: '2026-07-05', deliveryDate: '2026-07-28', orderStatus: 'Completed', paymentStatus: 'Paid', salesPerson: 'Anita Desai' },
+  { orderId: 'ORD-1014',  customer: 'ABC Technologies Pvt Ltd', value: 220000, orderDate: '2026-06-15', deliveryDate: '2026-07-12', orderStatus: 'Completed', paymentStatus: 'Paid', salesPerson: 'Priya Nair' },
+  { orderId: 'ORD-1012',  customer: 'ABC Technologies Pvt Ltd', value: 85000, orderDate: '2026-05-20', deliveryDate: '2026-08-08', orderStatus: 'Completed', paymentStatus: 'Paid', salesPerson: 'Karan Malhotra' },
+  { orderId: 'ORD-1023',  customer: 'BlueSky Media', value: 45000, orderDate: '2026-09-04', deliveryDate: '2026-09-18', orderStatus: 'Under Review', paymentStatus: 'Unpaid', salesPerson: 'Anita Desai' },
+  { orderId: 'ORD-1022',  customer: 'GreenLeaf Organics', value: 89000, orderDate: '2026-08-28', deliveryDate: '2026-09-14', orderStatus: 'Completed', paymentStatus: 'Paid', salesPerson: 'Rahul Sharma' },
+  { orderId: 'ORD-1021',  customer: 'Nova Systems', value: 230000, orderDate: '2026-08-25', deliveryDate: '2026-09-28', orderStatus: 'In Progress', paymentStatus: 'Partially Paid', salesPerson: 'Priya Nair' },
+  { orderId: 'ORD-1020',  customer: 'Zenith Corp', value: 67500, orderDate: '2026-08-20', deliveryDate: '2026-09-05', orderStatus: 'Delivered', paymentStatus: 'Overdue', salesPerson: 'Karan Malhotra' },
+  { orderId: 'ORD-1019',  customer: 'Fusion Retail', value: 120000, orderDate: '2026-08-15', deliveryDate: '2026-09-10', orderStatus: 'On Hold', paymentStatus: 'Unpaid', salesPerson: 'Anita Desai' },
+  { orderId: 'ORD-1018',  customer: 'Volt Energy', value: 56000, orderDate: '2026-08-10', deliveryDate: '2026-08-28', orderStatus: 'Cancelled', paymentStatus: 'Refunded', salesPerson: 'Priya Nair' },
+  { orderId: 'ORD-1017',  customer: 'Orbit Logistics', value: 78000, orderDate: '2026-08-06', deliveryDate: '2026-09-12', orderStatus: 'In Progress', paymentStatus: 'Unpaid', salesPerson: 'Karan Malhotra' },
 ];
 
 export const CUSTOMERS = [
@@ -23,7 +23,11 @@ export const CUSTOMERS = [
   { customerId: 'CUST-008', name: 'Orbit Logistics', contactPerson: 'Farhan Ali', phone: '97111 88776', email: 'accounts@orbitlogistics.in', type: 'SME', status: 'Active' },
 ];
 
-export const PAYMENTS = [];
+export const PAYMENTS = [
+  { paymentId: 'PAY-001', orderId: 'ORD-1024', customer: 'ABC Technologies Pvt Ltd', amount: 75000, date: '2026-09-08', method: 'Bank Transfer', reference: 'NEFT/UTR-00088231', receivedBy: 'Priya Nair', notes: 'Part payment against INV-001', status: 'Received', planStage: '', invoiceId: 'INV-001' },
+  { paymentId: 'PAY-002', orderId: 'ORD-1021', customer: 'Nova Systems', amount: 230000, date: '2026-09-01', method: 'Bank Transfer', reference: 'NEFT/UTR-00077110', receivedBy: 'Priya Nair', notes: 'Full settlement of INV-003', status: 'Received', planStage: '', invoiceId: 'INV-003' },
+  { paymentId: 'PAY-003', orderId: 'ORD-1023', customer: 'BlueSky Media', amount: 20000, date: '2026-09-06', method: 'UPI', reference: 'UPI@bluesky038812', receivedBy: 'Priya Nair', notes: 'Refunded — invalid payment', status: 'Refunded', planStage: '', invoiceId: 'INV-002' },
+];
 
 export const ORDER_SERVICES = {};
 

@@ -1,7 +1,59 @@
 import { useSyncExternalStore } from 'react';
 
-let records = [];
-let counter = 1;
+const SEED = [
+  {
+    id: 'PTD-001',
+    orderId: 'ORD-1024',
+    customer: 'ABC Technologies Pvt Ltd',
+    serviceName: 'Domain Registration',
+    template: 'domain',
+    status: 'Completed',
+    data: {
+      domainName: 'abctechnologies.in',
+      extension: '.in',
+      registrar: 'GoDaddy',
+      registrationDate: '2026-09-05',
+      expiryDate: '2027-09-05',
+      autoRenewal: 'Yes',
+      dnsProvider: 'Cloudflare',
+      nameservers: 'ns1.cloudflare.com\nns2.cloudflare.com',
+      technicalOwner: 'Rahul Sharma',
+      notes: 'Primary domain for the corporate website.',
+    },
+    billable: true,
+    price: 1500,
+    createdBy: 'Rahul Sharma',
+    updatedAt: '2026-09-10',
+  },
+  {
+    id: 'PTD-002',
+    orderId: 'ORD-1021',
+    customer: 'Nova Systems',
+    serviceName: 'Web Hosting',
+    template: 'hosting',
+    status: 'Draft',
+    data: {
+      hostingProvider: 'Bluehost',
+      hostingPlan: 'Business Pro',
+      serverName: 'nova-prod-01',
+      ipAddress: '103.21.58.41',
+      os: 'Linux',
+      storage: '100 GB',
+      bandwidth: 'Unlimited',
+      startDate: '2026-08-25',
+      expiryDate: '2027-08-25',
+      technicalOwner: 'Amit Verma',
+      notes: '',
+    },
+    billable: true,
+    price: 8000,
+    createdBy: 'Rahul Sharma',
+    updatedAt: '2026-09-12',
+  },
+];
+
+let records = SEED.map((r) => ({ ...r }));
+let counter = 10;
 const listeners = new Set();
 
 function emit() {
