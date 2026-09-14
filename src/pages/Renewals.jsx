@@ -174,6 +174,7 @@ function RenewModal({ record, onClose, onSave }) {
 function Renewals() {
   const records = useRenewables();
   const [filter, setFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [calledFilter, setCalledFilter] = useState('');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
@@ -184,6 +185,7 @@ function Renewals() {
   const withStatus = records.map((r) => ({ ...r, status: getRenewalStatus(r) }));
   const filtered = withStatus.filter((r) => {
     if (filter && r.type !== filter) return false;
+    if (statusFilter && r.status.key !== statusFilter) return false;
     if (calledFilter === 'called' && !r.notified) return false;
     if (calledFilter === 'not-called' && r.notified) return false;
     if (fromDate && r.expiryDate < fromDate) return false;
@@ -280,6 +282,12 @@ function Renewals() {
               <option value="">All Types</option>
               {RENEWAL_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className={filterFieldCls} aria-label="Filter by status">
+              <option value="">All Statuses</option>
+              <option value="Active">Active</option>
+              <option value="Expiring Soon">Expiring Soon</option>
+              <option value="Overdue">Overdue</option>
+            </select>
             <select value={calledFilter} onChange={(e) => setCalledFilter(e.target.value)} className={filterFieldCls} aria-label="Filter by notified">
               <option value="">All (Notified)</option>
               <option value="called">Called / Notified</option>
@@ -290,10 +298,10 @@ function Renewals() {
             <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} aria-label="Expiry from" className={filterFieldCls} />
             <span>to</span>
             <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} aria-label="Expiry to" className={filterFieldCls} />
-            {(filter || calledFilter || fromDate || toDate) && (
+            {(filter || statusFilter || calledFilter || fromDate || toDate) && (
               <button
                 type="button"
-                onClick={() => { setFilter(''); setCalledFilter(''); setFromDate(''); setToDate(''); }}
+                onClick={() => { setFilter(''); setStatusFilter(''); setCalledFilter(''); setFromDate(''); setToDate(''); }}
                 className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[12px] font-medium text-slate-500 transition-colors hover:bg-slate-50"
               >
                 Clear Filters
