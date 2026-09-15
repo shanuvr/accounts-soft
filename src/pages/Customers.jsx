@@ -105,17 +105,17 @@ function Customers() {
             <table className="w-full min-w-[1080px] text-left text-[12.5px]">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500">
-                  <th className="px-3.5 py-2.5 font-semibold">Customer ID</th>
-                  <th className="px-3.5 py-2.5 font-semibold">Customer</th>
-                  <th className="px-3.5 py-2.5 font-semibold">Contact</th>
-                  <th className="px-3.5 py-2.5 font-semibold">Phone</th>
-                  <th className="px-3.5 py-2.5 font-semibold">Email</th>
-                  <th className="px-3.5 py-2.5 font-semibold">Type</th>
-                  <th className="px-3.5 py-2.5 text-right font-semibold">Orders</th>
-                  <th className="px-3.5 py-2.5 text-right font-semibold">Order Value</th>
-                  <th className="px-3.5 py-2.5 text-right font-semibold">Pending</th>
-                  <th className="px-3.5 py-2.5 font-semibold">Status</th>
-                  <th className="px-3.5 py-2.5 text-right font-semibold">Actions</th>
+                  <th className="px-2 py-2 font-semibold">Customer ID</th>
+                  <th className="px-2 py-2 font-semibold">Customer</th>
+                  <th className="px-2 py-2 font-semibold">Contact</th>
+                  <th className="px-2 py-2 font-semibold">Phone</th>
+                  <th className="px-2 py-2 font-semibold">Email</th>
+                  <th className="px-2 py-2 font-semibold">Type</th>
+                  <th className="px-2 py-2 text-right font-semibold">Orders</th>
+                  <th className="px-2 py-2 text-right font-semibold">Order Value</th>
+                  <th className="px-2 py-2 text-right font-semibold">Pending</th>
+                  <th className="px-2 py-2 font-semibold">Status</th>
+                  <th className="px-2 py-2 text-right font-semibold">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -130,17 +130,17 @@ function Customers() {
                     onClick={() => navigate(`/customers/${c.customerId}`)}
                     className="cursor-pointer border-b border-slate-100 transition-colors last:border-0 hover:bg-emerald-50/40"
                   >
-                    <td className="px-3.5 py-2.5 font-medium text-slate-500">{c.customerId}</td>
-                    <td className="px-3.5 py-2.5 font-semibold text-slate-800">{c.name}</td>
-                    <td className="px-3.5 py-2.5 text-slate-600">{c.contactPerson}</td>
-                    <td className="px-3.5 py-2.5 text-slate-500">{c.phone}</td>
-                    <td className="px-3.5 py-2.5 text-slate-500">{c.email}</td>
-                    <td className="px-3.5 py-2.5"><TypeBadge type={c.type} /></td>
-                    <td className="px-3.5 py-2.5 text-right font-semibold text-slate-700">{c.orderCount}</td>
-                    <td className="px-3.5 py-2.5 text-right text-slate-600">{fmtINR(c.value)}</td>
-                    <td className={`px-3.5 py-2.5 text-right font-semibold ${c.pending > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>{fmtINR(c.pending)}</td>
-                    <td className="px-3.5 py-2.5"><StatusBadge status={c.status} /></td>
-                    <td className="px-3.5 py-2.5 text-right">
+                    <td className="px-2 py-2 font-medium text-slate-500">{c.customerId}</td>
+                    <td className="px-2 py-2 font-semibold text-slate-800">{c.name}</td>
+                    <td className="px-2 py-2 text-slate-600">{c.contactPerson}</td>
+                    <td className="px-2 py-2 text-slate-500">{c.phone}</td>
+                    <td className="px-2 py-2 text-slate-500">{c.email}</td>
+                    <td className="px-2 py-2"><TypeBadge type={c.type} /></td>
+                    <td className="px-2 py-2 text-right font-semibold text-slate-700">{c.orderCount}</td>
+                    <td className="px-2 py-2 text-right text-slate-600">{fmtINR(c.value)}</td>
+                    <td className={`px-2 py-2 text-right font-semibold ${c.pending > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>{fmtINR(c.pending)}</td>
+                    <td className="px-2 py-2"><StatusBadge status={c.status} /></td>
+                    <td className="px-2 py-2 text-right">
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); navigate(`/customers/${c.customerId}`); }}

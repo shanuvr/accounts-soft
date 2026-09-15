@@ -74,49 +74,70 @@ function Ledger() {
 
       <div className="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[700px] text-left text-[13px]">
+          <table className="w-full min-w-[1000px] text-left text-[13px]">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500">
-                <th className="px-4 py-3 font-semibold">Date</th>
-                <th className="px-4 py-3 font-semibold">Particulars</th>
-                <th className="px-4 py-3 font-semibold">Type</th>
-                <th className="px-4 py-3 text-right font-semibold">Debit</th>
-                <th className="px-4 py-3 text-right font-semibold">Credit</th>
+                <th className="px-2 py-2 font-semibold">Date</th>
+                <th className="px-2 py-2 font-semibold">Particulars</th>
+                <th className="px-2 py-2 font-semibold">Project Reference</th>
+                <th className="px-2 py-2 font-semibold">Type</th>
+                <th className="px-2 py-2 text-right font-semibold">Invoice Amount</th>
+                <th className="px-2 py-2 text-right font-semibold">Tax / TDS</th>
+                <th className="px-2 py-2 text-right font-semibold">Debit</th>
+                <th className="px-2 py-2 text-right font-semibold">Credit</th>
+                <th className="px-3 py-3 text-right font-semibold">Running Balance</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((e, i) => (
                 <tr key={`${e.docId}-${i}`} className="border-b border-slate-100 last:border-0">
-                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">{fmtDate(e.date)}</td>
-                  <td className="max-w-[320px] truncate px-4 py-3 text-slate-800">
+                  <td className="whitespace-nowrap px-2 py-2 text-slate-600">{fmtDate(e.date)}</td>
+                  <td className="max-w-[280px] truncate px-2 py-2 text-slate-800">
                     <span className="font-semibold">{e.docId}</span>
-                    <span className="ml-2 text-slate-500">{e.reference}</span>
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3">
+                  <td className="whitespace-nowrap px-2 py-2 font-medium text-emerald-700">
+                    {e.projectReference || '—'}
+                  </td>
+                  <td className="whitespace-nowrap px-2 py-2">
                     <span className={`inline-flex items-center whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${BOOK_BADGE[e.book] ?? 'border-slate-200 bg-slate-100 text-slate-400'}`}>
                       {e.book ?? '—'}
                     </span>
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right font-medium text-slate-800">
+                  <td className="whitespace-nowrap px-2 py-2 text-right text-slate-700">
+                    {e.invoiceAmount ? fmtINR(e.invoiceAmount) : '—'}
+                  </td>
+                  <td className="whitespace-nowrap px-2 py-2 text-right text-slate-700">
+                    {e.taxTds ? fmtINR(e.taxTds) : '—'}
+                  </td>
+                  <td className="whitespace-nowrap px-2 py-2 text-right font-medium text-slate-800">
                     {e.debit ? fmtINR(e.debit) : '—'}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right font-medium text-emerald-600">
+                  <td className="whitespace-nowrap px-2 py-2 text-right font-medium text-emerald-600">
                     {e.credit ? fmtINR(e.credit) : '—'}
+                  </td>
+                  <td className="whitespace-nowrap px-2 py-2 text-right font-semibold">
+                    {e.balance === 0 ? (
+                      '—'
+                    ) : (
+                      <span className={e.balance > 0 ? 'text-slate-800' : 'text-emerald-600'}>
+                        {fmtINR(Math.abs(e.balance))}
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan="5" className="px-4 py-12 text-center text-sm text-slate-400">No ledger entries match your filters.</td>
+                  <td colSpan="9" className="px-4 py-12 text-center text-sm text-slate-400">No ledger entries match your filters.</td>
                 </tr>
               )}
             </tbody>
             {filtered.length > 0 && (
               <tfoot>
                 <tr className="border-t border-slate-200 bg-slate-50/60">
-                  <td colSpan="3" className="px-4 py-3 text-right text-[12px] font-semibold uppercase tracking-wider text-slate-500">Total</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right font-semibold text-slate-800">{fmtINR(totals.debit)}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right font-semibold text-emerald-600">{fmtINR(totals.credit)}</td>
+                  <td colSpan="7" className="px-2 py-2 text-right text-[12px] font-semibold uppercase tracking-wider text-slate-500">Total</td>
+                  <td className="whitespace-nowrap px-2 py-2 text-right font-semibold text-slate-800">{fmtINR(totals.debit)}</td>
+                  <td className="whitespace-nowrap px-2 py-2 text-right font-semibold text-emerald-600">{fmtINR(totals.credit)}</td>
                 </tr>
               </tfoot>
             )}

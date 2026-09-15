@@ -272,13 +272,13 @@ function PtdList() {
           <table className="w-full min-w-[820px] text-left text-[12.5px]">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500">
-                <th className="px-3.5 py-2.5 font-semibold">Order</th>
-                <th className="px-3.5 py-2.5 font-semibold">Customer</th>
-                <th className="px-3.5 py-2.5 font-semibold">Order Date</th>
-                <th className="px-3.5 py-2.5 font-semibold">Order Value</th>
-                <th className="px-3.5 py-2.5 font-semibold">Order Status</th>
-                <th className="px-3.5 py-2.5 font-semibold">PTD Count</th>
-                <th className="px-3.5 py-2.5 text-right font-semibold">Actions</th>
+                <th className="px-2 py-2 font-semibold">Order</th>
+                <th className="px-2 py-2 font-semibold">Customer</th>
+                <th className="px-2 py-2 font-semibold">Order Date</th>
+                <th className="px-2 py-2 font-semibold">Order Value</th>
+                <th className="px-2 py-2 font-semibold">Order Status</th>
+                <th className="px-2 py-2 font-semibold">PTD Count</th>
+                <th className="px-2 py-2 text-right font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -292,19 +292,19 @@ function PtdList() {
                       className={`cursor-pointer border-b border-slate-100 transition-colors hover:bg-slate-50/60 ${expanded ? 'bg-emerald-50/40' : ''} ${created === 0 ? 'opacity-70' : ''}`}
                       title={created > 0 ? `View ${created} PTD${created === 1 ? '' : 's'} for ${o.orderId}` : `No PTDs for ${o.orderId}`}
                     >
-                      <td className="whitespace-nowrap px-3.5 py-2.5">
+                      <td className="whitespace-nowrap px-2 py-2">
                         <span className="font-semibold text-emerald-700">{o.orderId}</span>
                       </td>
-                      <td className="max-w-[200px] truncate px-3.5 py-2.5 text-slate-800">{o.customer}</td>
-                      <td className="whitespace-nowrap px-3.5 py-2.5 text-slate-600">{o.orderDate ? fmtDate(o.orderDate) : '—'}</td>
-                      <td className="whitespace-nowrap px-3.5 py-2.5 font-semibold text-slate-800">{o.value ? fmtINR(o.value) : '—'}</td>
-                      <td className="whitespace-nowrap px-3.5 py-2.5 text-slate-700">{o.orderStatus}</td>
-                      <td className="whitespace-nowrap px-3.5 py-2.5">
+                      <td className="max-w-[200px] truncate px-2 py-2 text-slate-800">{o.customer}</td>
+                      <td className="whitespace-nowrap px-2 py-2 text-slate-600">{o.orderDate ? fmtDate(o.orderDate) : '—'}</td>
+                      <td className="whitespace-nowrap px-2 py-2 font-semibold text-slate-800">{o.value ? fmtINR(o.value) : '—'}</td>
+                      <td className="whitespace-nowrap px-2 py-2 text-slate-700">{o.orderStatus}</td>
+                      <td className="whitespace-nowrap px-2 py-2">
                         <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${created > 0 ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-slate-100 text-slate-400 ring-1 ring-slate-200'}`}>
                           {created} {created === 1 ? 'PTD' : 'PTDs'}
                         </span>
                       </td>
-                      <td className="whitespace-nowrap px-3.5 py-2.5 text-right">
+                      <td className="whitespace-nowrap px-2 py-2 text-right">
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); toggleRow(o.orderId); }}
@@ -420,7 +420,7 @@ function PtdList() {
           </table>
         </div>
 
-        <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-[12px] text-slate-500">
+        <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50/50 px-2 py-2 text-[12px] text-slate-500">
           <span>Showing {filtered.length} of {orders.length} orders</span>
         </div>
       </div>

@@ -20,7 +20,10 @@ export function entryForInvoice(inv) {
     orderId: inv.orderId,
     customer: inv.customer,
     reference: inv.invoiceType || 'Invoice',
+    projectReference: inv.orderId,
     invoiceId: inv.invoiceId,
+    invoiceAmount: Number(inv.total) || 0,
+    taxTds: Number(inv.tax) || 0,
     paymentId: null,
     method: null,
     book: null,
@@ -33,7 +36,8 @@ function bookFor(method) {
   return method === 'Cash' ? 'Cash' : method ? 'Bank' : null;
 }
 
-export function entryForPayment(p) {
+export function entryForPayment(p, invoiceIndex = new Map()) {
+  const linked = p.invoiceId ? invoiceIndex.get(p.invoiceId) : null;
   if (p.status === 'Failed') return null;
   if (p.status === 'Refunded') {
     return {
@@ -43,7 +47,10 @@ export function entryForPayment(p) {
       orderId: p.orderId,
       customer: p.customer,
       reference: p.reference || `Refund ${p.paymentId}`,
+      projectReference: p.orderId,
       invoiceId: p.invoiceId ?? null,
+      invoiceAmount: Number(linked?.total) || 0,
+      taxTds: Number(linked?.tax) || 0,
       paymentId: p.paymentId,
       method: p.method,
       book: bookFor(p.method),
@@ -58,7 +65,10 @@ export function entryForPayment(p) {
     orderId: p.orderId,
     customer: p.customer,
     reference: p.reference || `${p.method} receipt`,
+    projectReference: p.orderId,
     invoiceId: p.invoiceId ?? null,
+    invoiceAmount: Number(linked?.total) || 0,
+    taxTds: Number(linked?.tax) || 0,
     paymentId: p.paymentId,
     method: p.method,
     book: bookFor(p.method),
@@ -69,12 +79,13 @@ export function entryForPayment(p) {
 
 export function buildEntries(invoices, payments) {
   const entries = [];
+  const invoiceIndex = new Map(invoices.map((i) => [i.invoiceId, i]));
   for (const inv of invoices) {
     if (inv.status === 'Draft' || inv.status === 'Cancelled') continue;
     entries.push(entryForInvoice(inv));
   }
   for (const p of payments) {
-    const e = entryForPayment(p);
+    const e = entryForPayment(p, invoiceIndex);
     if (e) entries.push(e);
   }
   return entries.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.docType.localeCompare(b.docType)));

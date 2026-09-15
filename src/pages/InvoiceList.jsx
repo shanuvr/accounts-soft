@@ -112,27 +112,27 @@ function InvoiceList() {
           <table className="w-full min-w-[900px] text-left text-[13px]">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500">
-                <th className="px-4 py-3 font-semibold">Invoice No.</th>
-                <th className="px-4 py-3 font-semibold">Order</th>
-                <th className="px-4 py-3 font-semibold">Customer</th>
-                <th className="px-4 py-3 font-semibold">Date</th>
-                <th className="px-4 py-3 font-semibold">Due Date</th>
-                <th className="px-4 py-3 text-right font-semibold">Amount</th>
-                <th className="px-4 py-3 font-semibold">Status</th>
-                <th className="px-4 py-3 text-right font-semibold">Actions</th>
+                <th className="px-2 py-2 font-semibold">Invoice No.</th>
+                <th className="px-2 py-2 font-semibold">Order</th>
+                <th className="px-2 py-2 font-semibold">Customer</th>
+                <th className="px-2 py-2 font-semibold">Date</th>
+                <th className="px-2 py-2 font-semibold">Due Date</th>
+                <th className="px-2 py-2 text-right font-semibold">Amount</th>
+                <th className="px-2 py-2 font-semibold">Status</th>
+                <th className="px-2 py-2 text-right font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map(({ inv, status: st }) => (
                 <tr key={inv.invoiceId} onClick={() => navigate(`/invoices/${inv.invoiceId}`)} className="cursor-pointer border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50/60">
-                  <td className="whitespace-nowrap px-4 py-3 font-semibold text-emerald-700 hover:underline">{inv.invoiceId}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">{inv.orderId}</td>
-                  <td className="max-w-[220px] truncate px-4 py-3 text-slate-800">{inv.customer}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">{fmtDate(inv.invoiceDate)}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">{fmtDate(inv.dueDate)}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right font-semibold text-slate-800">{fmtINR(inv.total)}</td>
-                  <td className="whitespace-nowrap px-4 py-3"><Badge status={st} /></td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right">
+                  <td className="whitespace-nowrap px-2 py-2 font-semibold text-emerald-700 hover:underline">{inv.invoiceId}</td>
+                  <td className="whitespace-nowrap px-2 py-2 text-slate-600">{inv.orderId}</td>
+                  <td className="max-w-[220px] truncate px-2 py-2 text-slate-800">{inv.customer}</td>
+                  <td className="whitespace-nowrap px-2 py-2 text-slate-600">{fmtDate(inv.invoiceDate)}</td>
+                  <td className="whitespace-nowrap px-2 py-2 text-slate-600">{fmtDate(inv.dueDate)}</td>
+                  <td className="whitespace-nowrap px-2 py-2 text-right font-semibold text-slate-800">{fmtINR(inv.total)}</td>
+                  <td className="whitespace-nowrap px-2 py-2"><Badge status={st} /></td>
+                  <td className="whitespace-nowrap px-2 py-2 text-right">
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); navigate(`/invoices/${inv.invoiceId}`); }}
@@ -158,7 +158,7 @@ function InvoiceList() {
           </table>
         </div>
 
-        <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50/50 px-4 py-3 text-[12px] text-slate-500">
+        <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50/50 px-2 py-2 text-[12px] text-slate-500">
           <span>Showing {filtered.length} of {invoices.length} invoices</span>
         </div>
       </div>

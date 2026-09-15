@@ -131,39 +131,39 @@ function Payments() {
             <table className="w-full min-w-[900px] text-left text-[13px]">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500">
-                  <th className="px-4 py-3 font-semibold">Order</th>
-                  <th className="px-4 py-3 font-semibold">Customer</th>
-                  <th className="px-4 py-3 font-semibold">Plan Stage</th>
-                  <th className="px-4 py-3 font-semibold">Due Date</th>
-                  <th className="px-4 py-3 text-right font-semibold">Amount</th>
-                  <th className="px-4 py-3 text-right font-semibold">Received</th>
-                  <th className="px-4 py-3 text-right font-semibold">Balance</th>
-                  <th className="px-4 py-3 font-semibold">Status</th>
-                  <th className="px-4 py-3 text-right font-semibold">Plan Type</th>
+                  <th className="px-2 py-2 font-semibold">Order</th>
+                  <th className="px-2 py-2 font-semibold">Customer</th>
+                  <th className="px-2 py-2 font-semibold">Plan Stage</th>
+                  <th className="px-2 py-2 font-semibold">Due Date</th>
+                  <th className="px-2 py-2 text-right font-semibold">Amount</th>
+                  <th className="px-2 py-2 text-right font-semibold">Received</th>
+                  <th className="px-2 py-2 text-right font-semibold">Balance</th>
+                  <th className="px-2 py-2 font-semibold">Status</th>
+                  <th className="px-2 py-2 text-right font-semibold">Plan Type</th>
                 </tr>
               </thead>
               <tbody>
                 {scheduled.map((s) => (
                   <tr key={`${s.planId}-${s.stageId}`} className="border-b border-slate-100 last:border-0">
                     <td
-                      className={`whitespace-nowrap px-4 py-3 font-semibold ${s.status === 'Paid' ? 'text-slate-400' : 'text-emerald-700'} ${s.status !== 'Paid' ? 'cursor-pointer hover:underline' : ''}`}
+                      className={`whitespace-nowrap px-2 py-2 font-semibold ${s.status === 'Paid' ? 'text-slate-400' : 'text-emerald-700'} ${s.status !== 'Paid' ? 'cursor-pointer hover:underline' : ''}`}
                       onClick={() => { if (s.status !== 'Paid') navigate(`/orders/${s.orderId}`); }}
                     >
                       {s.orderId}
                     </td>
-                    <td className={`max-w-[200px] truncate px-4 py-3 ${s.status === 'Paid' ? 'text-slate-400' : 'text-slate-800'}`}>{s.customer}</td>
-                    <td className="whitespace-nowrap px-4 py-3">
+                    <td className={`max-w-[200px] truncate px-2 py-2 ${s.status === 'Paid' ? 'text-slate-400' : 'text-slate-800'}`}>{s.customer}</td>
+                    <td className="whitespace-nowrap px-2 py-2">
                       <span className={`font-medium ${s.status === 'Paid' ? 'text-slate-400' : 'text-slate-800'}`}>{s.stageTitle}</span>
                       <span className="ml-2 text-[11px] text-slate-400">{s.planName}</span>
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-slate-500">{fmtDate(s.dueDate)}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right font-semibold text-slate-800">{fmtINR(s.amount)}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right text-slate-600">{fmtINR(s.received)}</td>
-                    <td className={`whitespace-nowrap px-4 py-3 text-right font-semibold ${s.status === 'Paid' ? 'text-emerald-600' : s.status === 'Partial' ? 'text-sky-600' : 'text-amber-600'}`}>
+                    <td className="whitespace-nowrap px-2 py-2 text-slate-500">{fmtDate(s.dueDate)}</td>
+                    <td className="whitespace-nowrap px-2 py-2 text-right font-semibold text-slate-800">{fmtINR(s.amount)}</td>
+                    <td className="whitespace-nowrap px-2 py-2 text-right text-slate-600">{fmtINR(s.received)}</td>
+                    <td className={`whitespace-nowrap px-2 py-2 text-right font-semibold ${s.status === 'Paid' ? 'text-emerald-600' : s.status === 'Partial' ? 'text-sky-600' : 'text-amber-600'}`}>
                       {s.status === 'Paid' ? '—' : fmtINR(s.remaining)}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3"><Badge status={s.status} map={STAGE_STATUS} /></td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right text-[12px] text-slate-500">{s.planType}</td>
+                    <td className="whitespace-nowrap px-2 py-2"><Badge status={s.status} map={STAGE_STATUS} /></td>
+                    <td className="whitespace-nowrap px-2 py-2 text-right text-[12px] text-slate-500">{s.planType}</td>
                   </tr>
                 ))}
                 {scheduled.length === 0 && (
@@ -222,31 +222,31 @@ function Payments() {
           <table className="w-full min-w-[900px] text-left text-[13px]">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500">
-                <th className="px-4 py-3 font-semibold">Payment ID</th>
-                <th className="px-4 py-3 font-semibold">Order</th>
-                <th className="px-4 py-3 font-semibold">Customer</th>
-                <th className="px-4 py-3 font-semibold">Payment Date</th>
-                <th className="px-4 py-3 text-right font-semibold">Amount</th>
-                <th className="px-4 py-3 font-semibold">Method</th>
-                <th className="px-4 py-3 font-semibold">Schedule Stage</th>
-                <th className="px-4 py-3 font-semibold">Invoice</th>
-                <th className="px-4 py-3 font-semibold">Status</th>
-                <th className="px-4 py-3 text-right font-semibold">Actions</th>
+                <th className="px-2 py-2 font-semibold">Payment ID</th>
+                <th className="px-2 py-2 font-semibold">Order</th>
+                <th className="px-2 py-2 font-semibold">Customer</th>
+                <th className="px-2 py-2 font-semibold">Payment Date</th>
+                <th className="px-2 py-2 text-right font-semibold">Amount</th>
+                <th className="px-2 py-2 font-semibold">Method</th>
+                <th className="px-2 py-2 font-semibold">Schedule Stage</th>
+                <th className="px-2 py-2 font-semibold">Invoice</th>
+                <th className="px-2 py-2 font-semibold">Status</th>
+                <th className="px-2 py-2 text-right font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((p) => (
                 <tr key={p.paymentId} onClick={() => navigate(`/payments/${p.paymentId}`)} className="cursor-pointer border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50/60">
-                  <td className="whitespace-nowrap px-4 py-3 font-semibold text-emerald-700 hover:underline">{p.paymentId}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">{p.orderId}</td>
-                  <td className="max-w-[220px] truncate px-4 py-3 text-slate-800">{p.customer}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">{fmtDate(p.date)}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right font-semibold text-slate-800">{fmtINR(p.amount)}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-slate-700">{p.method}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">{p.planStage || '—'}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">{p.invoiceId || '—'}</td>
-                  <td className="whitespace-nowrap px-4 py-3"><Badge status={p.status} /></td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right">
+                  <td className="whitespace-nowrap px-2 py-2 font-semibold text-emerald-700 hover:underline">{p.paymentId}</td>
+                  <td className="whitespace-nowrap px-2 py-2 text-slate-600">{p.orderId}</td>
+                  <td className="max-w-[220px] truncate px-2 py-2 text-slate-800">{p.customer}</td>
+                  <td className="whitespace-nowrap px-2 py-2 text-slate-600">{fmtDate(p.date)}</td>
+                  <td className="whitespace-nowrap px-2 py-2 text-right font-semibold text-slate-800">{fmtINR(p.amount)}</td>
+                  <td className="whitespace-nowrap px-2 py-2 text-slate-700">{p.method}</td>
+                  <td className="whitespace-nowrap px-2 py-2 text-slate-600">{p.planStage || '—'}</td>
+                  <td className="whitespace-nowrap px-2 py-2 text-slate-600">{p.invoiceId || '—'}</td>
+                  <td className="whitespace-nowrap px-2 py-2"><Badge status={p.status} /></td>
+                  <td className="whitespace-nowrap px-2 py-2 text-right">
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); navigate(`/payments/${p.paymentId}`); }}
@@ -270,7 +270,7 @@ function Payments() {
           </table>
         </div>
 
-        <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50/50 px-4 py-3 text-[12px] text-slate-500">
+        <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50/50 px-2 py-2 text-[12px] text-slate-500">
           <span>Showing {filtered.length} of {payments.length} payments</span>
         </div>
           </div>

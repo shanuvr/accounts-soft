@@ -191,41 +191,41 @@ function Orders() {
           <table className="w-full min-w-[900px] text-left text-[12.5px]">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500">
-                <th className="px-3.5 py-2.5 font-semibold">Order ID</th>
-                <th className="px-3.5 py-2.5 font-semibold">Customer</th>
-                <th className="px-3.5 py-2.5 font-semibold">Order Value</th>
-                <th className="px-3.5 py-2.5 font-semibold">Order Date</th>
-                <th className="px-3.5 py-2.5 font-semibold">Age</th>
-                <th className="px-3.5 py-2.5 font-semibold">PTD</th>
-                <th className="px-3.5 py-2.5 font-semibold">Delivery Date</th>
-                <th className="px-3.5 py-2.5 font-semibold">Order Status</th>
-                <th className="px-3.5 py-2.5 font-semibold">Payment Status</th>
-                <th className="px-3.5 py-2.5 font-semibold">Sales Person</th>
-                <th className="px-3.5 py-2.5 text-right font-semibold">Actions</th>
+                <th className="px-2 py-1.5 font-semibold leading-tight"><span className="block">Order</span><span className="block">ID</span></th>
+                <th className="px-2 py-1.5 font-semibold">Customer</th>
+                <th className="px-2 py-1.5 text-right font-semibold leading-tight"><span className="block">Order</span><span className="block">Value</span></th>
+                <th className="px-2 py-1.5 font-semibold leading-tight"><span className="block">Order</span><span className="block">Date</span></th>
+                <th className="px-2 py-1.5 font-semibold">Age</th>
+                <th className="px-2 py-1.5 font-semibold">PTD</th>
+                <th className="px-2 py-1.5 font-semibold leading-tight"><span className="block">Delivery</span><span className="block">Date</span></th>
+                <th className="px-2 py-1.5 font-semibold leading-tight"><span className="block">Order</span><span className="block">Status</span></th>
+                <th className="px-2 py-1.5 font-semibold leading-tight"><span className="block">Payment</span><span className="block">Status</span></th>
+                <th className="px-2 py-1.5 font-semibold leading-tight"><span className="block">Sales</span><span className="block">Person</span></th>
+                <th className="px-2 py-1.5 text-right font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((o) => (
                 <tr key={o.orderId} onClick={() => navigate(`/orders/${o.orderId}`)} className="cursor-pointer border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50/60">
-                  <td className="whitespace-nowrap px-3.5 py-2.5">
+                  <td className="whitespace-nowrap px-2 py-2">
                     <span className="font-semibold text-emerald-700 hover:underline">{o.orderId}</span>
                   </td>
-                  <td className="max-w-[200px] truncate px-3.5 py-2.5 text-slate-800">{o.customer}</td>
-                  <td className="whitespace-nowrap px-3.5 py-2.5 font-semibold text-slate-800">{fmtINR(o.value)}</td>
-                  <td className="whitespace-nowrap px-3.5 py-2.5 text-slate-600">{fmtDate(o.orderDate)}</td>
-                  <td className="whitespace-nowrap px-3.5 py-2.5">
+                  <td className="max-w-[200px] truncate px-2 py-2 text-slate-800">{o.customer}</td>
+                  <td className="whitespace-nowrap px-2 py-2 font-semibold text-slate-800">{fmtINR(o.value)}</td>
+                  <td className="whitespace-nowrap px-2 py-2 text-slate-600">{fmtDate(o.orderDate)}</td>
+                  <td className="whitespace-nowrap px-2 py-2">
                     <span className={`font-semibold ${orderAge(o.orderDate).cls}`}>{orderAge(o.orderDate).label}</span>
                   </td>
-                  <td className="whitespace-nowrap px-3.5 py-2.5">
+                  <td className="whitespace-nowrap px-2 py-2">
                     <span className={`font-semibold ${ptds.some((p) => p.orderId === o.orderId) ? 'text-emerald-700' : 'text-slate-400'}`}>
                       {ptds.filter((p) => p.orderId === o.orderId).length}
                     </span>
                   </td>
-                  <td className="whitespace-nowrap px-3.5 py-2.5 text-slate-600">{fmtDate(o.deliveryDate)}</td>
-                  <td className="whitespace-nowrap px-3.5 py-2.5"><Badge status={o.orderStatus} map={ORDER_STATUS_COLORS} /></td>
-                  <td className="whitespace-nowrap px-3.5 py-2.5"><Badge status={o.paymentStatus} map={PAYMENT_STATUS_COLORS} /></td>
-                  <td className="whitespace-nowrap px-3.5 py-2.5 text-slate-700">{o.salesPerson}</td>
-                  <td className="whitespace-nowrap px-3.5 py-2.5 text-right">
+                  <td className="whitespace-nowrap px-2 py-2 text-slate-600">{fmtDate(o.deliveryDate)}</td>
+                  <td className="whitespace-nowrap px-2 py-2"><Badge status={o.orderStatus} map={ORDER_STATUS_COLORS} /></td>
+                  <td className="whitespace-nowrap px-2 py-2"><Badge status={o.paymentStatus} map={PAYMENT_STATUS_COLORS} /></td>
+                  <td className="whitespace-nowrap px-2 py-2 text-slate-700">{o.salesPerson}</td>
+                  <td className="whitespace-nowrap px-2 py-2 text-right">
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); navigate(`/orders/${o.orderId}`); }}
@@ -249,7 +249,7 @@ function Orders() {
           </table>
         </div>
 
-        <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-[12px] text-slate-500">
+        <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50/50 px-2 py-2 text-[12px] text-slate-500">
           <span>Showing {filtered.length} of {ORDERS.length} orders</span>
           <div className="flex items-center gap-1">
             <button type="button" disabled className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-slate-400">Previous</button>
