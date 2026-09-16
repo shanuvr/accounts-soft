@@ -26,7 +26,7 @@ export function entryForInvoice(inv) {
     taxTds: Number(inv.tax) || 0,
     paymentId: null,
     method: null,
-    book: null,
+    book: 'Bank',
     debit: Number(inv.total) || 0,
     credit: 0,
   };
