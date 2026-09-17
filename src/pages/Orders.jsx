@@ -2,18 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../layouts/Layout';
 import { ORDERS, fmtINR, fmtDate } from '../data/mockData';
+import { ORDER_STATUSES, ORDER_STATUS_COLORS, isActiveOrder } from '../data/orderStatus';
 import { usePtds } from '../store/ptdStore';
-
-const ORDER_STATUS_COLORS = {
-  'New': 'border-sky-200 bg-sky-50 text-sky-700',
-  'Under Review': 'border-amber-200 bg-amber-50 text-amber-700',
-  'In Progress': 'border-blue-200 bg-blue-50 text-blue-700',
-  'Partially Delivered': 'border-violet-200 bg-violet-50 text-violet-700',
-  'Delivered': 'border-teal-200 bg-teal-50 text-teal-700',
-  'Completed': 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  'On Hold': 'border-orange-200 bg-orange-50 text-orange-700',
-  'Cancelled': 'border-red-200 bg-red-50 text-red-700',
-};
 
 const PAYMENT_STATUS_COLORS = {
   'Unpaid': 'border-slate-200 bg-slate-100 text-slate-600',
@@ -51,12 +41,12 @@ function Orders() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
-  const overduedOrders = ORDERS.filter((o) => !['Completed', 'Delivered', 'Cancelled'].includes(o.orderStatus) && new Date(o.deliveryDate) < new Date());
+  const overduedOrders = ORDERS.filter((o) => isActiveOrder(o.orderStatus) && new Date(o.deliveryDate) < new Date());
   const summary = [
     { label: 'Total Orders', count: ORDERS.length, color: 'bg-emerald-600', icon: 'orders' },
-    { label: 'Completed', count: ORDERS.filter((o) => o.orderStatus === 'Completed').length, color: 'bg-emerald-500', icon: 'check' },
-    { label: 'In Progress', count: ORDERS.filter((o) => o.orderStatus === 'In Progress').length, color: 'bg-blue-500', icon: 'play' },
-    { label: 'Under Review', count: ORDERS.filter((o) => o.orderStatus === 'Under Review').length, color: 'bg-amber-500', icon: 'clock' },
+    { label: 'Pending', count: ORDERS.filter((o) => o.orderStatus === 'Pending').length, color: 'bg-amber-500', icon: 'clock' },
+    { label: 'Ongoing', count: ORDERS.filter((o) => o.orderStatus === 'Ongoing').length, color: 'bg-blue-500', icon: 'play' },
+    { label: 'Delivered', count: ORDERS.filter((o) => o.orderStatus === 'Delivered').length, color: 'bg-emerald-500', icon: 'check' },
     { label: 'Overdue', count: overduedOrders.length, color: 'bg-red-500', icon: 'alert' },
     { label: 'Cancelled', count: ORDERS.filter((o) => o.orderStatus === 'Cancelled').length, color: 'bg-slate-500', icon: 'x' },
   ];
@@ -65,7 +55,7 @@ function Orders() {
     if (search && !`${o.orderId} ${o.customer} ${o.salesPerson}`.toLowerCase().includes(search.toLowerCase())) return false;
     if (status) {
       if (o.orderStatus !== status) return false;
-    } else if (o.orderStatus === 'Completed') {
+    } else if (o.orderStatus === 'Delivered') {
       return false;
     }
     if (payment && o.paymentStatus !== payment) return false;
@@ -166,7 +156,7 @@ function Orders() {
           </div>
           <select value={status} onChange={(e) => setStatus(e.target.value)} className={inputCls}>
             <option value="">Active orders</option>
-            {Object.keys(ORDER_STATUS_COLORS).map((s) => <option key={s} value={s}>{s}</option>)}
+            {ORDER_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
           <select value={payment} onChange={(e) => setPayment(e.target.value)} className={inputCls}>
             <option value="">All payments</option>

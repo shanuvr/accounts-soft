@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Layout from '../layouts/Layout';
 import { CUSTOMERS, ORDERS, PAYMENTS, ORDER_SERVICES, fmtINR, fmtDate } from '../data/mockData';
+import { ORDER_STATUS_COLORS } from '../data/orderStatus';
 import { usePtds } from '../store/ptdStore';
 import { useAssignments } from '../store/assignmentStore';
 
@@ -12,14 +13,12 @@ const STATUS_COLORS = {
   Suspended: 'border-red-200 bg-red-50 text-red-700',
 };
 
-const ORDER_STATUS_COLORS = {
-  'New': 'border-slate-200 bg-slate-100 text-slate-600',
+const ASSIGNMENT_STATUS_COLORS = {
+  Assigned: 'border-sky-200 bg-sky-50 text-sky-700',
   'In Progress': 'border-blue-200 bg-blue-50 text-blue-700',
-  'Under Review': 'border-amber-200 bg-amber-50 text-amber-700',
-  'On Hold': 'border-slate-200 bg-slate-100 text-slate-500',
-  'Delivered': 'border-indigo-200 bg-indigo-50 text-indigo-700',
-  'Completed': 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  'Cancelled': 'border-red-200 bg-red-50 text-red-700',
+  Completed: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  'On Hold': 'border-orange-200 bg-orange-50 text-orange-700',
+  Cancelled: 'border-red-200 bg-red-50 text-red-700',
 };
 
 const PAYMENT_STATUS_COLORS = {
@@ -72,7 +71,7 @@ function CustomerDetail() {
     const payments = PAYMENTS.filter((p) => p.customer === customer.name);
     const received = payments.reduce((s, p) => s + p.amount, 0);
     const totalValue = orders.reduce((s, o) => s + o.value, 0);
-    const completed = orders.filter((o) => o.orderStatus === 'Completed' || o.orderStatus === 'Delivered').length;
+    const completed = orders.filter((o) => o.orderStatus === 'Delivered').length;
     const customerPtds = ptds.filter((p) => p.customer === customer.name);
     const donePtds = customerPtds.filter((p) => p.status === 'Completed');
     const existingKeys = new Set();
@@ -293,7 +292,7 @@ function CustomerDetail() {
                         <td className="px-4 py-3 text-slate-500">{fmtDate(o.orderDate)}</td>
                         <td className="px-4 py-3 text-slate-500">{fmtDate(o.deliveryDate)}</td>
                         <td className="px-4 py-3 text-right font-semibold text-slate-700">{fmtINR(o.value)}</td>
-                        <td className="px-4 py-3"><Badge cls={ORDER_STATUS_COLORS[o.orderStatus] ?? ORDER_STATUS_COLORS['New']}>{o.orderStatus}</Badge></td>
+                        <td className="px-4 py-3"><Badge cls={ORDER_STATUS_COLORS[o.orderStatus] ?? ORDER_STATUS_COLORS.Pending}>{o.orderStatus}</Badge></td>
                         <td className="px-4 py-3"><Badge cls={PAYMENT_STATUS_COLORS[o.paymentStatus] ?? PAYMENT_STATUS_COLORS.Unpaid}>{o.paymentStatus}</Badge></td>
                         <td className="px-4 py-3 text-slate-600">{o.salesPerson}</td>
                         <td className="px-4 py-3 text-right">
@@ -337,7 +336,7 @@ function CustomerDetail() {
                         </td>
                         <td className="px-4 py-3">
                           {s.asn
-                            ? <Badge cls={ORDER_STATUS_COLORS[s.asn.status] ?? ORDER_STATUS_COLORS['New']}>ASN · {s.asn.status}</Badge>
+                            ? <Badge cls={ASSIGNMENT_STATUS_COLORS[s.asn.status] ?? ASSIGNMENT_STATUS_COLORS.Assigned}>ASN · {s.asn.status}</Badge>
                             : <span className="text-[12px] text-slate-400">Not Assigned</span>}
                         </td>
                         <td className="px-4 py-3 text-slate-600">{s.quantity}</td>

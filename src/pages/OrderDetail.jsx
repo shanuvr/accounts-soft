@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Layout from '../layouts/Layout';
 import { ORDERS, ORDER_SERVICES, fmtINR, fmtDate } from '../data/mockData';
+import { ORDER_STATUS_COLORS } from '../data/orderStatus';
 import { useServices, getServiceByName } from '../store/serviceStore';
 import { useEmployees } from '../store/employeeStore';
 import { useDepartments } from '../store/departmentStore';
@@ -1053,7 +1054,7 @@ function OrderDetail() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Badge status={order.orderStatus} map={{ 'In Progress': 'border-blue-200 bg-blue-50 text-blue-700', Completed: 'border-emerald-200 bg-emerald-50 text-emerald-700', 'Under Review': 'border-amber-200 bg-amber-50 text-amber-700', Delivered: 'border-teal-200 bg-teal-50 text-teal-700', 'On Hold': 'border-orange-200 bg-orange-50 text-orange-700', Cancelled: 'border-red-200 bg-red-50 text-red-700' }} />
+          <Badge status={order.orderStatus} map={ORDER_STATUS_COLORS} />
           <Badge status={pSummary.status} map={PAYMENT_STATUS} />
         </div>
       </div>

@@ -1,6 +1,7 @@
 import Layout from '../layouts/Layout';
 import { useRenewables, getRenewalStatus } from '../store/renewableStore';
 import { ORDERS, CUSTOMERS, fmtINR, fmtDate } from '../data/mockData';
+import { ORDER_STATUSES as ORDER_STATUS_ORDER, isActiveOrder } from '../data/orderStatus';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -25,7 +26,6 @@ const compactINR = (v) => (Math.abs(v) >= 1000 ? `₹${(v / 1000).toFixed(0)}k` 
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
-const ORDER_STATUS_ORDER = ['In Progress', 'Under Review', 'Delivered', 'On Hold', 'Completed', 'Cancelled'];
 const PAYMENT_STATUS_ORDER = ['Paid', 'Partially Paid', 'Unpaid', 'Overdue', 'Refunded'];
 
 function StatCard({ label, value, sub, icon, tone }) {
@@ -68,8 +68,8 @@ function Dashboard() {
   const booked = ORDERS.reduce((s, o) => s + o.value, 0);
   const collected = ORDERS.filter((o) => o.paymentStatus === 'Paid').reduce((s, o) => s + o.value, 0);
   const outstanding = ORDERS.filter((o) => ['Unpaid', 'Partially Paid', 'Overdue'].includes(o.paymentStatus)).reduce((s, o) => s + o.value, 0);
-  const activeOrders = ORDERS.filter((o) => ['In Progress', 'Under Review', 'On Hold', 'Delivered'].includes(o.orderStatus)).length;
-  const completedOrders = ORDERS.filter((o) => o.orderStatus === 'Completed').length;
+  const activeOrders = ORDERS.filter((o) => isActiveOrder(o.orderStatus)).length;
+  const deliveredOrders = ORDERS.filter((o) => o.orderStatus === 'Delivered').length;
 
   const branded = renewals.map((r) => ({ ...r, status: getRenewalStatus(r) }));
   const renewalsDue = branded.filter((r) => r.status.key !== 'Active').length;
@@ -113,7 +113,7 @@ function Dashboard() {
   const renewData = Object.entries(typeCount).map(([name, count]) => ({ name, count }));
 
   const upcoming = ORDERS
-    .filter((o) => o.orderStatus !== 'Cancelled' && o.deliveryDate >= t)
+    .filter((o) => isActiveOrder(o.orderStatus) && o.deliveryDate >= t)
     .sort((a, b) => (a.deliveryDate < b.deliveryDate ? -1 : 1))
     .slice(0, 5);
 
@@ -158,7 +158,7 @@ function Dashboard() {
         <StatCard
           label="Active Orders"
           value={activeOrders}
-          sub={`${completedOrders} completed`}
+          sub={`${deliveredOrders} delivered`}
           tone="blue"
           icon={<svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="7" width="18" height="13" rx="2" /><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18" /></svg>}
         />

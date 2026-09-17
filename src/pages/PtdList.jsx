@@ -174,9 +174,9 @@ function PtdList() {
     const haystack = `${o.orderId} ${o.customer} ${o.orderStatus} ${o.ptds.map((p) => `${p.id} ${p.serviceName}`).join(' ')}`.toLowerCase();
     if (search && !haystack.includes(search.toLowerCase())) return false;
     if (customer && o.customer !== customer) return false;
-    if (orderStatus === 'Completed') {
-      if (o.orderStatus !== 'Completed') return false;
-    } else if (orderStatus !== 'All' && o.orderStatus === 'Completed') {
+    if (orderStatus === 'Delivered') {
+      if (o.orderStatus !== 'Delivered') return false;
+    } else if (orderStatus !== 'All' && o.orderStatus === 'Delivered') {
       return false;
     }
     return true;
@@ -260,7 +260,7 @@ function PtdList() {
           </select>
           <select value={orderStatus} onChange={(e) => setOrderStatus(e.target.value)} className={inputCls}>
             <option value="">Active orders</option>
-            <option value="Completed">Completed</option>
+            <option value="Delivered">Delivered</option>
             <option value="All">All orders</option>
           </select>
         </div>
