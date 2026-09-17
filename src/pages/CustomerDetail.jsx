@@ -160,6 +160,16 @@ function CustomerDetail() {
                 <p className="mt-1 text-[12.5px] text-slate-500">Customer ID: <span className="font-medium text-slate-700">{customer.customerId}</span></p>
               </div>
             </div>
+            <button
+              type="button"
+              onClick={() => navigate(`/ledger?customer=${encodeURIComponent(customer.name)}`)}
+              className="flex items-center gap-1.5 rounded-lg border border-slate-900 bg-slate-900 px-3.5 py-2 text-[12.5px] font-semibold text-white shadow-sm transition hover:bg-slate-800 active:scale-[0.99]"
+            >
+              <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 3h12v18H6zM9 7h6M9 11h6M9 15h3" />
+              </svg>
+              View Ledger
+            </button>
           </div>
           <div className="grid grid-cols-2 gap-4 border-t border-slate-200 px-6 py-4 sm:grid-cols-4">
             <div>

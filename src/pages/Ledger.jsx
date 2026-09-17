@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
 import Layout from '../layouts/Layout';
-import { useLedger } from '../store/ledgerStore';
-import { fmtINR, fmtDate } from '../data/mockData';
+import { useLedger, withRunningBalance } from '../store/ledgerStore';
+import { CUSTOMERS, fmtINR, fmtDate } from '../data/mockData';
 
 const BOOK_BADGE = {
   Bank: 'border-sky-200 bg-sky-50 text-sky-700',
@@ -11,22 +12,147 @@ const BOOK_BADGE = {
 
 const shortCustomer = (name) => (name || '—').replace(/\s*Pvt Ltd\s*$/i, '');
 
+const comboInputCls = 'h-10 w-full min-w-0 rounded-lg border border-slate-200 bg-white pl-3 pr-9 text-[13px] text-slate-700 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100';
+
+function CustomerFilter({ value, options, onChange }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const boxRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDocClick = (e) => {
+      if (boxRef.current && !boxRef.current.contains(e.target)) {
+        setOpen(false);
+        setQuery('');
+      }
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, [open]);
+
+  const trimmed = query.trim().toLowerCase();
+  const matches = options.filter((c) => c.toLowerCase().includes(trimmed));
+  const showAll = !trimmed || 'all customers'.includes(trimmed);
+
+  const select = (val) => {
+    onChange(val);
+    setOpen(false);
+    setQuery('');
+  };
+
+  const optionCls = (selected) =>
+    `flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-[13px] transition-colors hover:bg-emerald-50 ${
+      selected ? 'font-semibold text-emerald-700' : 'text-slate-700'
+    }`;
+
+  return (
+    <div ref={boxRef} className="relative">
+      <input
+        type="text"
+        value={open ? query : value === 'All' ? '' : value}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => {
+          setOpen(true);
+          setQuery(value === 'All' ? '' : value);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') {
+            setOpen(false);
+            setQuery('');
+          }
+          if (e.key === 'Enter' && matches.length > 0) {
+            e.preventDefault();
+            select(matches[0]);
+          }
+        }}
+        placeholder="All Customers"
+        aria-label="Search customer"
+        className={comboInputCls}
+      />
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <circle cx="11" cy="11" r="7" />
+        <path d="m20 20-3.5-3.5" />
+      </svg>
+
+      {open && (
+        <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+          {showAll && (
+            <button type="button" onClick={() => select('All')} className={optionCls(value === 'All')}>
+              <span>All Customers</span>
+              {value === 'All' && <span className="text-emerald-600">✓</span>}
+            </button>
+          )}
+          {matches.map((c) => (
+            <button key={c} type="button" onClick={() => select(c)} className={optionCls(value === c)}>
+              <span className="truncate">{c}</span>
+              {value === c && <span className="shrink-0 text-emerald-600">✓</span>}
+            </button>
+          ))}
+          {matches.length === 0 && !showAll && (
+            <p className="px-3 py-3 text-center text-[12.5px] text-slate-400">No customers found.</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Ledger() {
-  const { entries } = useLedger();
+  const { entries, register } = useLedger();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [type, setType] = useState('All');
 
+  const customer = searchParams.get('customer') || 'All';
+  const setCustomer = (value) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (value && value !== 'All') next.set('customer', value);
+        else next.delete('customer');
+        return next;
+      },
+      { replace: true }
+    );
+  };
+
+  const customerOptions = useMemo(
+    () => [...new Set(entries.map((e) => e.customer))].filter(Boolean).sort(),
+    [entries]
+  );
+
+  const scoped = useMemo(
+    () => withRunningBalance(customer === 'All' ? entries : entries.filter((e) => e.customer === customer)),
+    [entries, customer]
+  );
+
   const filtered = useMemo(
     () =>
-      entries.filter((e) => {
+      scoped.filter((e) => {
         if (type !== 'All' && e.book !== type) return false;
         if (dateFrom && e.date < dateFrom) return false;
         if (dateTo && e.date > dateTo) return false;
         return true;
       }),
-    [entries, dateFrom, dateTo, type]
+    [scoped, dateFrom, dateTo, type]
   );
+
+  const customerSummary = customer !== 'All' ? register.find((r) => r.customer === customer) : null;
+  const customerInfo = customer !== 'All' ? CUSTOMERS.find((c) => c.name === customer) : null;
+  const customerNet = customerSummary ? customerSummary.invoiced - customerSummary.received : 0;
 
   const totals = useMemo(
     () => ({
@@ -145,17 +271,24 @@ function Ledger() {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(22);
     doc.setTextColor(15, 23, 42);
-    doc.text('STATEMENT OF ACCOUNT', rightX, 32, { align: 'right' });
+    doc.text(customer && customer !== 'All' ? 'CUSTOMER STATEMENT OF ACCOUNT' : 'STATEMENT OF ACCOUNT', rightX, 32, { align: 'right' });
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
     doc.setTextColor(71, 85, 105);
-    doc.text('General Ledger · Transaction Register & Running Balances', rightX, 47, { align: 'right' });
+    const isCustomerScoped = customer && customer !== 'All';
+    doc.text(
+      isCustomerScoped ? 'Customer Ledger · Transaction Register & Running Balances' : 'General Ledger · Transaction Register & Running Balances',
+      rightX,
+      47,
+      { align: 'right' }
+    );
 
     const period = `${dateFrom ? fmtDate(dateFrom) : 'All'} — ${dateTo ? fmtDate(dateTo) : 'All'}`;
     doc.setFontSize(9);
     doc.setTextColor(100, 116, 139);
-    doc.text(`Period: ${period}   |   Generated: ${new Date().toLocaleString('en-IN')}`, rightX, 60, { align: 'right' });
+    const customerLine = isCustomerScoped ? `Customer: ${shortCustomer(customer)}   |   ` : '';
+    doc.text(`${customerLine}Period: ${period}   |   Generated: ${new Date().toLocaleString('en-IN')}`, rightX, 60, { align: 'right' });
 
     // Subtle header divider line
     doc.setDrawColor(226, 232, 240);
@@ -348,16 +481,23 @@ function Ledger() {
       doc.text(`Page ${p} of ${totalPages}`, rightX, H - 12, { align: 'right' });
     }
 
-    doc.save(`Ledger-${new Date().toISOString().slice(0, 10)}.pdf`);
+    const scope = customer && customer !== 'All' ? `-${shortCustomer(customer).replace(/[^a-z0-9]+/gi, '-')}` : '';
+    doc.save(`Ledger${scope}-${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
   return (
     <Layout active="ledger">
       <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Ledger</h1>
-      <p className="mt-1 text-sm text-slate-500">Debit and credit entries across the books.</p>
+      <p className="mt-1 text-sm text-slate-500">
+        {customer !== 'All' ? `Showing the ledger for ${shortCustomer(customer)} only.` : 'Debit and credit entries across the books.'}
+      </p>
 
       <div className="mt-6 rounded-xl border border-slate-200 bg-white p-4">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_1fr_1fr_auto]">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-[1.8fr_1fr_1fr_1fr_auto]">
+          <div>
+            <label className={labelCls}>Customer</label>
+            <CustomerFilter value={customer} options={customerOptions} onChange={setCustomer} />
+          </div>
           <div>
             <label className={labelCls}>From</label>
             <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className={inputCls} aria-label="Date from" />
@@ -387,7 +527,7 @@ function Ledger() {
             </button>
             <button
               type="button"
-              onClick={() => { setDateFrom(''); setDateTo(''); setType('All'); }}
+              onClick={() => { setCustomer('All'); setDateFrom(''); setDateTo(''); setType('All'); }}
               className="h-9 rounded-lg border border-slate-200 px-4 text-[13px] font-medium text-slate-600 transition-colors hover:bg-slate-50"
             >
               Clear filters
@@ -395,6 +535,50 @@ function Ledger() {
           </div>
         </div>
       </div>
+
+      {customerSummary && (
+        <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <div className="grid grid-cols-1 gap-5 px-5 py-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,2fr)] lg:items-center">
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-[15px] font-bold text-emerald-700">
+                {customerInfo
+                  ? customerInfo.name.split(' ').slice(0, 2).map((w) => w[0]).join('').toUpperCase()
+                  : shortCustomer(customer).slice(0, 2).toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-[15px] font-semibold text-slate-900">{customer}</p>
+                <div className="mt-2 grid grid-cols-[88px_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-[12.5px]">
+                  <span className="text-slate-400">Customer ID</span>
+                  <span className="font-medium text-slate-700">{customerInfo?.customerId ?? '—'}</span>
+                  <span className="text-slate-400">Contact</span>
+                  <span className="font-medium text-slate-700">{customerInfo?.contactPerson ?? '—'}</span>
+                  <span className="text-slate-400">Phone</span>
+                  <span className="font-medium text-slate-700">{customerInfo?.phone ?? '—'}</span>
+                  <span className="text-slate-400">Email</span>
+                  <span className="break-all font-medium text-slate-700">{customerInfo?.email ?? '—'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="rounded-lg border border-slate-100 bg-slate-50/70 p-3">
+                <p className="text-[10.5px] font-medium uppercase tracking-wider text-slate-400">Total Debit</p>
+                <p className="mt-1 text-[16px] font-semibold text-slate-800">{fmtINR(customerSummary.invoiced)}</p>
+              </div>
+              <div className="rounded-lg border border-slate-100 bg-slate-50/70 p-3">
+                <p className="text-[10.5px] font-medium uppercase tracking-wider text-slate-400">Total Credit</p>
+                <p className="mt-1 text-[16px] font-semibold text-emerald-700">{fmtINR(customerSummary.received)}</p>
+              </div>
+              <div className="rounded-lg border border-slate-100 bg-slate-50/70 p-3">
+                <p className="text-[10.5px] font-medium uppercase tracking-wider text-slate-400">Total Running Balance</p>
+                <p className="mt-1 text-[16px] font-semibold text-blue-700">
+                  {customerNet < 0 ? '-' : ''}{fmtINR(Math.abs(customerNet))}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white">
         <div className="overflow-x-auto">
