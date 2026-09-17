@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Layout from '../layouts/Layout';
-import { ORDERS, ORDER_SERVICES, fmtINR, fmtDate } from '../data/mockData';
+import { ORDER_SERVICES, fmtINR, fmtDate } from '../data/mockData';
 import { ORDER_STATUS_COLORS } from '../data/orderStatus';
+import { useOrders } from '../store/orderStore';
 import { useServices, getServiceByName } from '../store/serviceStore';
 import { useEmployees } from '../store/employeeStore';
 import { useDepartments } from '../store/departmentStore';
@@ -10,7 +11,7 @@ import { getPtdFor, createOrUpdatePtd, deletePtdFor } from '../store/ptdStore';
 import { getAssignmentFor, createAssignment, deleteAssignmentFor } from '../store/assignmentStore';
 import { usePayments, getOrderPaymentSummary, createPayment } from '../store/paymentStore';
 import { usePaymentPlans, getPlanView, createPaymentPlan } from '../store/paymentPlanStore';
-import { useInvoices, getInvoicesFor, saveInvoice, getInvoiceStatus } from '../store/invoiceStore';
+import { useInvoices, getInvoicesFor, saveInvoice, getInvoiceStatus, syncAutoDraftInvoice, removeInvoice, getAutoDraftFor } from '../store/invoiceStore';
 import { createOrSyncDelivery, deleteDeliveryFor } from '../store/deliveryStore';
 import { usePaymentMethods } from '../store/paymentMethodStore';
 import { useTaxMaster } from '../store/taxStore';
@@ -884,7 +885,8 @@ function InvoiceModal({ order, services, plan, existingInvoiced, onClose, onSave
 function OrderDetail() {
   const { orderId } = useParams();
   const navigate = useNavigate();
-  const order = ORDERS.find((o) => o.orderId === orderId);
+  const orders = useOrders();
+  const order = orders.find((o) => o.orderId === orderId);
   const user = useAuth();
   const payments = usePayments();
   const pSummary = getOrderPaymentSummary(orderId);
@@ -967,13 +969,13 @@ function OrderDetail() {
       billable,
       price: billable ? Math.max(0, Number(price) || 0) : 0,
     });
-    setServices((prev) =>
-      prev.map((s) =>
-        s.id === serviceId
-          ? { ...s, ptdStatus: targetStatus, price: billable ? record.price : 0, ptd: { id: record.id, status: targetStatus, data, billable, price: billable ? record.price : 0 } }
-          : s
-      )
+    const next = services.map((s) =>
+      s.id === serviceId
+        ? { ...s, ptdStatus: targetStatus, price: billable ? record.price : 0, ptd: { id: record.id, status: targetStatus, data, billable, price: billable ? record.price : 0 } }
+        : s
     );
+    setServices(next);
+    syncAutoDraftInvoice({ orderId: order.orderId, customer: order.customer, services: next });
     setPtdService(null);
   };
 
@@ -1004,6 +1006,8 @@ function OrderDetail() {
   };
 
   const generateInvoice = (payload, status) => {
+    const autoDraft = getAutoDraftFor(order.orderId);
+    if (autoDraft) removeInvoice(autoDraft.invoiceId);
     saveInvoice({ ...payload, status });
     setInvoiceModal(false);
   };
@@ -1035,6 +1039,7 @@ function OrderDetail() {
   const servicesTotal = services.reduce((sum, s) => sum + s.price, 0);
   const invoices = getInvoicesFor(order?.orderId ?? '');
   const invoicedTotal = invoices.reduce((sum, i) => sum + i.total, 0);
+  const manualInvoicedTotal = invoices.filter((i) => !i.auto).reduce((sum, i) => sum + i.total, 0);
 
   return (
     <Layout active="orders">
@@ -1570,7 +1575,7 @@ function OrderDetail() {
           order={order}
           services={services}
           plan={planView}
-          existingInvoiced={invoicedTotal}
+          existingInvoiced={manualInvoicedTotal}
           onClose={() => setInvoiceModal(false)}
           onSave={generateInvoice}
         />

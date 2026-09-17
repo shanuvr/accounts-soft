@@ -11,12 +11,16 @@ const SEED_INVOICES = [
     invoiceDate: '2026-09-06',
     dueDate: '2026-09-20',
     paymentTerms: 'Net 14',
-    items: [{ name: 'IT services — Phase 1', quantity: 1, price: 147500 }],
-    subtotal: 147500,
+    items: [
+      { name: 'Domain Registration', quantity: 1, price: 3000 },
+      { name: 'Web Design', quantity: 1, price: 10000 },
+      { name: 'Website Programming Dynamic Section', quantity: 1, price: 2000 },
+    ],
+    subtotal: 15000,
     discount: 0,
     tax: 0,
     taxRate: 0,
-    total: 147500,
+    total: 15000,
     status: 'Issued',
     notes: '',
     sentAt: '2026-09-06',
@@ -31,12 +35,16 @@ const SEED_INVOICES = [
     invoiceDate: '2026-09-05',
     dueDate: '2026-08-28',
     paymentTerms: 'Due on Receipt',
-    items: [{ name: 'Digital marketing campaign', quantity: 1, price: 45000 }],
-    subtotal: 45000,
+    items: [
+      { name: 'Domain Registration', quantity: 1, price: 3000 },
+      { name: 'Web Design', quantity: 1, price: 10000 },
+      { name: 'Website Programming Dynamic Section', quantity: 1, price: 2000 },
+    ],
+    subtotal: 15000,
     discount: 0,
     tax: 0,
     taxRate: 0,
-    total: 45000,
+    total: 15000,
     status: 'Issued',
     notes: '',
     sentAt: '2026-09-05',
@@ -51,12 +59,16 @@ const SEED_INVOICES = [
     invoiceDate: '2026-08-26',
     dueDate: '2026-09-02',
     paymentTerms: 'Net 7',
-    items: [{ name: 'Infrastructure setup', quantity: 1, price: 230000 }],
-    subtotal: 230000,
+    items: [
+      { name: 'Domain Registration', quantity: 1, price: 3000 },
+      { name: 'Web Design', quantity: 1, price: 10000 },
+      { name: 'Website Programming Dynamic Section', quantity: 1, price: 2000 },
+    ],
+    subtotal: 15000,
     discount: 0,
     tax: 0,
     taxRate: 0,
-    total: 230000,
+    total: 15000,
     status: 'Issued',
     notes: '',
     sentAt: '2026-08-26',
@@ -155,6 +167,7 @@ export function saveInvoice(data) {
     status: data.status ?? 'Draft',
     notes: data.notes ?? '',
     sentAt: data.sentAt ?? existing?.sentAt ?? null,
+    auto: data.auto ?? existing?.auto ?? false,
   };
   if (!existing) invoiceCounter += 1;
   invoices = existing ? invoices.map((i) => (i.invoiceId === existing.invoiceId ? record : i)) : [...invoices, record];
@@ -176,4 +189,64 @@ export function markInvoiceSent(id, date) {
   invoices = invoices.map((i) => (i.invoiceId === id ? { ...i, sentAt: date } : i));
   emit();
   return invoices.find((i) => i.invoiceId === id);
+}
+
+export function removeInvoice(id) {
+  if (!invoices.some((i) => i.invoiceId === id)) return;
+  invoices = invoices.filter((i) => i.invoiceId !== id);
+  emit();
+}
+
+function addDays(dateISO, days) {
+  const d = new Date(`${dateISO}T00:00:00`);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+export function getAutoDraftFor(orderId) {
+  return invoices.find((i) => i.orderId === orderId && i.auto && i.status === 'Draft') ?? null;
+}
+
+export function hasIssuedInvoice(orderId) {
+  return invoices.some((i) => i.orderId === orderId && i.status !== 'Draft' && i.status !== 'Cancelled');
+}
+
+export function syncAutoDraftInvoice({ orderId, customer, services }) {
+  if (hasIssuedInvoice(orderId)) return null;
+  const existing = getAutoDraftFor(orderId);
+  const items = services
+    .filter((s) => s.ptdStatus === 'Completed' && Number(s.price) > 0)
+    .map((s) => ({
+      name: s.name,
+      quantity: 1,
+      price: Number(s.price) || 0,
+      discount: 0,
+      taxRate: 0,
+      amount: Number(s.price) || 0,
+    }));
+
+  if (items.length === 0) {
+    if (existing) removeInvoice(existing.invoiceId);
+    return null;
+  }
+
+  const subtotal = items.reduce((sum, i) => sum + i.amount, 0);
+  const today = todayISO();
+  return saveInvoice({
+    invoiceId: existing?.invoiceId,
+    orderId,
+    customer,
+    invoiceType: 'Full Invoice',
+    invoiceDate: existing?.invoiceDate ?? today,
+    dueDate: existing?.dueDate ?? addDays(today, 7),
+    paymentTerms: existing?.paymentTerms ?? 'Net 7',
+    items,
+    subtotal,
+    discount: 0,
+    tax: 0,
+    taxRate: 0,
+    total: subtotal,
+    status: 'Draft',
+    auto: true,
+  });
 }

@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../store/authStore';
+import { useUi, setMastersOpen } from '../store/uiStore';
 
 const stroke = { stroke: 'currentColor', strokeWidth: 1.7, fill: 'none', strokeLinecap: 'round', strokeLinejoin: 'round' };
 
@@ -165,9 +166,34 @@ function NavItem({ icon, label, active, onClick }) {
 }
 
 function Sidebar({ active = 'dashboard', mobileOpen = false, onClose }) {
-  const [mastersOpen, setMastersOpen] = useState(false);
+  const { mastersOpen } = useUi();
   const navigate = useNavigate();
   const user = useAuth();
+  const mastersRef = useRef(null);
+
+  useEffect(() => {
+    if (mastersOpen && mastersRef.current) {
+      mastersRef.current.scrollIntoView({ block: 'end' });
+    }
+  }, [mastersOpen]);
+
+  useEffect(() => {
+    if (!mastersOpen) return;
+    function handleOutsideClick(e) {
+      if (mastersRef.current && !mastersRef.current.contains(e.target)) {
+        setMastersOpen(false);
+      }
+    }
+    function handleEscape(e) {
+      if (e.key === 'Escape') setMastersOpen(false);
+    }
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [mastersOpen]);
 
   return (
     <>
@@ -208,10 +234,10 @@ function Sidebar({ active = 'dashboard', mobileOpen = false, onClose }) {
           </div>
 
           {/* Masters */}
-          <div>
+          <div ref={mastersRef}>
             <button
               type="button"
-              onClick={() => setMastersOpen((o) => !o)}
+              onClick={() => setMastersOpen(!mastersOpen)}
               className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-[13px] font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
             >
               <span className="flex items-center gap-3">
@@ -226,6 +252,7 @@ function Sidebar({ active = 'dashboard', mobileOpen = false, onClose }) {
                   <button
                     key={m.label}
                     type="button"
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => navigate(m.path)}
                     className="block w-full truncate rounded-md px-2 py-1.5 text-left text-[12.5px] text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-800"
                   >

@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { jsPDF } from 'jspdf';
 import Layout from '../layouts/Layout';
 import { useInvoices, getInvoiceById, saveInvoice, setInvoiceStatus, markInvoiceSent, getInvoicePaymentSummary, getInvoiceStatus } from '../store/invoiceStore';
 import { usePayments, createPayment } from '../store/paymentStore';
@@ -8,6 +7,7 @@ import { usePaymentMethods } from '../store/paymentMethodStore';
 import { useTaxMaster } from '../store/taxStore';
 import { fmtINR, fmtDate } from '../data/mockData';
 import { useAuth } from '../store/authStore';
+import { downloadInvoicePdf } from '../utils/invoicePdf';
 
 const INVOICE_STATUS = {
   Draft: 'border-slate-200 bg-slate-100 text-slate-600',
@@ -271,149 +271,8 @@ function InvoiceDetail() {
   const summary = getInvoicePaymentSummary(invoice.invoiceId, payments);
   const status = getInvoiceStatus(invoice, payments);
 
-  const inr = (n) => '₹ ' + Number(n || 0).toLocaleString('en-IN');
-
   const downloadPdf = () => {
-    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-    const W = doc.internal.pageSize.getWidth();
-    const H = doc.internal.pageSize.getHeight();
-    const M = 40;
-    const contentW = W - M * 2;
-    let y = 0;
-
-    const pageTop = (cur) => (cur > H - 80 ? (doc.addPage(), 60) : cur);
-    const divider = (yy) => {
-      doc.setDrawColor(228, 228, 233);
-      doc.setLineWidth(0.75);
-      doc.line(M, yy, W - M, yy);
-    };
-
-    doc.setFillColor(16, 185, 129);
-    doc.rect(0, 0, W, 68, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(20);
-    doc.text('INVOICE', M, 40);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.text(invoice.invoiceId, W - M, 40, { align: 'right' });
-    doc.setFontSize(8.5);
-    doc.text(invoice.invoiceType, W - M, 54, { align: 'right' });
-
-    y = 95;
-    doc.setTextColor(30, 35, 40);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
-    doc.text(invoice.customer, M, y);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(110, 115, 125);
-    doc.text(`Due ${fmtDate(invoice.dueDate)} · ${invoice.paymentTerms ?? 'Net 7'}`, W - M, y, { align: 'right' });
-    y += 18;
-    divider(y - 2);
-
-    const meta = [
-      ['Invoice Date', fmtDate(invoice.invoiceDate)],
-      ['Due Date', fmtDate(invoice.dueDate)],
-      ['Order', invoice.orderId],
-      ['Payment', invoice.planStage ?? invoice.invoiceType],
-    ];
-    const colW = contentW / 4;
-    meta.forEach(([label, value], i) => {
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7.5);
-      doc.setTextColor(140, 145, 155);
-      doc.text(label.toUpperCase(), M + i * colW, y);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.setTextColor(30, 35, 40);
-      doc.text(String(value), M + i * colW, y + 13);
-    });
-    y += 40;
-
-    const tableHeader = (yy) => {
-      doc.setFillColor(245, 245, 248);
-      doc.rect(M, yy - 12, contentW, 22, 'F');
-      doc.setTextColor(120, 125, 135);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
-      doc.text('SERVICE', M, yy);
-      doc.text('QTY', W - M - 70, yy, { align: 'right' });
-      doc.text('AMOUNT', W - M, yy, { align: 'right' });
-      yy += 18;
-      divider(yy - 6);
-      return yy;
-    };
-
-    let yy = tableHeader(y + 10);
-    (invoice.items ?? []).forEach((it) => {
-      const amt = it.price * it.quantity - (it.discount || 0);
-      const lines = doc.splitTextToSize(it.name, contentW - 220);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.setTextColor(35, 40, 45);
-      doc.text(lines, M, yy);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(70, 75, 85);
-      doc.text(String(it.quantity ?? 1), W - M - 70, yy, { align: 'right' });
-      doc.setFont('helvetica', 'bold');
-      doc.text(inr(amt), W - M, yy, { align: 'right' });
-      yy += Math.max(1, lines.length) * 13 + 7;
-      yy = pageTop(yy);
-      divider(yy - 5);
-    });
-
-    y = pageTop(yy + 12);
-    const totals = [
-      ['Subtotal', inr(invoice.subtotal)],
-      ['Tax', inr(invoice.tax)],
-      ['Discount', '− ' + inr(invoice.discount)],
-      ['TOTAL', inr(invoice.total)],
-    ];
-    doc.setFontSize(9.5);
-    totals.forEach(([label, value], i) => {
-      const isTotal = i === totals.length - 1;
-      doc.setFont('helvetica', isTotal ? 'bold' : 'normal');
-      doc.setTextColor(isTotal ? 15 : 80, isTotal ? 25 : 85, isTotal ? 30 : 95);
-      doc.text(label, W - M - 150, y);
-      doc.text(value, W - M, y, { align: 'right' });
-      y += isTotal ? 18 : 15;
-    });
-
-    if (invoice.notes) {
-      y = pageTop(y + 12);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
-      doc.setTextColor(90, 95, 105);
-      doc.text('NOTES', M, y);
-      y += 13;
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9.5);
-      doc.setTextColor(70, 75, 85);
-      const notes = doc.splitTextToSize(invoice.notes, contentW);
-      doc.text(notes, M, y);
-      y += Math.max(1, notes.length) * 12 + 6;
-    }
-
-    y = pageTop(y + 14);
-    divider(y);
-    y += 20;
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.setTextColor(30, 35, 40);
-    doc.text(`Payment Status: ${status}`, M, y);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(90, 95, 105);
-    doc.text(`Received ${inr(summary.received)} of ${inr(invoice.total)}`, W - M, y, { align: 'right' });
-    y += 16;
-
-    y = pageTop(y + 4);
-    doc.setFontSize(8.5);
-    doc.setTextColor(140, 145, 155);
-    doc.text(`Generated on ${new Date().toLocaleString()} · Account Soft`, M, y);
-
-    doc.save(`${invoice.invoiceId}.pdf`);
+    downloadInvoicePdf(invoice, user);
   };
 
   const save = (patch) => {

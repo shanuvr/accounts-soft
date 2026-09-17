@@ -1,5 +1,6 @@
 import Layout from '../layouts/Layout';
 import { useRenewables, getRenewalStatus } from '../store/renewableStore';
+import { usePayments } from '../store/paymentStore';
 import { ORDERS, CUSTOMERS, fmtINR, fmtDate } from '../data/mockData';
 import { ORDER_STATUSES as ORDER_STATUS_ORDER, isActiveOrder } from '../data/orderStatus';
 import {
@@ -63,19 +64,34 @@ function ChartCard({ title, subtitle, children, className }) {
 
 function Dashboard() {
   const renewals = useRenewables();
+  const payments = usePayments();
   const t = todayISO();
 
-  const booked = ORDERS.reduce((s, o) => s + o.value, 0);
-  const collected = ORDERS.filter((o) => o.paymentStatus === 'Paid').reduce((s, o) => s + o.value, 0);
-  const outstanding = ORDERS.filter((o) => ['Unpaid', 'Partially Paid', 'Overdue'].includes(o.paymentStatus)).reduce((s, o) => s + o.value, 0);
+  const revenueOrders = ORDERS.filter((o) => o.orderStatus !== 'Cancelled');
+  const booked = revenueOrders.reduce((s, o) => s + o.value, 0);
+
+  const receivedPayments = payments.filter((p) => p.status !== 'Refunded' && p.status !== 'Failed');
+  const receivedByOrder = receivedPayments.reduce((acc, p) => {
+    acc[p.orderId] = (acc[p.orderId] || 0) + (Number(p.amount) || 0);
+    return acc;
+  }, {});
+  const collected = receivedPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+
+  const pendingFor = (o) => Math.max(0, o.value - (receivedByOrder[o.orderId] || 0));
+  const outstanding = revenueOrders.reduce((s, o) => s + pendingFor(o), 0);
+  const overdueOrders = revenueOrders.filter((o) => pendingFor(o) > 0 && o.deliveryDate < t);
+  const overdue = overdueOrders.reduce((s, o) => s + pendingFor(o), 0);
+
   const activeOrders = ORDERS.filter((o) => isActiveOrder(o.orderStatus)).length;
   const deliveredOrders = ORDERS.filter((o) => o.orderStatus === 'Delivered').length;
+  const activeCustomers = CUSTOMERS.filter((c) => c.status === 'Active').length;
+  const avgOrderValue = revenueOrders.length ? Math.round(booked / revenueOrders.length) : 0;
 
   const branded = renewals.map((r) => ({ ...r, status: getRenewalStatus(r) }));
   const renewalsDue = branded.filter((r) => r.status.key !== 'Active').length;
 
   const monthBookings = {};
-  ORDERS.forEach((o) => {
+  revenueOrders.forEach((o) => {
     const m = o.orderDate.slice(0, 7);
     monthBookings[m] = (monthBookings[m] || 0) + o.value;
   });
@@ -93,7 +109,7 @@ function Dashboard() {
     .map(([name, value]) => ({ name, value }));
 
   const salesData = Object.entries(
-    ORDERS.reduce((acc, o) => { acc[o.salesPerson] = (acc[o.salesPerson] || 0) + o.value; return acc; }, {})
+    revenueOrders.reduce((acc, o) => { acc[o.salesPerson] = (acc[o.salesPerson] || 0) + o.value; return acc; }, {})
   ).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
 
   const payCount = {};
@@ -103,7 +119,7 @@ function Dashboard() {
     .map(([name, value]) => ({ name, value }));
 
   const customerData = Object.entries(
-    ORDERS.reduce((acc, o) => { acc[o.customer] = (acc[o.customer] || 0) + o.value; return acc; }, {})
+    revenueOrders.reduce((acc, o) => { acc[o.customer] = (acc[o.customer] || 0) + o.value; return acc; }, {})
   ).map(([name, value]) => ({ name: name.length > 18 ? name.slice(0, 17) + '…' : name, value }))
     .sort((a, b) => b.value - a.value)
     .slice(0, 5);
@@ -133,18 +149,18 @@ function Dashboard() {
       </div>
 
       {/* KPI cards */}
-      <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-6">
+      <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
         <StatCard
-          label="Booked Value"
+          label="Total Booked"
           value={fmtINR(booked)}
-          sub={`${ORDERS.length} orders`}
+          sub={`${revenueOrders.length} orders (excl. cancelled)`}
           tone="emerald"
           icon={<svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v10M15.5 9.5a3 3 0 0 0-3-2h-1a2.5 2.5 0 0 0 0 5h1a2.5 2.5 0 0 1 0 5h-1a3 3 0 0 1-3-2" /></svg>}
         />
         <StatCard
           label="Collected"
           value={fmtINR(collected)}
-          sub={`${ORDERS.filter((o) => o.paymentStatus === 'Paid').length} paid`}
+          sub={`${receivedPayments.length} payment${receivedPayments.length === 1 ? '' : 's'} received`}
           tone="sky"
           icon={<svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m5 13 4.5 4.5L19 7.5" /></svg>}
         />
@@ -156,6 +172,13 @@ function Dashboard() {
           icon={<svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" /></svg>}
         />
         <StatCard
+          label="Overdue"
+          value={fmtINR(overdue)}
+          sub={`${overdueOrders.length} order${overdueOrders.length === 1 ? '' : 's'} past delivery date`}
+          tone="amber"
+          icon={<svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 8v5M12 16h.01" /></svg>}
+        />
+        <StatCard
           label="Active Orders"
           value={activeOrders}
           sub={`${deliveredOrders} delivered`}
@@ -165,7 +188,7 @@ function Dashboard() {
         <StatCard
           label="Customers"
           value={CUSTOMERS.length}
-          sub="active accounts"
+          sub={`${activeCustomers} active`}
           tone="violet"
           icon={<svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 11a3.5 3.5 0 0 0 0-6.5M16 17a6.5 6.5 0 0 1 5.5 3" /></svg>}
         />
@@ -175,6 +198,13 @@ function Dashboard() {
           sub="expiring ≤30 days"
           tone="amber"
           icon={<svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>}
+        />
+        <StatCard
+          label="Avg. Order Value"
+          value={fmtINR(avgOrderValue)}
+          sub={`across ${revenueOrders.length} orders`}
+          tone="blue"
+          icon={<svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 17l6-6 4 4 7-7" /><path d="M17 8h4v4" /></svg>}
         />
       </div>
 

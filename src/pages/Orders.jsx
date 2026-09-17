@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../layouts/Layout';
-import { ORDERS, fmtINR, fmtDate } from '../data/mockData';
+import { CUSTOMERS, EMPLOYEES, fmtINR, fmtDate } from '../data/mockData';
 import { ORDER_STATUSES, ORDER_STATUS_COLORS, isActiveOrder } from '../data/orderStatus';
 import { usePtds } from '../store/ptdStore';
+import { useOrders, addOrder } from '../store/orderStore';
 
 const PAYMENT_STATUS_COLORS = {
   'Unpaid': 'border-slate-200 bg-slate-100 text-slate-600',
@@ -30,9 +31,130 @@ function orderAge(dateStr) {
   return { label: `${Math.floor(d / 365)}y ${Math.floor((d % 365) / 30)}m`, cls: 'text-red-600' };
 }
 
+function todayISO(offsetDays = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  return d.toISOString().slice(0, 10);
+}
+
+function NewOrderModal({ onClose }) {
+  const [form, setForm] = useState({
+    customer: '',
+    value: '',
+    orderDate: todayISO(),
+    deliveryDate: todayISO(30),
+    orderStatus: 'Pending',
+    paymentStatus: 'Unpaid',
+    salesPerson: '',
+  });
+
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const valid = form.customer && Number(form.value) > 0 && form.orderDate && form.deliveryDate && form.salesPerson;
+
+  const submit = () => {
+    if (!valid) return;
+    addOrder(form);
+    onClose();
+  };
+
+  const fieldCls = 'h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-[13px] text-slate-700 placeholder:text-slate-400 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100';
+  const labelCls = 'text-[11px] font-medium uppercase tracking-wide text-slate-400';
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-6 py-4">
+          <div>
+            <h3 className="text-[15px] font-semibold text-slate-900">New Order</h3>
+            <p className="mt-0.5 text-[12.5px] text-slate-500">Create a new order record.</p>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Close" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-50 hover:text-slate-600">
+            <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M6 6l12 12M18 6 6 18" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
+          <div>
+            <p className={labelCls}>Customer</p>
+            <select value={form.customer} onChange={set('customer')} className={fieldCls}>
+              <option value="">Select customer…</option>
+              {CUSTOMERS.filter((c) => c.status === 'Active').map((c) => (
+                <option key={c.name} value={c.name}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className={labelCls}>Order Value</p>
+              <input type="number" min="0" placeholder="0.00" value={form.value} onChange={set('value')} className={fieldCls} />
+            </div>
+            <div>
+              <p className={labelCls}>Sales Person</p>
+              <select value={form.salesPerson} onChange={set('salesPerson')} className={fieldCls}>
+                <option value="">Select…</option>
+                {EMPLOYEES.map((e) => (
+                  <option key={e.name} value={e.name}>{e.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className={labelCls}>Order Date</p>
+              <input type="date" value={form.orderDate} onChange={set('orderDate')} className={fieldCls} />
+            </div>
+            <div>
+              <p className={labelCls}>Delivery Date</p>
+              <input type="date" value={form.deliveryDate} onChange={set('deliveryDate')} className={fieldCls} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className={labelCls}>Order Status</p>
+              <select value={form.orderStatus} onChange={set('orderStatus')} className={fieldCls}>
+                {ORDER_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            <div>
+              <p className={labelCls}>Payment Status</p>
+              <select value={form.paymentStatus} onChange={set('paymentStatus')} className={fieldCls}>
+                {Object.keys(PAYMENT_STATUS_COLORS).map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex shrink-0 items-center justify-end gap-2 border-t border-slate-200 px-6 py-3.5">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border border-slate-200 px-3 py-1.5 text-[12.5px] font-medium text-slate-600 transition-colors hover:bg-slate-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={submit}
+            disabled={!valid}
+            className="rounded-lg bg-emerald-600 px-4 py-1.5 text-[12.5px] font-semibold text-white transition-colors hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Create Order
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Orders() {
   const navigate = useNavigate();
   const ptds = usePtds();
+  const orders = useOrders();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [payment, setPayment] = useState('');
@@ -40,18 +162,19 @@ function Orders() {
   const [salesPerson, setSalesPerson] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [modalOpen, setModalOpen] = useState(false);
 
-  const overduedOrders = ORDERS.filter((o) => isActiveOrder(o.orderStatus) && new Date(o.deliveryDate) < new Date());
+  const overduedOrders = orders.filter((o) => isActiveOrder(o.orderStatus) && new Date(o.deliveryDate) < new Date());
   const summary = [
-    { label: 'Total Orders', count: ORDERS.length, color: 'bg-emerald-600', icon: 'orders' },
-    { label: 'Pending', count: ORDERS.filter((o) => o.orderStatus === 'Pending').length, color: 'bg-amber-500', icon: 'clock' },
-    { label: 'Ongoing', count: ORDERS.filter((o) => o.orderStatus === 'Ongoing').length, color: 'bg-blue-500', icon: 'play' },
-    { label: 'Delivered', count: ORDERS.filter((o) => o.orderStatus === 'Delivered').length, color: 'bg-emerald-500', icon: 'check' },
+    { label: 'Total Orders', count: orders.length, color: 'bg-emerald-600', icon: 'orders' },
+    { label: 'Pending', count: orders.filter((o) => o.orderStatus === 'Pending').length, color: 'bg-amber-500', icon: 'clock' },
+    { label: 'Ongoing', count: orders.filter((o) => o.orderStatus === 'Ongoing').length, color: 'bg-blue-500', icon: 'play' },
+    { label: 'Delivered', count: orders.filter((o) => o.orderStatus === 'Delivered').length, color: 'bg-emerald-500', icon: 'check' },
     { label: 'Overdue', count: overduedOrders.length, color: 'bg-red-500', icon: 'alert' },
-    { label: 'Cancelled', count: ORDERS.filter((o) => o.orderStatus === 'Cancelled').length, color: 'bg-slate-500', icon: 'x' },
+    { label: 'Cancelled', count: orders.filter((o) => o.orderStatus === 'Cancelled').length, color: 'bg-slate-500', icon: 'x' },
   ];
 
-  const filtered = ORDERS.filter((o) => {
+  const filtered = orders.filter((o) => {
     if (search && !`${o.orderId} ${o.customer} ${o.salesPerson}`.toLowerCase().includes(search.toLowerCase())) return false;
     if (status) {
       if (o.orderStatus !== status) return false;
@@ -115,6 +238,7 @@ function Orders() {
         </div>
         <button
           type="button"
+          onClick={() => setModalOpen(true)}
           className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-emerald-600/25 transition-colors hover:bg-emerald-500"
         >
           <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -164,11 +288,11 @@ function Orders() {
           </select>
           <select value={salesPerson} onChange={(e) => setSalesPerson(e.target.value)} className={inputCls}>
             <option value="">All sales</option>
-            {[...new Set(ORDERS.map((o) => o.salesPerson))].map((s) => <option key={s} value={s}>{s}</option>)}
+            {[...new Set(orders.map((o) => o.salesPerson))].map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
           <select value={customer} onChange={(e) => setCustomer(e.target.value)} className={inputCls}>
             <option value="">All customers</option>
-            {[...new Set(ORDERS.map((o) => o.customer))].map((c) => <option key={c} value={c}>{c}</option>)}
+            {[...new Set(orders.map((o) => o.customer))].map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
           <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className={inputCls} aria-label="Order date from" />
           <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className={inputCls} aria-label="Order date to" />
@@ -240,13 +364,15 @@ function Orders() {
         </div>
 
         <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50/50 px-2 py-2 text-[12px] text-slate-500">
-          <span>Showing {filtered.length} of {ORDERS.length} orders</span>
+          <span>Showing {filtered.length} of {orders.length} orders</span>
           <div className="flex items-center gap-1">
             <button type="button" disabled className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-slate-400">Previous</button>
             <button type="button" className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-slate-700">Next</button>
           </div>
         </div>
       </div>
+
+      {modalOpen && <NewOrderModal onClose={() => setModalOpen(false)} />}
     </Layout>
   );
 }

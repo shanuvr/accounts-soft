@@ -152,7 +152,6 @@ function Ledger() {
 
   const customerSummary = customer !== 'All' ? register.find((r) => r.customer === customer) : null;
   const customerInfo = customer !== 'All' ? CUSTOMERS.find((c) => c.name === customer) : null;
-  const customerNet = customerSummary ? customerSummary.invoiced - customerSummary.received : 0;
 
   const totals = useMemo(
     () => ({
@@ -287,13 +286,58 @@ function Ledger() {
     const period = `${dateFrom ? fmtDate(dateFrom) : 'All'} — ${dateTo ? fmtDate(dateTo) : 'All'}`;
     doc.setFontSize(9);
     doc.setTextColor(100, 116, 139);
-    const customerLine = isCustomerScoped ? `Customer: ${shortCustomer(customer)}   |   ` : '';
-    doc.text(`${customerLine}Period: ${period}   |   Generated: ${new Date().toLocaleString('en-IN')}`, rightX, 60, { align: 'right' });
+    doc.text(`Period: ${period}   |   Generated: ${new Date().toLocaleString('en-IN')}`, rightX, 60, { align: 'right' });
 
     // Subtle header divider line
     doc.setDrawColor(226, 232, 240);
     doc.setLineWidth(0.6);
     doc.line(M, 69, rightX, 69);
+
+    // 3b. Customer details strip (only on customer-scoped statements)
+    let customerStripBottom = 0;
+    if (isCustomerScoped && customerInfo) {
+      const stripY = 77;
+      const stripH = 46;
+
+      doc.setFillColor(248, 250, 252);
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.5);
+      doc.roundedRect(M, stripY, totalTableW, stripH, 3, 3, 'FD');
+
+      // Left accent bar
+      doc.setFillColor(4, 120, 87);
+      doc.roundedRect(M, stripY, 3, stripH, 1.5, 1.5, 'F');
+
+      // Customer name
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.setTextColor(15, 23, 42);
+      doc.text(fitText(customerInfo.name, totalTableW - 24), M + 12, stripY + 18);
+
+      // Contact & account fields
+      const detailFields = [
+        ['Customer ID', customerInfo.customerId],
+        ['Contact Person', customerInfo.contactPerson],
+        ['Phone', customerInfo.phone],
+        ['Email', customerInfo.email],
+        ['Status', customerInfo.status],
+      ];
+      const detailColW = (totalTableW - 24) / detailFields.length;
+      detailFields.forEach(([label, value], i) => {
+        const fx = M + 12 + i * detailColW;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(6.5);
+        doc.setTextColor(148, 163, 184);
+        doc.text(String(label).toUpperCase(), fx, stripY + 32);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        doc.setTextColor(30, 41, 59);
+        doc.text(fitText(value || '—', detailColW - 8), fx, stripY + 42);
+      });
+
+      customerStripBottom = stripY + stripH;
+    }
 
     // 4. Executive KPI Summary Cards: Total Debit, Total Credit, Total Running Balance
     const netPosition = totals.debit - totals.credit;
@@ -305,7 +349,7 @@ function Ledger() {
 
     const cardGap = 14;
     const cardW = (totalTableW - cardGap * (cards.length - 1)) / cards.length;
-    const cardY = 77;
+    const cardY = customerStripBottom ? customerStripBottom + 12 : 77;
     const cardH = 40;
 
     cards.forEach((c, idx) => {
@@ -474,7 +518,7 @@ function Ledger() {
       doc.setFontSize(8);
       doc.setTextColor(148, 163, 184);
       doc.text('Account Soft · Official Financial Statement · Confidential', M, H - 12);
-      doc.text(`Period: ${period}`, W / 2, H - 12, { align: 'center' });
+      doc.text(`${isCustomerScoped ? `${shortCustomer(customer)}  ·  ` : ''}Period: ${period}`, W / 2, H - 12, { align: 'center' });
 
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(100, 116, 139);
@@ -560,7 +604,7 @@ function Ledger() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="rounded-lg border border-slate-100 bg-slate-50/70 p-3">
                 <p className="text-[10.5px] font-medium uppercase tracking-wider text-slate-400">Total Debit</p>
                 <p className="mt-1 text-[16px] font-semibold text-slate-800">{fmtINR(customerSummary.invoiced)}</p>
@@ -568,12 +612,6 @@ function Ledger() {
               <div className="rounded-lg border border-slate-100 bg-slate-50/70 p-3">
                 <p className="text-[10.5px] font-medium uppercase tracking-wider text-slate-400">Total Credit</p>
                 <p className="mt-1 text-[16px] font-semibold text-emerald-700">{fmtINR(customerSummary.received)}</p>
-              </div>
-              <div className="rounded-lg border border-slate-100 bg-slate-50/70 p-3">
-                <p className="text-[10.5px] font-medium uppercase tracking-wider text-slate-400">Total Running Balance</p>
-                <p className="mt-1 text-[16px] font-semibold text-blue-700">
-                  {customerNet < 0 ? '-' : ''}{fmtINR(Math.abs(customerNet))}
-                </p>
               </div>
             </div>
           </div>
