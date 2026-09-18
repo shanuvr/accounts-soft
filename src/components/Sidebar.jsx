@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../store/authStore';
 import { useUi, setMastersOpen } from '../store/uiStore';
@@ -63,6 +63,26 @@ const I = {
     <svg viewBox="0 0 24 24" {...stroke} className="h-[18px] w-[18px]">
       <path d="M6 3h12v18H6z" />
       <path d="M9 7h6M9 11h6M9 15h3M6 3l-2 3 2 3M18 3l2 3-2 3" />
+    </svg>
+  ),
+  journal: (
+    <svg viewBox="0 0 24 24" {...stroke} className="h-[18px] w-[18px]">
+      <path d="M6 3h11a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" />
+      <path d="M4 9h2a2 2 0 0 1 2 2v1a2 2 0 0 1-2 2H4M8 8h7M8 12h7M8 16h4" />
+    </svg>
+  ),
+  cashbook: (
+    <svg viewBox="0 0 24 24" {...stroke} className="h-[18px] w-[18px]">
+      <rect x="2" y="6" width="20" height="12" rx="2" />
+      <circle cx="12" cy="12" r="2.5" />
+      <path d="M6.5 9.5h.01M6.5 14.5h.01M17.5 9.5h.01M17.5 14.5h.01" />
+    </svg>
+  ),
+  bankbook: (
+    <svg viewBox="0 0 24 24" {...stroke} className="h-[18px] w-[18px]">
+      <path d="M3 21h18" />
+      <path d="M4 18h16M6 18v-7M10 18v-7M14 18v-7M18 18v-7M5 8l7-5 7 5" />
+      <path d="M3 6a1.5 1.5 0 1 0 0 .01M21 6a1.5 1.5 0 1 0 0 .01" />
     </svg>
   ),
   invoices: (
@@ -141,6 +161,12 @@ const PATHS = {
   renewals: '/renewals',
 };
 
+const REPORTS_NAV = [
+  { id: 'journal', label: 'Journal', icon: 'journal', path: '/journal' },
+  { id: 'cashbook', label: 'Cash Book', icon: 'cashbook', path: '/cashbook' },
+  { id: 'bankbook', label: 'Bank Book', icon: 'bankbook', path: '/bankbook' },
+];
+
 const MASTER_NAV = [
   { label: 'Product / Service Master', path: '/products-services' },
   { label: 'Service Category', path: '/service-categories' },
@@ -170,6 +196,24 @@ function Sidebar({ active = 'dashboard', mobileOpen = false, onClose }) {
   const navigate = useNavigate();
   const user = useAuth();
   const mastersRef = useRef(null);
+  const navRef = useRef(null);
+  const pendingNavScroll = useRef(null);
+
+  useLayoutEffect(() => {
+    if (pendingNavScroll.current !== null && navRef.current) {
+      navRef.current.scrollTop = pendingNavScroll.current;
+      pendingNavScroll.current = null;
+    }
+  });
+
+  const reportsActive = REPORTS_NAV.some((r) => r.id === active);
+  const [reportsOpen, setReportsOpen] = useState(reportsActive);
+  const [prevActive, setPrevActive] = useState(active);
+
+  if (active !== prevActive) {
+    setPrevActive(active);
+    if (reportsActive) setReportsOpen(true);
+  }
 
   useEffect(() => {
     if (mastersOpen && mastersRef.current) {
@@ -201,7 +245,7 @@ function Sidebar({ active = 'dashboard', mobileOpen = false, onClose }) {
       {mobileOpen && <div className="fixed inset-0 z-30 bg-slate-900/50 lg:hidden" onClick={onClose} />}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-slate-200 bg-white transition-transform duration-200 lg:static lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-slate-200 bg-white transition-transform duration-200 lg:static lg:h-screen lg:translate-x-0 lg:shrink-0 lg:overflow-hidden ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -220,7 +264,7 @@ function Sidebar({ active = 'dashboard', mobileOpen = false, onClose }) {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 space-y-6 overflow-y-auto overflow-x-hidden px-3 py-4">
+        <nav ref={navRef} className="flex-1 space-y-6 overflow-y-auto overflow-x-hidden px-3 py-4 [overflow-anchor:none]">
           <div className="space-y-1">
             {MAIN_NAV.map((item) => (
               <NavItem
@@ -231,6 +275,49 @@ function Sidebar({ active = 'dashboard', mobileOpen = false, onClose }) {
                 onClick={() => navigate(PATHS[item.id])}
               />
             ))}
+
+            {/* Reports */}
+            <div>
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  pendingNavScroll.current = navRef.current?.scrollTop ?? 0;
+                  setReportsOpen(!reportsOpen);
+                }}
+                className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-[13px] font-medium transition-colors ${
+                  reportsActive
+                    ? 'text-emerald-700'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <span className="flex items-center gap-3">
+                  {I.reports}
+                  <span>Reports</span>
+                </span>
+                <span className={`text-slate-400 transition-transform ${reportsOpen ? 'rotate-180' : ''}`}>{I.chevron}</span>
+              </button>
+              {reportsOpen && (
+                <div className="mt-1 space-y-0.5 border-l border-slate-200 pl-4">
+                  {REPORTS_NAV.map((r) => (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        pendingNavScroll.current = navRef.current?.scrollTop ?? 0;
+                        navigate(r.path);
+                      }}
+                      className={`block w-full truncate rounded-md px-2 py-1.5 text-left text-[12.5px] transition-colors hover:bg-slate-50 hover:text-slate-800 ${
+                        active === r.id ? 'font-semibold text-emerald-700' : 'text-slate-500'
+                      }`}
+                    >
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Masters */}

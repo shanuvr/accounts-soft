@@ -20,6 +20,9 @@ import DepartmentMaster from './pages/DepartmentMaster'
 import Payments from './pages/Payments'
 import PaymentDetail from './pages/PaymentDetail'
 import Ledger from './pages/Ledger'
+import Journal from './pages/Journal'
+import Cashbook from './pages/Cashbook'
+import BankBook from './pages/BankBook'
 import InvoiceList from './pages/InvoiceList'
 import InvoiceDetail from './pages/InvoiceDetail'
 import Renewals from './pages/Renewals'
@@ -63,6 +66,9 @@ function App() {
       <Route path="/payments" element={<Payments />} />
       <Route path="/payments/:paymentId" element={<PaymentDetail />} />
       <Route path="/ledger" element={<Ledger />} />
+      <Route path="/journal" element={<Journal />} />
+      <Route path="/cashbook" element={<Cashbook />} />
+      <Route path="/bankbook" element={<BankBook />} />
       <Route path="/invoices" element={<InvoiceList />} />
       <Route path="/invoices/:invoiceId" element={<InvoiceDetail />} />
       <Route path="/renewals" element={<Renewals />} />

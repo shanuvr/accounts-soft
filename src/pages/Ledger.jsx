@@ -295,45 +295,98 @@ function Ledger() {
 
     // 3b. Customer details strip (only on customer-scoped statements)
     let customerStripBottom = 0;
-    if (isCustomerScoped && customerInfo) {
-      const stripY = 77;
-      const stripH = 46;
+    if (isCustomerScoped) {
+      const client = customerInfo || {
+        customerId: '—',
+        name: customer,
+        contactPerson: '—',
+        phone: '—',
+        email: '—',
+        type: 'Customer',
+        status: 'Active',
+      };
 
-      doc.setFillColor(248, 250, 252);
-      doc.setDrawColor(226, 232, 240);
-      doc.setLineWidth(0.5);
+      const stripY = 74;
+      const stripH = 50;
+
+      // Outer Box: Crisp pure white background with subtle slate border
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(203, 213, 225); // Slate-300
+      doc.setLineWidth(0.6);
       doc.roundedRect(M, stripY, totalTableW, stripH, 3, 3, 'FD');
 
-      // Left accent bar
-      doc.setFillColor(4, 120, 87);
-      doc.roundedRect(M, stripY, 3, stripH, 1.5, 1.5, 'F');
+      // Header Banner Ribbon inside Card
+      const bannerH = 17;
+      doc.setFillColor(241, 245, 249); // Slate-100
+      doc.roundedRect(M, stripY, totalTableW, bannerH, 3, 3, 'F');
+      doc.rect(M, stripY + bannerH - 3, totalTableW, 3, 'F'); // square bottom corners of banner
 
-      // Customer name
+      // Thin divider under banner
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.5);
+      doc.line(M, stripY + bannerH, rightX, stripY + bannerH);
+
+      // Banner text left: Section Title
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(12);
-      doc.setTextColor(15, 23, 42);
-      doc.text(fitText(customerInfo.name, totalTableW - 24), M + 12, stripY + 18);
+      doc.setFontSize(7);
+      doc.setTextColor(71, 85, 105); // Slate-600
+      doc.text('STATEMENT ISSUED TO (ACCOUNT HOLDER)', M + 12, stripY + 11.5);
 
-      // Contact & account fields
-      const detailFields = [
-        ['Customer ID', customerInfo.customerId],
-        ['Contact Person', customerInfo.contactPerson],
-        ['Phone', customerInfo.phone],
-        ['Email', customerInfo.email],
-        ['Status', customerInfo.status],
-      ];
-      const detailColW = (totalTableW - 24) / detailFields.length;
-      detailFields.forEach(([label, value], i) => {
-        const fx = M + 12 + i * detailColW;
+      // Banner text right: Customer ID
+      if (client.customerId && client.customerId !== '—') {
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(6.5);
-        doc.setTextColor(148, 163, 184);
-        doc.text(String(label).toUpperCase(), fx, stripY + 32);
+        doc.setFontSize(7);
+        doc.setTextColor(100, 116, 139);
+        doc.text(`CUSTOMER ID: ${client.customerId}`, rightX - 12, stripY + 11.5, { align: 'right' });
+      }
 
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(8.5);
-        doc.setTextColor(30, 41, 59);
-        doc.text(fitText(value || '—', detailColW - 8), fx, stripY + 42);
+      // Body - Left zone: Customer Name & Subtitle
+      const bodyY = stripY + bannerH;
+      const bodyH = stripH - bannerH;
+      const leftColW = 240;
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12.5);
+      doc.setTextColor(15, 23, 42); // Slate-900
+      doc.text(fitText(client.name, leftColW - 20), M + 12, bodyY + 15);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(100, 116, 139);
+      doc.text('Primary Account Holder · Ledger Scope', M + 12, bodyY + 26);
+
+      // Vertical Divider between Identity and Contact Info
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.6);
+      doc.line(M + leftColW, bodyY + 4, M + leftColW, bodyY + bodyH - 4);
+
+      // Body - Right zone: 3 Structured Contact Columns
+      const rightAreaX = M + leftColW + 16;
+      const rightAreaW = totalTableW - leftColW - 28;
+      const contactCols = [
+        { label: 'CONTACT PERSON', val: client.contactPerson || '—', w: rightAreaW * 0.33 },
+        { label: 'PHONE NUMBER', val: client.phone || '—', w: rightAreaW * 0.31 },
+        { label: 'EMAIL ADDRESS', val: client.email || '—', w: rightAreaW * 0.36 },
+      ];
+
+      let curCx = rightAreaX;
+      contactCols.forEach((col, idx) => {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(6.8);
+        doc.setTextColor(148, 163, 184); // Slate-400
+        doc.text(col.label, curCx, bodyY + 11.5);
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.setTextColor(30, 41, 59); // Slate-800
+        doc.text(fitText(col.val, col.w - 8), curCx, bodyY + 24.5);
+
+        if (idx < contactCols.length - 1) {
+          curCx += col.w;
+          doc.setDrawColor(241, 245, 249);
+          doc.setLineWidth(0.5);
+          doc.line(curCx - 8, bodyY + 6, curCx - 8, bodyY + bodyH - 6);
+        }
       });
 
       customerStripBottom = stripY + stripH;
