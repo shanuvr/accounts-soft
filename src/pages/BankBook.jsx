@@ -436,7 +436,6 @@ function BankBook() {
             )}
           </table>
         </div>
-
         <div className="flex items-center justify-between border-t border-slate-200 px-6 py-3 text-[12px] text-slate-400">
           <span>Showing {filtered.length} of {bank.length} bank entries</span>
         </div>
