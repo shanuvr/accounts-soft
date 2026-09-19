@@ -191,35 +191,89 @@ function NavItem({ icon, label, active, onClick }) {
   );
 }
 
+let savedSidebarScroll = 0;
+try {
+  savedSidebarScroll = Number(sessionStorage.getItem('account_soft_sidebar_scroll') || 0);
+} catch {}
+
+let savedReportsOpen = false;
+try {
+  savedReportsOpen = sessionStorage.getItem('account_soft_reports_open') === 'true';
+} catch {}
+
 function Sidebar({ active = 'dashboard', mobileOpen = false, onClose }) {
   const { mastersOpen } = useUi();
   const navigate = useNavigate();
   const user = useAuth();
   const mastersRef = useRef(null);
   const navRef = useRef(null);
-  const pendingNavScroll = useRef(null);
-
-  useLayoutEffect(() => {
-    if (pendingNavScroll.current !== null && navRef.current) {
-      navRef.current.scrollTop = pendingNavScroll.current;
-      pendingNavScroll.current = null;
-    }
-  });
 
   const reportsActive = REPORTS_NAV.some((r) => r.id === active);
-  const [reportsOpen, setReportsOpen] = useState(reportsActive);
+  const [reportsOpen, setReportsOpen] = useState(() => reportsActive || savedReportsOpen);
   const [prevActive, setPrevActive] = useState(active);
 
   if (active !== prevActive) {
     setPrevActive(active);
-    if (reportsActive) setReportsOpen(true);
+    if (reportsActive && !reportsOpen) {
+      setReportsOpen(true);
+      savedReportsOpen = true;
+      try {
+        sessionStorage.setItem('account_soft_reports_open', 'true');
+      } catch {}
+    }
   }
 
-  useEffect(() => {
-    if (mastersOpen && mastersRef.current) {
-      mastersRef.current.scrollIntoView({ block: 'end' });
+  const handleScroll = (e) => {
+    savedSidebarScroll = e.currentTarget.scrollTop;
+    try {
+      sessionStorage.setItem('account_soft_sidebar_scroll', String(savedSidebarScroll));
+    } catch {}
+  };
+
+  const handleNavigate = (path) => {
+    if (navRef.current) {
+      savedSidebarScroll = navRef.current.scrollTop;
+      try {
+        sessionStorage.setItem('account_soft_sidebar_scroll', String(savedSidebarScroll));
+      } catch {}
     }
-  }, [mastersOpen]);
+    navigate(path);
+  };
+
+  const toggleReports = () => {
+    if (navRef.current) {
+      savedSidebarScroll = navRef.current.scrollTop;
+      try {
+        sessionStorage.setItem('account_soft_sidebar_scroll', String(savedSidebarScroll));
+      } catch {}
+    }
+    setReportsOpen((prev) => {
+      const next = !prev;
+      savedReportsOpen = next;
+      try {
+        sessionStorage.setItem('account_soft_reports_open', String(next));
+      } catch {}
+      return next;
+    });
+  };
+
+  useLayoutEffect(() => {
+    if (navRef.current) {
+      navRef.current.scrollTop = savedSidebarScroll;
+    }
+  });
+
+  useEffect(() => {
+    if (navRef.current) {
+      navRef.current.scrollTop = savedSidebarScroll;
+    }
+    const raf = requestAnimationFrame(() => {
+      if (navRef.current) {
+        navRef.current.scrollTop = savedSidebarScroll;
+      }
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [active, reportsOpen, mastersOpen]);
 
   useEffect(() => {
     if (!mastersOpen) return;
@@ -264,7 +318,11 @@ function Sidebar({ active = 'dashboard', mobileOpen = false, onClose }) {
         </div>
 
         {/* Nav */}
-        <nav ref={navRef} className="flex-1 space-y-6 overflow-y-auto overflow-x-hidden px-3 py-4 [overflow-anchor:none]">
+        <nav
+          ref={navRef}
+          onScroll={handleScroll}
+          className="flex-1 space-y-6 overflow-y-auto overflow-x-hidden px-3 py-4 [overflow-anchor:none]"
+        >
           <div className="space-y-1">
             {MAIN_NAV.map((item) => (
               <NavItem
@@ -272,7 +330,7 @@ function Sidebar({ active = 'dashboard', mobileOpen = false, onClose }) {
                 icon={item.icon}
                 label={item.label}
                 active={active === item.id}
-                onClick={() => navigate(PATHS[item.id])}
+                onClick={() => handleNavigate(PATHS[item.id])}
               />
             ))}
 
@@ -281,10 +339,7 @@ function Sidebar({ active = 'dashboard', mobileOpen = false, onClose }) {
               <button
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={() => {
-                  pendingNavScroll.current = navRef.current?.scrollTop ?? 0;
-                  setReportsOpen(!reportsOpen);
-                }}
+                onClick={toggleReports}
                 className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-[13px] font-medium transition-colors ${
                   reportsActive
                     ? 'text-emerald-700'
@@ -304,10 +359,7 @@ function Sidebar({ active = 'dashboard', mobileOpen = false, onClose }) {
                       key={r.id}
                       type="button"
                       onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => {
-                        pendingNavScroll.current = navRef.current?.scrollTop ?? 0;
-                        navigate(r.path);
-                      }}
+                      onClick={() => handleNavigate(r.path)}
                       className={`block w-full truncate rounded-md px-2 py-1.5 text-left text-[12.5px] transition-colors hover:bg-slate-50 hover:text-slate-800 ${
                         active === r.id ? 'font-semibold text-emerald-700' : 'text-slate-500'
                       }`}
@@ -324,7 +376,21 @@ function Sidebar({ active = 'dashboard', mobileOpen = false, onClose }) {
           <div ref={mastersRef}>
             <button
               type="button"
-              onClick={() => setMastersOpen(!mastersOpen)}
+              onClick={() => {
+                if (navRef.current) {
+                  savedSidebarScroll = navRef.current.scrollTop;
+                  try {
+                    sessionStorage.setItem('account_soft_sidebar_scroll', String(savedSidebarScroll));
+                  } catch {}
+                }
+                const next = !mastersOpen;
+                setMastersOpen(next);
+                if (next && mastersRef.current) {
+                  setTimeout(() => {
+                    mastersRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' });
+                  }, 50);
+                }
+              }}
               className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-[13px] font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
             >
               <span className="flex items-center gap-3">
@@ -340,7 +406,7 @@ function Sidebar({ active = 'dashboard', mobileOpen = false, onClose }) {
                     key={m.label}
                     type="button"
                     onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => navigate(m.path)}
+                    onClick={() => handleNavigate(m.path)}
                     className="block w-full truncate rounded-md px-2 py-1.5 text-left text-[12.5px] text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-800"
                   >
                     {m.label}

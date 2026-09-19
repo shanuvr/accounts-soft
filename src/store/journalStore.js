@@ -11,11 +11,32 @@ function entryForPayment(p) {
   if (p.status === 'Failed') return null;
   const refunded = p.status === 'Refunded';
   const amount = Number(p.amount) || 0;
-  const ref = p.reference ? ` (${p.reference})` : '';
+
+  const isBank = bookFor(p.method) === 'Bank';
+  const bankStr = isBank ? (p.bankName || 'HDFC Bank') : '';
+  const methodStr = p.method ? p.method : 'Payment';
+  const refStr = p.reference ? p.reference : '';
+  const receiver = p.receivedBy ? `By: ${p.receivedBy}` : '';
+  const linkedInv = p.invoiceId ? `Against ${p.invoiceId}` : '';
+
+  const detailParts = [
+    refunded ? `Refund (${methodStr})` : `${methodStr} Receipt`,
+    bankStr,
+    refStr,
+    linkedInv,
+    receiver,
+  ].filter(Boolean);
+
+  const particularsDetail = detailParts.join(' · ');
+  const particularHeader = p.customer;
+
   return {
     id: p.paymentId,
     date: p.date,
-    particular: refunded ? `Refund — ${p.customer}${ref}` : `${p.customer}${ref}`,
+    customer: p.customer,
+    particularHeader,
+    particularsDetail,
+    particular: `${p.customer} — ${particularsDetail}`,
     income: refunded ? 0 : amount,
     expense: refunded ? amount : 0,
     source: bookFor(p.method),

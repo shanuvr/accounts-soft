@@ -171,7 +171,7 @@ function Ledger() {
     const W = doc.internal.pageSize.getWidth();
     const H = doc.internal.pageSize.getHeight();
     const M = 36;
-    const rowH = 21;
+    const rowH = 28;
 
     // Currency formatters for PDF using pure ASCII 'Rs. ' to prevent jsPDF Helvetica glyph corruption
     const fmtPdfAmt = (val) => {
@@ -197,16 +197,16 @@ function Ledger() {
 
     // 10 columns totaling exactly 770 pt (centered headings & data, generous gap between Project Ref & Type)
     const cols = [
-      { label: 'Date', w: 68, align: 'center' },
-      { label: 'Particulars', w: 78, align: 'center' },
-      { label: 'Customer', w: 115, align: 'center' },
-      { label: 'Project Ref', w: 75, align: 'center' },
-      { label: 'Type', w: 50, align: 'center' },
-      { label: 'Invoice Amt', w: 76, align: 'center' },
-      { label: 'Tax / TDS', w: 58, align: 'center' },
-      { label: 'Debit', w: 83, align: 'center' },
-      { label: 'Credit', w: 83, align: 'center' },
-      { label: 'Running Bal', w: 84, align: 'center' },
+      { label: 'Date', w: 60, align: 'center' },
+      { label: 'Particulars', w: 155, align: 'left' },
+      { label: 'Customer', w: 105, align: 'left' },
+      { label: 'Project Ref', w: 70, align: 'center' },
+      { label: 'Type', w: 45, align: 'center' },
+      { label: 'Invoice Amt', w: 68, align: 'right' },
+      { label: 'Tax / TDS', w: 55, align: 'right' },
+      { label: 'Debit', w: 70, align: 'right' },
+      { label: 'Credit', w: 70, align: 'right' },
+      { label: 'Running Bal', w: 72, align: 'right' },
     ];
 
     // Pre-calculate exact sub-pixel column positions so headers, rows, and totals align identically
@@ -237,7 +237,7 @@ function Ledger() {
     doc.setFillColor(15, 23, 42);
     doc.rect(0, 0, W, 4, 'F');
 
-    // 2. Company Brand & Logo (scaled with true 4.665 aspect ratio for crispness)
+    // 2. Company Brand & Logo
     let logoLoaded = false;
     try {
       const res = await fetch('/programers-logo-BLACCK.png');
@@ -248,7 +248,7 @@ function Ledger() {
         fr.onerror = reject;
         fr.readAsDataURL(blob);
       });
-      doc.addImage(dataUrl, 'PNG', M, 16, 165, 35.4);
+      doc.addImage(dataUrl, 'PNG', M, 12, 140, 30);
       logoLoaded = true;
     } catch {
       /* fallback text below */
@@ -256,42 +256,35 @@ function Ledger() {
 
     if (!logoLoaded) {
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(18);
+      doc.setFontSize(16);
       doc.setTextColor(15, 23, 42);
-      doc.text('PROGRAMERS', M, 36);
+      doc.text('PROGRAMERS', M, 30);
     }
 
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
     doc.setTextColor(100, 116, 139);
-    doc.text('ACCOUNT SOFT  ·  FINANCIAL LEDGER REPORT', M, 60);
+    doc.text('ACCOUNT SOFT', M, 49);
 
-    // 3. Document Title & Period Information (Right-aligned, prominent header hierarchy)
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(22);
-    doc.setTextColor(15, 23, 42);
-    doc.text(customer && customer !== 'All' ? 'CUSTOMER STATEMENT OF ACCOUNT' : 'STATEMENT OF ACCOUNT', rightX, 32, { align: 'right' });
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.setTextColor(71, 85, 105);
     const isCustomerScoped = customer && customer !== 'All';
-    doc.text(
-      isCustomerScoped ? 'Customer Ledger · Transaction Register & Running Balances' : 'General Ledger · Transaction Register & Running Balances',
-      rightX,
-      47,
-      { align: 'right' }
-    );
+    const reportTitle = isCustomerScoped ? 'Customer Ledger Report' : 'General Ledger Report';
+
+    // 3. Document Title & Period Information (Right-aligned)
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.setTextColor(15, 23, 42);
+    doc.text(reportTitle, rightX, 32, { align: 'right' });
 
     const period = `${dateFrom ? fmtDate(dateFrom) : 'All'} — ${dateTo ? fmtDate(dateTo) : 'All'}`;
-    doc.setFontSize(9);
-    doc.setTextColor(100, 116, 139);
-    doc.text(`Period: ${period}   |   Generated: ${new Date().toLocaleString('en-IN')}`, rightX, 60, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9.5);
+    doc.setTextColor(71, 85, 105);
+    doc.text(`Period: ${period}   |   Generated: ${new Date().toLocaleString('en-IN')}`, rightX, 48, { align: 'right' });
 
     // Subtle header divider line
     doc.setDrawColor(226, 232, 240);
     doc.setLineWidth(0.6);
-    doc.line(M, 69, rightX, 69);
+    doc.line(M, 58, rightX, 58);
 
     // 3b. Customer details strip (only on customer-scoped statements)
     let customerStripBottom = 0;
@@ -306,7 +299,7 @@ function Ledger() {
         status: 'Active',
       };
 
-      const stripY = 74;
+      const stripY = 66;
       const stripH = 50;
 
       // Outer Box: Crisp pure white background with subtle slate border
@@ -453,7 +446,15 @@ function Ledger() {
 
     // 6. Data Rows
     filtered.forEach((e, i) => {
-      if (y > H - 55) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.2);
+      const subLines = e.particularsDetail
+        ? doc.splitTextToSize(String(e.particularsDetail), colMeta[1].w - 8)
+        : [];
+      const numSubLines = subLines.length;
+      const currentRowH = Math.max(28, 16 + numSubLines * 9.5);
+
+      if (y + currentRowH > H - 55) {
         doc.addPage();
         y = 35;
         y = drawTableHeader(y);
@@ -462,12 +463,12 @@ function Ledger() {
       // Zebra striping: Slate-50 vs pure white
       const isOdd = i % 2 === 1;
       doc.setFillColor(isOdd ? 248 : 255, isOdd ? 250 : 255, isOdd ? 252 : 255);
-      doc.rect(M, y, totalTableW, rowH, 'F');
+      doc.rect(M, y, totalTableW, currentRowH, 'F');
 
       // Bottom row separator hairline
       doc.setDrawColor(241, 245, 249);
       doc.setLineWidth(0.4);
-      doc.line(M, y + rowH, M + totalTableW, y + rowH);
+      doc.line(M, y + currentRowH, M + totalTableW, y + currentRowH);
 
       const vals = [
         fmtDate(e.date),
@@ -482,33 +483,49 @@ function Ledger() {
         fmtPdfBal(e.balance),
       ];
 
-      doc.setFontSize(8.5);
       colMeta.forEach((c, ci) => {
         if (ci === 1) {
+          // Line 1: Document ID bold
           doc.setFont('helvetica', 'bold');
-          doc.setTextColor(15, 23, 42); // Doc ID bold
-        } else if (ci === 2) {
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(15, 23, 42); // Customer bold
-        } else if (ci === 7) {
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(15, 23, 42); // Debit bold
-        } else if (ci === 8) {
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(4, 120, 87); // Credit subtle deep forest
-        } else if (ci === 9) {
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(15, 23, 42); // Balance bold
-        } else {
-          doc.setFont('helvetica', 'normal');
-          doc.setTextColor(ci === 0 || ci === 3 || ci === 4 ? 71 : 30, ci === 0 || ci === 3 || ci === 4 ? 85 : 41, ci === 0 || ci === 3 || ci === 4 ? 105 : 59);
-        }
+          doc.setFontSize(8.5);
+          doc.setTextColor(15, 23, 42);
+          doc.text(fitText(e.docId, c.w - 8), c.leftX, y + 11);
 
-        const cx = c.align === 'left' ? c.leftX : c.align === 'center' ? c.centerX : c.rightX;
-        const textVal = fitText(vals[ci], c.w - 10);
-        doc.text(textVal, cx, y + 14, { align: c.align });
+          // Lines 2+: Wrapped details subtext below
+          if (subLines.length > 0) {
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(7.2);
+            doc.setTextColor(100, 116, 139);
+            subLines.forEach((line, lineIdx) => {
+              doc.text(line, c.leftX, y + 20 + lineIdx * 9.5);
+            });
+          }
+        } else {
+          doc.setFontSize(8.5);
+          if (ci === 2) {
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(15, 23, 42); // Customer bold
+          } else if (ci === 7) {
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(15, 23, 42); // Debit bold
+          } else if (ci === 8) {
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(4, 120, 87); // Credit subtle deep forest
+          } else if (ci === 9) {
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(15, 23, 42); // Balance bold
+          } else {
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(ci === 0 || ci === 3 || ci === 4 ? 71 : 30, ci === 0 || ci === 3 || ci === 4 ? 85 : 41, ci === 0 || ci === 3 || ci === 4 ? 105 : 59);
+          }
+
+          const cx = c.align === 'left' ? c.leftX : c.align === 'center' ? c.centerX : c.rightX;
+          const textVal = fitText(vals[ci], c.w - 8);
+          const cellY = y + (currentRowH / 2) + 2.5;
+          doc.text(textVal, cx, cellY, { align: c.align });
+        }
       });
-      y += rowH;
+      y += currentRowH;
     });
 
     // Empty state if no records
@@ -692,8 +709,26 @@ function Ledger() {
               {filtered.map((e, i) => (
                 <tr key={`${e.docId}-${i}`} className="border-b border-slate-100 last:border-0">
                   <td className="whitespace-nowrap px-2 py-2 text-slate-600">{fmtDate(e.date)}</td>
-                  <td className="max-w-[280px] truncate px-2 py-2 text-slate-800">
-                    <span className="font-semibold">{e.docId}</span>
+                  <td className="max-w-[320px] px-3 py-2 text-left text-slate-800">
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-semibold text-slate-900">{e.docId}</span>
+                        <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium tracking-tight ${
+                          e.docType === 'Invoice'
+                            ? 'border border-slate-200 bg-slate-100 text-slate-700'
+                            : e.docType === 'Refund'
+                            ? 'border border-rose-200 bg-rose-50 text-rose-700'
+                            : 'border border-emerald-200 bg-emerald-50 text-emerald-700'
+                        }`}>
+                          {e.docType}
+                        </span>
+                      </div>
+                      {e.particularsDetail && (
+                        <p className="mt-0.5 text-[11.5px] leading-tight text-slate-500 font-normal">
+                          {e.particularsDetail}
+                        </p>
+                      )}
+                    </div>
                   </td>
                   <td className="max-w-[240px] truncate px-2 py-2 font-medium text-slate-700">
                     {shortCustomer(e.customer)}

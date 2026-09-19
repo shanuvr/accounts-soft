@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
 import { useInvoices } from './invoiceStore';
 import { usePayments } from './paymentStore';
+import { useOrders } from './orderStore';
+import { usePtds } from './ptdStore';
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
@@ -12,14 +14,23 @@ function daysBetween(from, to) {
   return Math.round((b - a) / (1000 * 60 * 60 * 24));
 }
 
-export function entryForInvoice(inv) {
+export function entryForInvoice(inv, orderMap = new Map(), ptdMap = new Map()) {
+  const order = orderMap.get(inv.orderId);
+  const ptd = ptdMap.get(inv.orderId);
+  const ptdNo = ptd?.id ? `PTD: ${ptd.id}` : '';
+  const invType = inv.invoiceType || 'Tax Invoice';
+
+  const detailParts = [invType, `Order: ${inv.orderId}`, ptdNo].filter(Boolean);
+  const particularsDetail = detailParts.join(' · ');
+  const particularsText = `${inv.invoiceId} — ${particularsDetail}`;
+
   return {
     date: inv.invoiceDate,
     docId: inv.invoiceId,
     docType: 'Invoice',
     orderId: inv.orderId,
     customer: inv.customer,
-    reference: inv.invoiceType || 'Invoice',
+    reference: invType,
     projectReference: inv.orderId,
     invoiceId: inv.invoiceId,
     invoiceAmount: Number(inv.total) || 0,
@@ -29,6 +40,11 @@ export function entryForInvoice(inv) {
     book: 'Bank',
     debit: Number(inv.total) || 0,
     credit: 0,
+    particularsHeader: inv.invoiceId,
+    particularsDetail,
+    particularsText,
+    salesPerson: order?.salesPerson || '—',
+    ptdId: ptd?.id || '—',
   };
 }
 
@@ -36,17 +52,31 @@ function bookFor(method) {
   return method === 'Cash' ? 'Cash' : method ? 'Bank' : null;
 }
 
-export function entryForPayment(p, invoiceIndex = new Map()) {
+export function entryForPayment(p, invoiceIndex = new Map(), orderMap = new Map(), ptdMap = new Map()) {
   const linked = p.invoiceId ? invoiceIndex.get(p.invoiceId) : null;
+  const order = orderMap.get(p.orderId);
+  const ptd = ptdMap.get(p.orderId);
   if (p.status === 'Failed') return null;
+
+  const isBank = bookFor(p.method) === 'Bank';
+  const bankStr = isBank ? (p.bankName || 'HDFC Bank') : '';
+  const methodStr = p.method ? `${p.method}` : 'Payment';
+  const refStr = p.reference ? p.reference : '';
+  const receiver = p.receivedBy ? `By: ${p.receivedBy}` : '';
+  const ptdNo = ptd?.id ? `PTD: ${ptd.id}` : '';
+  const linkedInv = p.invoiceId ? `Against ${p.invoiceId}` : '';
+
   if (p.status === 'Refunded') {
+    const detailParts = [`Refund (${methodStr})`, bankStr, refStr, linkedInv, receiver, ptdNo].filter(Boolean);
+    const particularsDetail = detailParts.join(' · ');
+    const particularsText = `${p.paymentId} — ${particularsDetail}`;
     return {
       date: p.date,
       docId: p.paymentId,
       docType: 'Refund',
       orderId: p.orderId,
       customer: p.customer,
-      reference: p.reference || `Refund ${p.paymentId}`,
+      reference: refStr || `Refund ${p.paymentId}`,
       projectReference: p.orderId,
       invoiceId: p.invoiceId ?? null,
       invoiceAmount: Number(linked?.total) || 0,
@@ -56,15 +86,26 @@ export function entryForPayment(p, invoiceIndex = new Map()) {
       book: bookFor(p.method),
       debit: Number(p.amount) || 0,
       credit: 0,
+      particularsHeader: p.paymentId,
+      particularsDetail,
+      particularsText,
+      salesPerson: order?.salesPerson || '—',
+      ptdId: ptd?.id || '—',
+      receivedBy: p.receivedBy || '—',
     };
   }
+
+  const detailParts = [`${methodStr} Receipt`, bankStr, refStr, linkedInv, receiver, ptdNo].filter(Boolean);
+  const particularsDetail = detailParts.join(' · ');
+  const particularsText = `${p.paymentId} — ${particularsDetail}`;
+
   return {
     date: p.date,
     docId: p.paymentId,
     docType: 'Payment',
     orderId: p.orderId,
     customer: p.customer,
-    reference: p.reference || `${p.method} receipt`,
+    reference: refStr || `${p.method} receipt`,
     projectReference: p.orderId,
     invoiceId: p.invoiceId ?? null,
     invoiceAmount: Number(linked?.total) || 0,
@@ -74,18 +115,27 @@ export function entryForPayment(p, invoiceIndex = new Map()) {
     book: bookFor(p.method),
     debit: 0,
     credit: Number(p.amount) || 0,
+    particularsHeader: p.paymentId,
+    particularsDetail,
+    particularsText,
+    salesPerson: order?.salesPerson || '—',
+    ptdId: ptd?.id || '—',
+    receivedBy: p.receivedBy || '—',
   };
 }
 
-export function buildEntries(invoices, payments) {
+export function buildEntries(invoices, payments, orders = [], ptds = []) {
   const entries = [];
   const invoiceIndex = new Map(invoices.map((i) => [i.invoiceId, i]));
+  const orderMap = new Map(orders.map((o) => [o.orderId, o]));
+  const ptdMap = new Map(ptds.map((p) => [p.orderId, p]));
+
   for (const inv of invoices) {
     if (inv.status === 'Draft' || inv.status === 'Cancelled') continue;
-    entries.push(entryForInvoice(inv));
+    entries.push(entryForInvoice(inv, orderMap, ptdMap));
   }
   for (const p of payments) {
-    const e = entryForPayment(p, invoiceIndex);
+    const e = entryForPayment(p, invoiceIndex, orderMap, ptdMap);
     if (e) entries.push(e);
   }
   return entries.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.docType.localeCompare(b.docType)));
@@ -155,10 +205,12 @@ function bucketsForCustomer(rows, customer) {
 export function useLedger() {
   const invoices = useInvoices();
   const payments = usePayments();
+  const orders = useOrders();
+  const ptds = usePtds();
 
   return useMemo(() => {
     const issued = invoices.filter((i) => i.status !== 'Draft' && i.status !== 'Cancelled');
-    const entries = withRunningBalance(buildEntries(invoices, payments));
+    const entries = withRunningBalance(buildEntries(invoices, payments, orders, ptds));
     const received = allocatePayments(invoices, payments);
     const ageingRows = issued.map((inv) => billForInvoice(inv, received)).filter(Boolean);
 
@@ -188,7 +240,7 @@ export function useLedger() {
     };
 
     return { entries, register, ageingRows, totals, buckets: AGING_BUCKETS };
-  }, [invoices, payments]);
+  }, [invoices, payments, orders, ptds]);
 }
 
 export { AGING_BUCKETS };
