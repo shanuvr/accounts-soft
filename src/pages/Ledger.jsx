@@ -248,7 +248,7 @@ function Ledger() {
         fr.onerror = reject;
         fr.readAsDataURL(blob);
       });
-      doc.addImage(dataUrl, 'PNG', M, 12, 140, 30);
+      doc.addImage(dataUrl, 'PNG', M, 10, 130, 26);
       logoLoaded = true;
     } catch {
       /* fallback text below */
@@ -258,13 +258,13 @@ function Ledger() {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(16);
       doc.setTextColor(15, 23, 42);
-      doc.text('PROGRAMERS', M, 30);
+      doc.text('PROGRAMERS', M, 28);
     }
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
     doc.setTextColor(100, 116, 139);
-    doc.text('ACCOUNT SOFT', M, 49);
+    doc.text('ACCOUNT SOFT', M, 50);
 
     const isCustomerScoped = customer && customer !== 'All';
     const reportTitle = isCustomerScoped ? 'Customer Ledger Report' : 'General Ledger Report';
@@ -273,18 +273,18 @@ function Ledger() {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
     doc.setTextColor(15, 23, 42);
-    doc.text(reportTitle, rightX, 32, { align: 'right' });
+    doc.text(reportTitle, rightX, 30, { align: 'right' });
 
     const period = `${dateFrom ? fmtDate(dateFrom) : 'All'} — ${dateTo ? fmtDate(dateTo) : 'All'}`;
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9.5);
     doc.setTextColor(71, 85, 105);
-    doc.text(`Period: ${period}   |   Generated: ${new Date().toLocaleString('en-IN')}`, rightX, 48, { align: 'right' });
+    doc.text(`Period: ${period}   |   Generated: ${new Date().toLocaleString('en-IN')}`, rightX, 47, { align: 'right' });
 
     // Subtle header divider line
     doc.setDrawColor(226, 232, 240);
     doc.setLineWidth(0.6);
-    doc.line(M, 58, rightX, 58);
+    doc.line(M, 57, rightX, 57);
 
     // 3b. Customer details strip (only on customer-scoped statements)
     let customerStripBottom = 0;
@@ -319,12 +319,6 @@ function Ledger() {
       doc.setLineWidth(0.5);
       doc.line(M, stripY + bannerH, rightX, stripY + bannerH);
 
-      // Banner text left: Section Title
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7);
-      doc.setTextColor(71, 85, 105); // Slate-600
-      doc.text('STATEMENT ISSUED TO (ACCOUNT HOLDER)', M + 12, stripY + 11.5);
-
       // Banner text right: Customer ID
       if (client.customerId && client.customerId !== '—') {
         doc.setFont('helvetica', 'bold');
@@ -333,7 +327,7 @@ function Ledger() {
         doc.text(`CUSTOMER ID: ${client.customerId}`, rightX - 12, stripY + 11.5, { align: 'right' });
       }
 
-      // Body - Left zone: Customer Name & Subtitle
+      // Body - Left zone: Customer Name
       const bodyY = stripY + bannerH;
       const bodyH = stripH - bannerH;
       const leftColW = 240;
@@ -341,12 +335,7 @@ function Ledger() {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(12.5);
       doc.setTextColor(15, 23, 42); // Slate-900
-      doc.text(fitText(client.name, leftColW - 20), M + 12, bodyY + 15);
-
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      doc.setTextColor(100, 116, 139);
-      doc.text('Primary Account Holder · Ledger Scope', M + 12, bodyY + 26);
+      doc.text(fitText(client.name, leftColW - 20), M + 12, bodyY + (bodyH / 2) + 4);
 
       // Vertical Divider between Identity and Contact Info
       doc.setDrawColor(226, 232, 240);

@@ -102,6 +102,11 @@ const I = {
       <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
     </svg>
   ),
+  transactions: (
+    <svg viewBox="0 0 24 24" {...stroke} className="h-[18px] w-[18px]">
+      <path d="M7 16V4M7 4L3 8M7 4L11 8M17 8V20M17 20L21 16M17 20L13 16" />
+    </svg>
+  ),
   masters: (
     <svg viewBox="0 0 24 24" {...stroke} className="h-[18px] w-[18px]">
       <circle cx="5" cy="6" r="2" />
@@ -167,7 +172,12 @@ const REPORTS_NAV = [
   { id: 'bankbook', label: 'Bank Book', icon: 'bankbook', path: '/bankbook' },
 ];
 
+const TRANSACTIONS_NAV = [
+  { id: 'expense-head', label: 'Expense Head', path: '/expense-head' },
+];
+
 const MASTER_NAV = [
+  { label: 'Category & Subcategory', path: '/category-subcategory-master' },
   { label: 'Product / Service Master', path: '/products-services' },
   { label: 'Service Category', path: '/service-categories' },
   { label: 'Payment Methods', path: '/payment-methods' },
@@ -201,6 +211,11 @@ try {
   savedReportsOpen = sessionStorage.getItem('account_soft_reports_open') === 'true';
 } catch {}
 
+let savedTxOpen = false;
+try {
+  savedTxOpen = sessionStorage.getItem('account_soft_tx_open') === 'true';
+} catch {}
+
 function Sidebar({ active = 'dashboard', mobileOpen = false, onClose }) {
   const { mastersOpen } = useUi();
   const navigate = useNavigate();
@@ -209,7 +224,9 @@ function Sidebar({ active = 'dashboard', mobileOpen = false, onClose }) {
   const navRef = useRef(null);
 
   const reportsActive = REPORTS_NAV.some((r) => r.id === active);
+  const transactionsActive = TRANSACTIONS_NAV.some((t) => t.id === active);
   const [reportsOpen, setReportsOpen] = useState(() => reportsActive || savedReportsOpen);
+  const [txOpen, setTxOpen] = useState(() => transactionsActive || savedTxOpen);
   const [prevActive, setPrevActive] = useState(active);
 
   if (active !== prevActive) {
@@ -219,6 +236,13 @@ function Sidebar({ active = 'dashboard', mobileOpen = false, onClose }) {
       savedReportsOpen = true;
       try {
         sessionStorage.setItem('account_soft_reports_open', 'true');
+      } catch {}
+    }
+    if (transactionsActive && !txOpen) {
+      setTxOpen(true);
+      savedTxOpen = true;
+      try {
+        sessionStorage.setItem('account_soft_tx_open', 'true');
       } catch {}
     }
   }
@@ -257,6 +281,23 @@ function Sidebar({ active = 'dashboard', mobileOpen = false, onClose }) {
     });
   };
 
+  const toggleTx = () => {
+    if (navRef.current) {
+      savedSidebarScroll = navRef.current.scrollTop;
+      try {
+        sessionStorage.setItem('account_soft_sidebar_scroll', String(savedSidebarScroll));
+      } catch {}
+    }
+    setTxOpen((prev) => {
+      const next = !prev;
+      savedTxOpen = next;
+      try {
+        sessionStorage.setItem('account_soft_tx_open', String(next));
+      } catch {}
+      return next;
+    });
+  };
+
   useLayoutEffect(() => {
     if (navRef.current) {
       navRef.current.scrollTop = savedSidebarScroll;
@@ -273,7 +314,7 @@ function Sidebar({ active = 'dashboard', mobileOpen = false, onClose }) {
       }
     });
     return () => cancelAnimationFrame(raf);
-  }, [active, reportsOpen, mastersOpen]);
+  }, [active, reportsOpen, txOpen, mastersOpen]);
 
   useEffect(() => {
     if (!mastersOpen) return;
@@ -334,7 +375,7 @@ function Sidebar({ active = 'dashboard', mobileOpen = false, onClose }) {
               />
             ))}
 
-            {/* Reports */}
+            {/* Reports Dropdown */}
             <div>
               <button
                 type="button"
@@ -370,9 +411,46 @@ function Sidebar({ active = 'dashboard', mobileOpen = false, onClose }) {
                 </div>
               )}
             </div>
+
+            {/* Transactions Dropdown (Outside Reports) */}
+            <div>
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={toggleTx}
+                className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-[13px] font-medium transition-colors ${
+                  transactionsActive
+                    ? 'text-emerald-700'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <span className="flex items-center gap-3">
+                  {I.transactions}
+                  <span>Transactions</span>
+                </span>
+                <span className={`text-slate-400 transition-transform ${txOpen ? 'rotate-180' : ''}`}>{I.chevron}</span>
+              </button>
+              {txOpen && (
+                <div className="mt-1 space-y-0.5 border-l border-slate-200 pl-4">
+                  {TRANSACTIONS_NAV.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => handleNavigate(t.path)}
+                      className={`block w-full truncate rounded-md px-2 py-1.5 text-left text-[12.5px] transition-colors hover:bg-slate-50 hover:text-slate-800 ${
+                        active === t.id ? 'font-semibold text-emerald-700' : 'text-slate-500'
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Masters */}
+          {/* Masters Dropdown */}
           <div ref={mastersRef}>
             <button
               type="button"

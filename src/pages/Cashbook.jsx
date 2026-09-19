@@ -120,7 +120,7 @@ function Cashbook() {
         fr.onerror = reject;
         fr.readAsDataURL(blob);
       });
-      doc.addImage(dataUrl, 'PNG', M, 12, 140, 30);
+      doc.addImage(dataUrl, 'PNG', M, 10, 130, 26);
       logoLoaded = true;
     } catch {
       /* fallback */
@@ -130,29 +130,29 @@ function Cashbook() {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(16);
       doc.setTextColor(15, 23, 42);
-      doc.text('PROGRAMERS', M, 30);
+      doc.text('PROGRAMERS', M, 28);
     }
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
     doc.setTextColor(100, 116, 139);
-    doc.text('ACCOUNT SOFT', M, 49);
+    doc.text('ACCOUNT SOFT', M, 50);
 
     // 3. Document Title & Period Info
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
     doc.setTextColor(15, 23, 42);
-    doc.text('CASH BOOK REPORT', rightX, 32, { align: 'right' });
+    doc.text('CASH BOOK REPORT', rightX, 30, { align: 'right' });
 
     const period = `${dateFrom ? fmtDate(dateFrom) : 'All'} — ${dateTo ? fmtDate(dateTo) : 'All'}`;
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
     doc.setTextColor(71, 85, 105);
-    doc.text(`Period: ${period}   |   Generated: ${new Date().toLocaleString('en-IN')}`, rightX, 48, { align: 'right' });
+    doc.text(`Period: ${period}   |   Generated: ${new Date().toLocaleString('en-IN')}`, rightX, 47, { align: 'right' });
 
     doc.setDrawColor(226, 232, 240);
     doc.setLineWidth(0.6);
-    doc.line(M, 58, rightX, 58);
+    doc.line(M, 57, rightX, 57);
 
     let y = 66;
 

@@ -12,6 +12,7 @@ import AssignmentDetail from './pages/AssignmentDetail'
 import DeliveryList from './pages/DeliveryList'
 import DeliveryDetail from './pages/DeliveryDetail'
 import ProductsServices from './pages/ProductsServices'
+import CategorySubcategoryMaster from './pages/CategorySubcategoryMaster'
 import ServiceCategory from './pages/ServiceCategory'
 import PaymentMethods from './pages/PaymentMethods'
 import TaxMaster from './pages/TaxMaster'
@@ -23,6 +24,7 @@ import Ledger from './pages/Ledger'
 import Journal from './pages/Journal'
 import Cashbook from './pages/Cashbook'
 import BankBook from './pages/BankBook'
+import ExpenseHead from './pages/ExpenseHead'
 import InvoiceList from './pages/InvoiceList'
 import InvoiceDetail from './pages/InvoiceDetail'
 import Renewals from './pages/Renewals'
@@ -51,6 +53,7 @@ function App() {
       <Route path="/orders/:orderId" element={<OrderDetail />} />
       <Route path="/customers" element={<Customers />} />
       <Route path="/customers/:customerId" element={<CustomerDetail />} />
+      <Route path="/category-subcategory-master" element={<CategorySubcategoryMaster />} />
       <Route path="/products-services" element={<ProductsServices />} />
       <Route path="/service-categories" element={<ServiceCategory />} />
       <Route path="/payment-methods" element={<PaymentMethods />} />
@@ -69,6 +72,8 @@ function App() {
       <Route path="/journal" element={<Journal />} />
       <Route path="/cashbook" element={<Cashbook />} />
       <Route path="/bankbook" element={<BankBook />} />
+      <Route path="/expense-head" element={<ExpenseHead />} />
+      <Route path="/reports/transactions/expense-head" element={<ExpenseHead />} />
       <Route path="/invoices" element={<InvoiceList />} />
       <Route path="/invoices/:invoiceId" element={<InvoiceDetail />} />
       <Route path="/renewals" element={<Renewals />} />
