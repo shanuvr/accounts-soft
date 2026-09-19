@@ -84,9 +84,9 @@ function Journal() {
     };
 
     const cols = [
-      { label: 'Payment ID', w: 85, align: 'left' },
       { label: 'Date', w: 75, align: 'center' },
-      { label: 'Particulars', w: 320, align: 'left' },
+      { label: 'Voucher No.', w: 95, align: 'center' },
+      { label: 'Particulars', w: 310, align: 'left' },
       { label: 'Income', w: 100, align: 'right' },
       { label: 'Expense', w: 100, align: 'right' },
       { label: 'Source', w: 90, align: 'center' },
@@ -177,8 +177,7 @@ function Journal() {
       doc.setFontSize(8.5);
 
       colMeta.forEach((c) => {
-        const cx = c.align === 'left' ? c.leftX : c.align === 'center' ? c.centerX : c.rightX;
-        doc.text(c.label.toUpperCase(), cx, yy + 15, { align: c.align });
+        doc.text(c.label.toUpperCase(), c.centerX, yy + 15, { align: 'center' });
       });
       return yy + headerH;
     };
@@ -189,10 +188,10 @@ function Journal() {
     const partCol = colMeta.find((c) => c.label === 'Particulars');
     filtered.forEach((e, idx) => {
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7.2);
+      doc.setFontSize(8.0);
       const subLines = e.particularsDetail ? doc.splitTextToSize(String(e.particularsDetail), (partCol?.w || 300) - 8) : [];
       const numSubLines = subLines.length;
-      const currentRowH = Math.max(28, 16 + numSubLines * 9.5);
+      const currentRowH = Math.max(28, 16 + numSubLines * 10.5);
 
       if (y + currentRowH > H - 45) {
         doc.addPage();
@@ -218,10 +217,10 @@ function Journal() {
 
           if (subLines.length > 0) {
             doc.setFont('helvetica', 'normal');
-            doc.setFontSize(7.2);
+            doc.setFontSize(8.0);
             doc.setTextColor(100, 116, 139);
             subLines.forEach((line, lineIdx) => {
-              doc.text(line, c.leftX, y + 20 + lineIdx * 9.5);
+              doc.text(line, c.leftX, y + 21 + lineIdx * 10.5);
             });
           }
         } else {
@@ -229,13 +228,13 @@ function Journal() {
           let color = [51, 65, 85];
           let fontStyle = 'normal';
 
-          if (c.label === 'Payment ID') {
+          if (c.label === 'Date') {
+            val = fmtDate(e.date);
+            color = [71, 85, 105];
+          } else if (c.label === 'Voucher No.') {
             val = e.id || '—';
             fontStyle = 'bold';
             color = [30, 41, 59];
-          } else if (c.label === 'Date') {
-            val = fmtDate(e.date);
-            color = [71, 85, 105];
           } else if (c.label === 'Income') {
             val = fmtPdfAmt(e.income);
             if (e.income) {
@@ -354,7 +353,7 @@ function Journal() {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search payment id, customer or reference"
+                placeholder="Search voucher no., customer or reference"
                 className={inputCls}
               />
             </div>
@@ -400,20 +399,20 @@ function Journal() {
           <table className="w-full min-w-[820px] text-left text-[13px]">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500">
-                <th className="px-4 py-2.5 font-semibold">Payment ID</th>
-                <th className="px-4 py-2.5 font-semibold">Date</th>
-                <th className="px-4 py-2.5 font-semibold">Particular</th>
-                <th className="px-4 py-2.5 text-right font-semibold">Income</th>
-                <th className="px-4 py-2.5 text-right font-semibold">Expense</th>
-                <th className="px-4 py-2.5 font-semibold">Source</th>
+                <th className="px-4 py-2.5 font-semibold text-center">Date</th>
+                <th className="px-4 py-2.5 font-semibold text-center">Voucher No.</th>
+                <th className="px-4 py-2.5 font-semibold text-center">Particulars</th>
+                <th className="px-4 py-2.5 text-center font-semibold">Income</th>
+                <th className="px-4 py-2.5 text-center font-semibold">Expense</th>
+                <th className="px-4 py-2.5 font-semibold text-center">Source</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((e) => (
                 <tr key={e.id} className="border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50/60">
-                  <td className="whitespace-nowrap px-4 py-3 font-medium text-slate-700">{e.id}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">{fmtDate(e.date)}</td>
-                  <td className="max-w-[360px] px-4 py-3 text-slate-800">
+                  <td className="whitespace-nowrap px-4 py-3 text-center text-slate-600">{fmtDate(e.date)}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-center font-semibold text-slate-800">{e.id}</td>
+                  <td className="max-w-[360px] px-4 py-3 text-left text-slate-800">
                     <div className="flex flex-col">
                       <div className="flex items-center gap-1.5">
                         <span className="font-semibold text-slate-900">{e.customer}</span>
@@ -426,7 +425,7 @@ function Journal() {
                         </span>
                       </div>
                       {e.particularsDetail && (
-                        <div className="mt-0.5 text-[11.5px] leading-tight text-slate-500">{e.particularsDetail}</div>
+                        <div className="mt-0.5 text-[12.5px] leading-snug text-slate-500">{e.particularsDetail}</div>
                       )}
                     </div>
                   </td>
@@ -436,7 +435,7 @@ function Journal() {
                   <td className="whitespace-nowrap px-4 py-3 text-right font-medium text-rose-600">
                     {e.expense ? fmtINR(e.expense) : '—'}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3">
+                  <td className="whitespace-nowrap px-4 py-3 text-center">
                     <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${SOURCE_BADGE[e.source] ?? 'border-slate-200 bg-slate-100 text-slate-500'}`}>
                       {e.source}
                     </span>

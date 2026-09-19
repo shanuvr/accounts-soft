@@ -2,7 +2,7 @@ import { useSyncExternalStore } from 'react';
 import { PAYMENTS, ORDERS } from '../data/mockData';
 
 let records = PAYMENTS.map((p) => ({ ...p }));
-let counter = records.reduce((m, r) => Math.max(m, Number(r.paymentId.replace('PAY-', '')) || 0), 0) + 1;
+let counter = records.reduce((m, r) => Math.max(m, Number(r.paymentId.replace('RECIP-', '')) || 0), 0) + 1;
 const listeners = new Set();
 
 function emit() {
@@ -62,7 +62,7 @@ export function getGlobalSummary() {
 }
 
 export function createPayment({ orderId, customer, amount, date, method, reference = '', receivedBy = '', notes = '', status = 'Received', planStage = null, invoiceId = null }) {
-  const id = `PAY-${String(counter).padStart(3, '0')}`;
+  const id = `RECIP-${String(counter).padStart(3, '0')}`;
   counter += 1;
   const record = { paymentId: id, orderId, customer, amount: Number(amount), date, method, reference, receivedBy, notes, status, planStage, invoiceId };
   records = [...records, record];

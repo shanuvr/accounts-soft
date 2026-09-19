@@ -102,7 +102,7 @@ export function entryForPayment(p, invoiceIndex = new Map(), orderMap = new Map(
   return {
     date: p.date,
     docId: p.paymentId,
-    docType: 'Payment',
+    docType: 'Receipt',
     orderId: p.orderId,
     customer: p.customer,
     reference: refStr || `${p.method} receipt`,

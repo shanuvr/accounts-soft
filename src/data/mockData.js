@@ -24,13 +24,13 @@ export const CUSTOMERS = [
 ];
 
 export const PAYMENTS = [
-  { paymentId: 'PAY-001', orderId: 'ORD-1024', customer: 'ABC Technologies Pvt Ltd', amount: 75000, date: '2026-09-08', method: 'Bank Transfer', bankName: 'HDFC Bank', reference: 'NEFT/UTR-00088231', receivedBy: 'Priya Nair', notes: 'Part payment against INV-001', status: 'Received', planStage: '', invoiceId: 'INV-001' },
-  { paymentId: 'PAY-002', orderId: 'ORD-1021', customer: 'Nova Systems', amount: 230000, date: '2026-09-01', method: 'Bank Transfer', bankName: 'ICICI Bank', reference: 'NEFT/UTR-00077110', receivedBy: 'Priya Nair', notes: 'Full settlement of INV-003', status: 'Received', planStage: '', invoiceId: 'INV-003' },
-  { paymentId: 'PAY-003', orderId: 'ORD-1023', customer: 'BlueSky Media', amount: 20000, date: '2026-09-06', method: 'UPI', bankName: 'Axis Bank', reference: 'UPI@bluesky038812', receivedBy: 'Priya Nair', notes: 'Refunded — invalid payment', status: 'Refunded', planStage: '', invoiceId: 'INV-002' },
-  { paymentId: 'PAY-004', orderId: 'ORD-1024', customer: 'ABC Technologies Pvt Ltd', amount: 20000, date: '2026-09-11', method: 'Cash', reference: 'Cash receipt — walk-in', receivedBy: 'Priya Nair', notes: 'Cash payment against INV-001', status: 'Received', planStage: '', invoiceId: 'INV-001' },
-  { paymentId: 'PAY-005', orderId: 'ORD-1022', customer: 'GreenLeaf Organics', amount: 35000, date: '2026-09-02', method: 'Cash', reference: 'Cash voucher #402', receivedBy: 'Priya Nair', notes: 'Advance cash payment for catalog design', status: 'Received', planStage: '', invoiceId: '' },
-  { paymentId: 'PAY-006', orderId: 'ORD-1020', customer: 'Zenith Corp', amount: 15000, date: '2026-09-07', method: 'Cash', reference: 'Cash receipt #109', receivedBy: 'Priya Nair', notes: 'Part cash settlement for office stationeries', status: 'Received', planStage: '', invoiceId: '' },
-  { paymentId: 'PAY-007', orderId: 'ORD-1019', customer: 'Fusion Retail', amount: 8000, date: '2026-09-12', method: 'Cash', reference: 'Petty cash voucher #88', receivedBy: 'Priya Nair', notes: 'Cash payment for delivery charges refund', status: 'Refunded', planStage: '', invoiceId: '' },
+  { paymentId: 'RECIP-001', orderId: 'ORD-1024', customer: 'ABC Technologies Pvt Ltd', amount: 75000, date: '2026-09-08', method: 'Bank Transfer', bankName: 'HDFC Bank', reference: 'NEFT/UTR-00088231', receivedBy: 'Priya Nair', notes: 'Part payment against INV-001', status: 'Received', planStage: '', invoiceId: 'INV-001' },
+  { paymentId: 'RECIP-002', orderId: 'ORD-1021', customer: 'Nova Systems', amount: 230000, date: '2026-09-01', method: 'Bank Transfer', bankName: 'ICICI Bank', reference: 'NEFT/UTR-00077110', receivedBy: 'Priya Nair', notes: 'Full settlement of INV-003', status: 'Received', planStage: '', invoiceId: 'INV-003' },
+  { paymentId: 'RECIP-003', orderId: 'ORD-1023', customer: 'BlueSky Media', amount: 20000, date: '2026-09-06', method: 'UPI', bankName: 'Axis Bank', reference: 'UPI@bluesky038812', receivedBy: 'Priya Nair', notes: 'Refunded — invalid payment', status: 'Refunded', planStage: '', invoiceId: 'INV-002' },
+  { paymentId: 'RECIP-004', orderId: 'ORD-1024', customer: 'ABC Technologies Pvt Ltd', amount: 20000, date: '2026-09-11', method: 'Cash', reference: 'Cash receipt — walk-in', receivedBy: 'Priya Nair', notes: 'Cash payment against INV-001', status: 'Received', planStage: '', invoiceId: 'INV-001' },
+  { paymentId: 'RECIP-005', orderId: 'ORD-1022', customer: 'GreenLeaf Organics', amount: 35000, date: '2026-09-02', method: 'Cash', reference: 'Cash voucher #402', receivedBy: 'Priya Nair', notes: 'Advance cash payment for catalog design', status: 'Received', planStage: '', invoiceId: '' },
+  { paymentId: 'RECIP-006', orderId: 'ORD-1020', customer: 'Zenith Corp', amount: 15000, date: '2026-09-07', method: 'Cash', reference: 'Cash receipt #109', receivedBy: 'Priya Nair', notes: 'Part cash settlement for office stationeries', status: 'Received', planStage: '', invoiceId: '' },
+  { paymentId: 'RECIP-007', orderId: 'ORD-1019', customer: 'Fusion Retail', amount: 8000, date: '2026-09-12', method: 'Cash', reference: 'Petty cash voucher #88', receivedBy: 'Priya Nair', notes: 'Cash payment for delivery charges refund', status: 'Refunded', planStage: '', invoiceId: '' },
 ];
 
 export const ORDER_SERVICES = {};
@@ -55,4 +55,9 @@ export const USERS = [
 export const getUserByEmail = (email) => USERS.find((u) => u.email === email.toLowerCase()) ?? { email, name: 'User', role: 'User' };
 
 export const fmtINR = (n) => '₹' + new Intl.NumberFormat('en-IN').format(n);
-export const fmtDate = (d) => new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+export const fmtDate = (d) => {
+  if (!d) return '—';
+  const parts = String(d).split('T')[0].split('-');
+  if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  return d;
+};

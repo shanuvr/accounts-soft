@@ -157,6 +157,7 @@ function Ledger() {
   const [type, setType] = useState('All');
 
   const customer = searchParams.get('customer') || 'All';
+  const isCustomerScoped = customer !== 'All';
   const setCustomer = (value) => {
     setSearchParams(
       (prev) => {
@@ -190,8 +191,8 @@ function Ledger() {
     [scoped, dateFrom, dateTo, type]
   );
 
-  const customerSummary = customer !== 'All' ? register.find((r) => r.customer === customer) : null;
-  const customerInfo = customer !== 'All' ? CUSTOMERS.find((c) => c.name === customer) : null;
+  const customerSummary = isCustomerScoped ? register.find((r) => r.customer === customer) : null;
+  const customerInfo = isCustomerScoped ? CUSTOMERS.find((c) => c.name === customer) : null;
 
   const totals = useMemo(
     () => ({
@@ -235,19 +236,37 @@ function Ledger() {
       return `${prefix}${new Intl.NumberFormat('en-IN').format(Math.abs(num))}`;
     };
 
-    // 10 columns totaling exactly 770 pt (centered headings & data, generous gap between Project Ref & Type)
-    const cols = [
-      { label: 'Date', w: 60, align: 'center' },
-      { label: 'Particulars', w: 155, align: 'left' },
-      { label: 'Customer', w: 105, align: 'left' },
-      { label: 'Project Ref', w: 70, align: 'center' },
-      { label: 'Type', w: 45, align: 'center' },
-      { label: 'Invoice Amt', w: 68, align: 'right' },
-      { label: 'Tax / TDS', w: 55, align: 'right' },
-      { label: 'Debit', w: 70, align: 'right' },
-      { label: 'Credit', w: 70, align: 'right' },
-      { label: 'Running Bal', w: 72, align: 'right' },
-    ];
+    // Columns totaling exactly 770 pt: Date, Project Ref, [Customer], Particulars, Type, Tax, Inv Amt, Debit, Credit, Running Bal
+    const cols = isCustomerScoped
+      ? [
+          { label: 'Date', w: 54, align: 'left' },
+          { label: 'Project Ref', w: 68, align: 'left' },
+          { label: 'Particulars', w: 240, align: 'left' },
+          { label: 'Type', w: 42, align: 'center' },
+          { label: 'Tax', w: 45, align: 'right' },
+          { label: 'Inv Amt', w: 72, align: 'right' },
+          { label: 'Debit', w: 78, align: 'right' },
+          { label: 'Credit', w: 84, align: 'right' },
+          { label: 'Running Bal', w: 87, align: 'right' },
+        ]
+      : [
+          { label: 'Date', w: 52, align: 'left' },
+          { label: 'Project Ref', w: 64, align: 'left' },
+          { label: 'Customer', w: 85, align: 'left' },
+          { label: 'Particulars', w: 205, align: 'left' },
+          { label: 'Type', w: 40, align: 'center' },
+          { label: 'Tax', w: 44, align: 'right' },
+          { label: 'Inv Amt', w: 66, align: 'right' },
+          { label: 'Debit', w: 68, align: 'right' },
+          { label: 'Credit', w: 72, align: 'right' },
+          { label: 'Running Bal', w: 74, align: 'right' },
+        ];
+
+    const particularsColIdx = isCustomerScoped ? 2 : 3;
+    const typeColIdx = isCustomerScoped ? 3 : 4;
+    const debitColIdx = isCustomerScoped ? 6 : 7;
+    const creditColIdx = isCustomerScoped ? 7 : 8;
+    const balColIdx = isCustomerScoped ? 8 : 9;
 
     // Pre-calculate exact sub-pixel column positions so headers, rows, and totals align identically
     let curX = M;
@@ -257,9 +276,9 @@ function Ledger() {
       return {
         ...c,
         x,
-        leftX: x + 6,
+        leftX: x + 5,
         centerX: x + c.w / 2,
-        rightX: x + c.w - 6,
+        rightX: x + c.w - 5,
       };
     });
     const totalTableW = curX - M; // 770 pt
@@ -306,8 +325,7 @@ function Ledger() {
     doc.setTextColor(100, 116, 139);
     doc.text('ACCOUNT SOFT', M, 50);
 
-    const isCustomerScoped = customer && customer !== 'All';
-    const reportTitle = isCustomerScoped ? 'Customer Ledger Report' : 'General Ledger Report';
+    const reportTitle = 'Ledger Report';
 
     // 3. Document Title & Period Information (Right-aligned)
     doc.setFont('helvetica', 'bold');
@@ -465,8 +483,7 @@ function Ledger() {
       doc.setFontSize(8.5);
 
       colMeta.forEach((c) => {
-        const cx = c.align === 'left' ? c.leftX : c.align === 'center' ? c.centerX : c.rightX;
-        doc.text(c.label.toUpperCase(), cx, yy + 15, { align: c.align });
+        doc.text(c.label.toUpperCase(), c.centerX, yy + 15, { align: 'center' });
       });
       return yy + headerH;
     };
@@ -476,12 +493,12 @@ function Ledger() {
     // 6. Data Rows
     filtered.forEach((e, i) => {
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7.2);
+      doc.setFontSize(8.0);
       const subLines = e.particularsDetail
-        ? doc.splitTextToSize(String(e.particularsDetail), colMeta[1].w - 8)
+        ? doc.splitTextToSize(String(e.particularsDetail), colMeta[particularsColIdx].w - 6)
         : [];
       const numSubLines = subLines.length;
-      const currentRowH = Math.max(28, 16 + numSubLines * 9.5);
+      const currentRowH = Math.max(28, 16 + numSubLines * 10.5);
 
       if (y + currentRowH > H - 55) {
         doc.addPage();
@@ -499,53 +516,71 @@ function Ledger() {
       doc.setLineWidth(0.4);
       doc.line(M, y + currentRowH, M + totalTableW, y + currentRowH);
 
-      const vals = [
-        fmtDate(e.date),
-        e.docId || '—',
-        shortCustomer(e.customer),
-        e.projectReference || '—',
-        e.book || '—',
-        fmtPdfAmt(e.invoiceAmount),
-        fmtPdfAmt(e.taxTds),
-        fmtPdfAmt(e.debit),
-        fmtPdfAmt(e.credit),
-        fmtPdfBal(e.balance),
-      ];
+      const vals = isCustomerScoped
+        ? [
+            fmtDate(e.date),
+            e.projectReference || '—',
+            e.docId || '—',
+            e.book || '—',
+            fmtPdfAmt(e.taxTds),
+            fmtPdfAmt(e.invoiceAmount),
+            fmtPdfAmt(e.debit),
+            fmtPdfAmt(e.credit),
+            fmtPdfBal(e.balance),
+          ]
+        : [
+            fmtDate(e.date),
+            e.projectReference || '—',
+            shortCustomer(e.customer),
+            e.docId || '—',
+            e.book || '—',
+            fmtPdfAmt(e.taxTds),
+            fmtPdfAmt(e.invoiceAmount),
+            fmtPdfAmt(e.debit),
+            fmtPdfAmt(e.credit),
+            fmtPdfBal(e.balance),
+          ];
 
       colMeta.forEach((c, ci) => {
-        if (ci === 1) {
+        if (ci === particularsColIdx) {
           // Line 1: Document ID bold
           doc.setFont('helvetica', 'bold');
           doc.setFontSize(8.5);
           doc.setTextColor(15, 23, 42);
-          doc.text(fitText(e.docId, c.w - 8), c.leftX, y + 11);
+          doc.text(fitText(e.docId, c.w - 6), c.leftX, y + 11);
 
           // Lines 2+: Wrapped details subtext below
           if (subLines.length > 0) {
             doc.setFont('helvetica', 'normal');
-            doc.setFontSize(7.2);
+            doc.setFontSize(8.0);
             doc.setTextColor(100, 116, 139);
             subLines.forEach((line, lineIdx) => {
-              doc.text(line, c.leftX, y + 20 + lineIdx * 9.5);
+              doc.text(line, c.leftX, y + 21 + lineIdx * 10.5);
             });
           }
         } else {
           doc.setFontSize(8.5);
-          if (ci === 2) {
+          if (ci === 1) {
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(4, 120, 87); // Project Ref emerald
+          } else if (!isCustomerScoped && ci === 2) {
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(15, 23, 42); // Customer bold
-          } else if (ci === 7) {
+          } else if (ci === typeColIdx) {
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(71, 85, 105); // Type neutral
+          } else if (ci === debitColIdx) {
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(15, 23, 42); // Debit bold
-          } else if (ci === 8) {
+          } else if (ci === creditColIdx) {
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(4, 120, 87); // Credit subtle deep forest
-          } else if (ci === 9) {
+          } else if (ci === balColIdx) {
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(15, 23, 42); // Balance bold
           } else {
             doc.setFont('helvetica', 'normal');
-            doc.setTextColor(ci === 0 || ci === 3 || ci === 4 ? 71 : 30, ci === 0 || ci === 3 || ci === 4 ? 85 : 41, ci === 0 || ci === 3 || ci === 4 ? 105 : 59);
+            doc.setTextColor(71, 85, 105);
           }
 
           const cx = c.align === 'left' ? c.leftX : c.align === 'center' ? c.centerX : c.rightX;
@@ -593,17 +628,17 @@ function Ledger() {
     doc.setTextColor(15, 23, 42);
     doc.text('TOTAL MOVEMENT', colMeta[0].leftX, y + 17);
 
-    // Debit Total (col index 7) - exactly centered at colMeta[7].centerX
-    doc.text(fmtPdfTotal(totals.debit), colMeta[7].centerX, y + 17, { align: 'center' });
+    // Debit Total
+    doc.text(fmtPdfTotal(totals.debit), colMeta[debitColIdx].rightX, y + 17, { align: 'right' });
 
-    // Credit Total (col index 8) - exactly centered at colMeta[8].centerX
+    // Credit Total
     doc.setTextColor(4, 120, 87);
-    doc.text(fmtPdfTotal(totals.credit), colMeta[8].centerX, y + 17, { align: 'center' });
+    doc.text(fmtPdfTotal(totals.credit), colMeta[creditColIdx].rightX, y + 17, { align: 'right' });
 
-    // Net Position (col index 9) - exactly centered at colMeta[9].centerX
+    // Net Position
     doc.setTextColor(15, 23, 42);
     const netStr = netPosition === 0 ? 'Rs. 0' : fmtPdfBal(netPosition);
-    doc.text(netStr, colMeta[9].centerX, y + 17, { align: 'center' });
+    doc.text(netStr, colMeta[balColIdx].rightX, y + 17, { align: 'right' });
 
     // 8. Multi-Page Footer (Page numbers, confidentiality & timestamps)
     const totalPages = doc.getNumberOfPages();
@@ -618,35 +653,34 @@ function Ledger() {
       doc.setTextColor(148, 163, 184);
       doc.text('Account Soft · Official Financial Statement · Confidential', M, H - 12);
       doc.text(`${isCustomerScoped ? `${shortCustomer(customer)}  ·  ` : ''}Period: ${period}`, W / 2, H - 12, { align: 'center' });
-
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(100, 116, 139);
       doc.text(`Page ${p} of ${totalPages}`, rightX, H - 12, { align: 'right' });
     }
 
-    const scope = customer && customer !== 'All' ? `-${shortCustomer(customer).replace(/[^a-z0-9]+/gi, '-')}` : '';
-    doc.save(`Ledger${scope}-${new Date().toISOString().slice(0, 10)}.pdf`);
+    doc.save(`General_Ledger_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
   return (
     <Layout active="ledger">
-      <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Ledger</h1>
-      <p className="mt-1 text-sm text-slate-500">
-        {customer !== 'All' ? `Showing the ledger for ${shortCustomer(customer)} only.` : 'Debit and credit entries across the books.'}
-      </p>
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Ledger</h1>
+          <p className="mt-1 text-sm text-slate-500">Debit and credit entries across the books with running balances.</p>
+        </div>
+      </div>
 
-      <div className="mt-6 rounded-xl border border-slate-200 bg-white p-4">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-[1.8fr_1fr_1fr_1fr_auto]">
+      {/* Filter toolbar */}
+      <div className="mt-6 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <div>
             <label className={labelCls}>Customer</label>
             <CustomerFilter value={customer} options={customerOptions} onChange={setCustomer} />
           </div>
           <div>
-            <label className={labelCls}>From</label>
+            <label className={labelCls}>Date from</label>
             <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className={inputCls} aria-label="Date from" />
           </div>
           <div>
-            <label className={labelCls}>To</label>
+            <label className={labelCls}>Date to</label>
             <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className={inputCls} aria-label="Date to" />
           </div>
           <div>
@@ -661,7 +695,7 @@ function Ledger() {
             <button
               type="button"
               onClick={downloadPdf}
-              className="flex h-9 items-center gap-1.5 rounded-lg border border-slate-900 bg-slate-900 px-4 text-[13px] font-medium text-white shadow-sm transition hover:bg-slate-800 active:scale-[0.99]"
+              className="flex h-10 items-center justify-center gap-1.5 rounded-lg border border-slate-900 bg-slate-900 px-4 text-[13px] font-medium text-white shadow-sm transition hover:bg-slate-800 active:scale-[0.99]"
             >
               <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
@@ -671,7 +705,7 @@ function Ledger() {
             <button
               type="button"
               onClick={() => { setCustomer('All'); setDateFrom(''); setDateTo(''); setType('All'); }}
-              className="h-9 rounded-lg border border-slate-200 px-4 text-[13px] font-medium text-slate-600 transition-colors hover:bg-slate-50"
+              className="h-10 rounded-lg border border-slate-200 px-4 text-[13px] font-medium text-slate-600 transition-colors hover:bg-slate-50"
             >
               Clear filters
             </button>
@@ -717,28 +751,36 @@ function Ledger() {
         </div>
       )}
 
-      <div className="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white">
+      <div className="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1000px] text-center text-[13px]">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500">
-                <th className="px-2 py-2 font-semibold">Date</th>
-                <th className="px-2 py-2 font-semibold">Particulars</th>
-                <th className="px-2 py-2 font-semibold">Customer</th>
-                <th className="px-2 py-2 font-semibold">Project Reference</th>
-                <th className="px-2 py-2 font-semibold">Type</th>
-                <th className="px-2 py-2 text-center font-semibold">Invoice Amount</th>
-                <th className="px-2 py-2 text-center font-semibold">Tax / TDS</th>
-                <th className="px-2 py-2 text-center font-semibold">Debit</th>
-                <th className="px-2 py-2 text-center font-semibold">Credit</th>
-                <th className="px-3 py-3 text-center font-semibold">Running Balance</th>
+                <th className="px-2.5 py-2.5 font-semibold text-center">Date</th>
+                <th className="px-2.5 py-2.5 font-semibold text-center">Project Reference</th>
+                {!isCustomerScoped && <th className="px-2.5 py-2.5 font-semibold text-center">Customer</th>}
+                <th className="px-3 py-2.5 font-semibold text-center">Particulars</th>
+                <th className="px-2.5 py-2.5 text-center font-semibold">Type</th>
+                <th className="px-2.5 py-2.5 text-center font-semibold">Tax</th>
+                <th className="px-2.5 py-2.5 text-center font-semibold">Inv Amt</th>
+                <th className="px-2.5 py-2.5 text-center font-semibold">Debit</th>
+                <th className="px-2.5 py-2.5 text-center font-semibold">Credit</th>
+                <th className="px-3 py-2.5 text-center font-semibold">Running Balance</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((e, i) => (
-                <tr key={`${e.docId}-${i}`} className="border-b border-slate-100 last:border-0">
-                  <td className="whitespace-nowrap px-2 py-2 text-slate-600">{fmtDate(e.date)}</td>
-                  <td className="max-w-[320px] px-3 py-2 text-left text-slate-800">
+                <tr key={`${e.docId}-${i}`} className="border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50/60">
+                  <td className="whitespace-nowrap px-2.5 py-2.5 text-left text-slate-600">{fmtDate(e.date)}</td>
+                  <td className="whitespace-nowrap px-2.5 py-2.5 text-left font-semibold text-emerald-700">
+                    {e.projectReference || '—'}
+                  </td>
+                  {!isCustomerScoped && (
+                    <td className="max-w-[220px] truncate px-2.5 py-2.5 text-left font-medium text-slate-700">
+                      {shortCustomer(e.customer)}
+                    </td>
+                  )}
+                  <td className="max-w-[320px] px-3 py-2.5 text-left text-slate-800">
                     <div className="flex flex-col">
                       <div className="flex items-center gap-1.5">
                         <span className="font-semibold text-slate-900">{e.docId}</span>
@@ -753,36 +795,28 @@ function Ledger() {
                         </span>
                       </div>
                       {e.particularsDetail && (
-                        <p className="mt-0.5 text-[11.5px] leading-tight text-slate-500 font-normal">
+                        <p className="mt-0.5 text-[12.5px] leading-snug text-slate-500 font-normal">
                           {e.particularsDetail}
                         </p>
                       )}
                     </div>
                   </td>
-                  <td className="max-w-[240px] truncate px-2 py-2 font-medium text-slate-700">
-                    {shortCustomer(e.customer)}
+                  <td className="whitespace-nowrap px-2.5 py-2.5 text-center font-medium text-slate-700">
+                    {e.book || '—'}
                   </td>
-                  <td className="whitespace-nowrap px-2 py-2 font-medium text-emerald-700">
-                    {e.projectReference || '—'}
-                  </td>
-                  <td className="whitespace-nowrap px-2 py-2">
-                    <span className={`inline-flex items-center whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${BOOK_BADGE[e.book] ?? 'border-slate-200 bg-slate-100 text-slate-400'}`}>
-                      {e.book ?? '—'}
-                    </span>
-                  </td>
-                  <td className="whitespace-nowrap px-2 py-2 text-center text-slate-700">
-                    {e.invoiceAmount ? fmtINR(e.invoiceAmount) : '—'}
-                  </td>
-                  <td className="whitespace-nowrap px-2 py-2 text-center text-slate-700">
+                  <td className="whitespace-nowrap px-2.5 py-2.5 text-center text-slate-700">
                     {e.taxTds ? fmtINR(e.taxTds) : '—'}
                   </td>
-                  <td className="whitespace-nowrap px-2 py-2 text-center font-medium text-slate-800">
+                  <td className="whitespace-nowrap px-2.5 py-2.5 text-center text-slate-700">
+                    {e.invoiceAmount ? fmtINR(e.invoiceAmount) : '—'}
+                  </td>
+                  <td className="whitespace-nowrap px-2.5 py-2.5 text-center font-medium text-slate-800">
                     {e.debit ? fmtINR(e.debit) : '—'}
                   </td>
-                  <td className="whitespace-nowrap px-2 py-2 text-center font-medium text-emerald-600">
+                  <td className="whitespace-nowrap px-2.5 py-2.5 text-center font-medium text-emerald-600">
                     {e.credit ? fmtINR(e.credit) : '—'}
                   </td>
-                  <td className="whitespace-nowrap px-2 py-2 text-center font-semibold">
+                  <td className="whitespace-nowrap px-2.5 py-2.5 text-center font-semibold">
                     {e.balance === 0 ? (
                       '—'
                     ) : (
@@ -795,16 +829,17 @@ function Ledger() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan="10" className="px-4 py-12 text-center text-sm text-slate-400">No ledger entries match your filters.</td>
+                  <td colSpan={isCustomerScoped ? 9 : 10} className="px-4 py-12 text-center text-sm text-slate-400">No ledger entries match your filters.</td>
                 </tr>
               )}
             </tbody>
             {filtered.length > 0 && (
               <tfoot>
-                <tr className="border-t border-slate-200 bg-slate-50/60">
-                  <td colSpan="8" className="px-2 py-2 text-center text-[12px] font-semibold uppercase tracking-wider text-slate-500">Total</td>
-                  <td className="whitespace-nowrap px-2 py-2 text-center font-semibold text-slate-800">{fmtINR(totals.debit)}</td>
-                  <td className="whitespace-nowrap px-2 py-2 text-center font-semibold text-emerald-600">{fmtINR(totals.credit)}</td>
+                <tr className="border-t border-slate-200 bg-slate-50/60 font-semibold">
+                  <td colSpan={isCustomerScoped ? 6 : 7} className="px-3 py-2.5 text-center text-[12px] uppercase tracking-wider text-slate-500">Total</td>
+                  <td className="whitespace-nowrap px-2.5 py-2.5 text-center text-slate-800">{fmtINR(totals.debit)}</td>
+                  <td className="whitespace-nowrap px-2.5 py-2.5 text-center text-emerald-600">{fmtINR(totals.credit)}</td>
+                  <td className="whitespace-nowrap px-2.5 py-2.5 text-center text-slate-400">—</td>
                 </tr>
               </tfoot>
             )}

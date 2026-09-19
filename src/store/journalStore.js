@@ -40,7 +40,7 @@ function entryForPayment(p) {
     income: refunded ? 0 : amount,
     expense: refunded ? amount : 0,
     source: bookFor(p.method),
-    docType: refunded ? 'Refund' : 'Payment',
+    docType: refunded ? 'Refund' : 'Receipt',
     orderId: p.orderId,
     note: p.notes || '',
   };
