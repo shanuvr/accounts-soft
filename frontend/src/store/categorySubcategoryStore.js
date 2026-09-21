@@ -1,93 +1,72 @@
-import { useSyncExternalStore } from 'react';
+import { createApiStore } from './createApiStore';
+import * as api from '../api/masters';
 
-const SEED_CATEGORIES = [
-  { id: 'CAT-001', name: 'Administrative', description: 'Office & General Overhead Expenses' },
-  { id: 'CAT-002', name: 'Operating Expenses', description: 'Core Operations & Field Logistics' },
-  { id: 'CAT-003', name: 'IT & Infrastructure', description: 'Software, Broadband & Cloud Infrastructure' },
-  { id: 'CAT-004', name: 'Sales & Marketing', description: 'Advertising, Events & Client Outreach' },
-  { id: 'CAT-005', name: 'Human Resources', description: 'Payroll, Training & Recruitment' },
-  { id: 'CAT-006', name: 'Miscellaneous', description: 'General & Contingency Expenses' },
-];
+const mapCategory = (r) => ({ id: r.id, name: r.name, code: r.code, description: r.description });
+const mapSubcategory = (r) => ({
+  id: r.id,
+  name: r.name,
+  categoryId: r.category,
+  categoryName: r.category_name,
+  description: r.description,
+});
 
-const SEED_SUBCATEGORIES = [
-  { id: 'SUB-001', categoryId: 'CAT-001', categoryName: 'Administrative', name: 'Office Stationery', description: 'Printing paper, files, pens' },
-  { id: 'SUB-002', categoryId: 'CAT-001', categoryName: 'Administrative', name: 'Pantry & Catering', description: 'Coffee, tea, snacks' },
-  { id: 'SUB-003', categoryId: 'CAT-002', categoryName: 'Operating Expenses', name: 'Fuel & Transit', description: 'Vehicle fuel & travel fares' },
-  { id: 'SUB-004', categoryId: 'CAT-002', categoryName: 'Operating Expenses', name: 'Hardware Repair', description: 'UPS, AC & Equipment maintenance' },
-  { id: 'SUB-005', categoryId: 'CAT-003', categoryName: 'IT & Infrastructure', name: 'Internet & Phone', description: 'Fiber broadband & phone lines' },
-  { id: 'SUB-006', categoryId: 'CAT-003', categoryName: 'IT & Infrastructure', name: 'Software Subscription', description: 'SaaS tools & cloud hosting' },
-  { id: 'SUB-007', categoryId: 'CAT-006', categoryName: 'Miscellaneous', name: 'Sundry Expenses', description: 'Minor unclassified expenses' },
-  { id: 'SUB-008', categoryId: 'CAT-006', categoryName: 'Miscellaneous', name: 'Guest Refreshment & Snacks', description: 'Tea, coffee & snacks for visitors' },
-  { id: 'SUB-009', categoryId: 'CAT-006', categoryName: 'Miscellaneous', name: 'General Maintenance', description: 'Small office repairs & maintenance' },
-  { id: 'SUB-010', categoryId: 'CAT-006', categoryName: 'Miscellaneous', name: 'Other Expenses', description: 'Miscellaneous petty cash expenses' },
-];
-
-let categories = [...SEED_CATEGORIES];
-let subcategories = [...SEED_SUBCATEGORIES];
-
-let catCounter = 7;
-let subCounter = 11;
-
-const listeners = new Set();
-
-function emit() {
-  for (const l of listeners) l();
-}
-
-export function subscribe(cb) {
-  listeners.add(cb);
-  return () => listeners.delete(cb);
-}
-
-export function getCategoriesSnapshot() {
-  return categories;
-}
-
-export function getSubcategoriesSnapshot() {
-  return subcategories;
-}
+const categoryStore = createApiStore({ fetchList: api.getCategories, mapRecord: mapCategory });
+const subcategoryStore = createApiStore({ fetchList: api.getSubcategories, mapRecord: mapSubcategory });
 
 export function useCategories() {
-  return useSyncExternalStore(subscribe, getCategoriesSnapshot);
+  return categoryStore.useItems();
 }
 
 export function useSubcategories() {
-  return useSyncExternalStore(subscribe, getSubcategoriesSnapshot);
+  return subcategoryStore.useItems();
 }
 
-export function addCategory({ name, description = '' }) {
-  const id = `CAT-${String(catCounter).padStart(3, '0')}`;
-  catCounter += 1;
-  const newCat = { id, name: name.trim(), description: description.trim() };
-  categories = [...categories, newCat];
-  emit();
-  return newCat;
+export function getCategoriesSnapshot() {
+  return categoryStore.getSnapshot();
 }
 
-export function deleteCategory(id) {
-  categories = categories.filter((c) => c.id !== id);
-  // Also clean up or unlink subcategories
-  subcategories = subcategories.filter((s) => s.categoryId !== id);
-  emit();
+export function getSubcategoriesSnapshot() {
+  return subcategoryStore.getSnapshot();
 }
 
-export function addSubcategory({ categoryName, name, description = '' }) {
-  const id = `SUB-${String(subCounter).padStart(3, '0')}`;
-  subCounter += 1;
-  const catObj = categories.find((c) => c.name === categoryName);
-  const newSub = {
-    id,
-    categoryId: catObj?.id || '',
-    categoryName: categoryName || 'General',
-    name: name.trim(),
-    description: description.trim(),
-  };
-  subcategories = [newSub, ...subcategories];
-  emit();
-  return newSub;
+const categoryByName = (name) => (c) => c.name === name;
+
+export async function addCategory({ name, description = '' }) {
+  const n = name?.trim();
+  if (!n) return { ok: false, reason: 'name' };
+  return categoryStore.run(() => api.createCategory({ name: n, description: description.trim() }));
 }
 
-export function deleteSubcategory(id) {
-  subcategories = subcategories.filter((s) => s.id !== id);
-  emit();
+export async function updateCategory(oldName, name) {
+  const n = name?.trim();
+  if (!n) return { ok: false, reason: 'name' };
+  const id = categoryStore.findId(categoryByName(oldName));
+  if (!id) return { ok: false, reason: 'notfound' };
+  return categoryStore.run(() => api.updateCategory(id, { name: n }));
+}
+
+export async function deleteCategory(id) {
+  const res = await categoryStore.run(() => api.deleteCategory(id));
+  if (res.ok) await subcategoryStore.load();
+  return res;
+}
+
+export async function addSubcategory({ categoryName, name, description = '' }) {
+  const n = name?.trim();
+  if (!n) return { ok: false, reason: 'name' };
+  const categoryId = categoryStore.findId(categoryByName(categoryName));
+  if (!categoryId) return { ok: false, reason: 'category' };
+  return subcategoryStore.run(() =>
+    api.createSubcategory({ category: categoryId, name: n, description: description.trim() })
+  );
+}
+
+export async function updateSubcategory(id, name) {
+  const n = name?.trim();
+  if (!n) return { ok: false, reason: 'name' };
+  return subcategoryStore.run(() => api.updateSubcategory(id, { name: n }));
+}
+
+export async function deleteSubcategory(id) {
+  return subcategoryStore.run(() => api.deleteSubcategory(id));
 }

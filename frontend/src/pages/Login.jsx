@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getUserByEmail } from '../data/mockData';
-import { setUser } from '../store/authStore';
+import { login } from '../store/authStore';
 
 function Login() {
   const navigate = useNavigate();
@@ -12,7 +11,7 @@ function Login() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = {};
     if (!email.trim()) newErrors.email = 'Email is required';
@@ -23,8 +22,13 @@ function Login() {
 
     if (Object.keys(newErrors).length === 0) {
       setIsSubmitting(true);
-      setUser(getUserByEmail(email));
-      setTimeout(() => navigate('/dashboard'), 700);
+      const result = await login(email, password);
+      if (result.success) {
+        setTimeout(() => navigate('/dashboard'), 700);
+      } else {
+        setErrors({ submit: result.error || 'Login failed' });
+      }
+      setIsSubmitting(false);
     }
   };
 
@@ -226,11 +230,13 @@ function Login() {
                 'Sign in'
               )}
             </button>
-          </form>
+</form>
 
-          <p className="mt-6 text-center text-[13px] text-slate-500">
-            Demo: <span className="font-mono text-slate-600">admin@accountsoft.com</span> / <span className="font-mono text-slate-600">admin123</span>
-          </p>
+{errors.submit && <p className="mt-4 text-center text-xs text-red-500">{errors.submit}</p>}
+
+<p className="mt-6 text-center text-[13px] text-slate-500">
+  Demo: <span className="font-mono text-slate-600">admin@accountsoft.com</span> / <span className="font-mono text-slate-600">admin123</span>
+</p>
 
           <p className="mt-8 text-center text-xs text-slate-400">© {new Date().getFullYear()} Account Soft · Integrated with Lead Soft</p>
         </div>

@@ -52,7 +52,7 @@ export default function TaxMaster() {
     setError('');
   };
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     setError('');
     if (!form.name.trim()) {
@@ -64,7 +64,7 @@ export default function TaxMaster() {
       return;
     }
     const payload = { rate: form.rate, type: form.type };
-    const result = editingName ? updateTax(editingName, payload) : addTax({ ...payload, name: form.name });
+    const result = editingName ? await updateTax(editingName, payload) : await addTax({ ...payload, name: form.name });
     if (!result.ok) {
       setError(result.reason === 'duplicate' ? 'A tax with this name already exists.' : 'Could not save tax.');
       return;

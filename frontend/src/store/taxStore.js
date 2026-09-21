@@ -1,67 +1,50 @@
-import { useSyncExternalStore } from 'react';
+import { createApiStore } from './createApiStore';
+import * as api from '../api/masters';
 
-const SEED = [
-  { name: 'GST 18%', rate: 18, type: 'CGST + SGST' },
-  { name: 'GST 12%', rate: 12, type: 'CGST + SGST' },
-  { name: 'GST 5%', rate: 5, type: 'CGST + SGST' },
-  { name: 'IGST 18%', rate: 18, type: 'IGST' },
-  { name: 'IGST 12%', rate: 12, type: 'IGST' },
-  { name: 'Tax Exempt', rate: 0, type: 'Exempt' },
-];
-
-let records = [...SEED];
-const listeners = new Set();
-
-function emit() {
-  for (const l of listeners) l();
-}
-
-export function subscribe(cb) {
-  listeners.add(cb);
-  return () => listeners.delete(cb);
-}
-
-export function getSnapshot() {
-  return records;
-}
+const store = createApiStore({
+  fetchList: api.getTaxes,
+  mapRecord: (r) => ({
+    id: r.id,
+    name: r.name,
+    rate: Number(r.rate),
+    type: r.type || 'Other',
+  }),
+});
 
 export function useTaxMaster() {
-  return useSyncExternalStore(subscribe, getSnapshot);
+  return store.useItems();
 }
 
 export function getAllTaxes() {
-  return records;
+  return store.all();
 }
 
-export function addTax(data) {
+const byName = (name) => (r) => r.name === name;
+
+export async function addTax(data) {
   const name = data?.name?.trim();
   if (!name) return { ok: false, reason: 'name' };
-  if (records.some((r) => r.name.toLowerCase() === name.toLowerCase())) return { ok: false, reason: 'duplicate' };
-  const record = {
+  const payload = {
     name,
     rate: Math.max(0, Number(data.rate) || 0),
     type: data.type || 'Other',
   };
-  records = [...records, record];
-  emit();
-  return { ok: true, record };
+  return store.run(() => api.createTax(payload));
 }
 
-export function updateTax(name, patch) {
-  const existing = records.find((r) => r.name === name);
-  if (!existing) return { ok: false, reason: 'notfound' };
-  const rate = patch.rate !== undefined ? Math.max(0, Number(patch.rate) || 0) : existing.rate;
-  const next = {
-    ...existing,
-    rate,
-    type: (patch.type !== undefined ? patch.type : existing.type) || 'Other',
+export async function updateTax(name, patch) {
+  const id = store.findId(byName(name));
+  if (!id) return { ok: false, reason: 'notfound' };
+  const existing = store.all().find(byName(name));
+  const payload = {
+    rate: patch.rate !== undefined ? Number(patch.rate) : existing?.rate,
+    type: patch.type !== undefined ? patch.type : existing?.type || 'Other',
   };
-  records = records.map((r) => (r.name === name ? next : r));
-  emit();
-  return { ok: true, record: next };
+  return store.run(() => api.updateTax(id, payload));
 }
 
-export function deleteTax(name) {
-  records = records.filter((r) => r.name !== name);
-  emit();
+export async function deleteTax(name) {
+  const id = store.findId(byName(name));
+  if (!id) return { ok: false, reason: 'notfound' };
+  return store.run(() => api.deleteTax(id));
 }

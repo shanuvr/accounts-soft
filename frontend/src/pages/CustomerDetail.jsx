@@ -5,6 +5,7 @@ import { CUSTOMERS, ORDERS, PAYMENTS, ORDER_SERVICES, fmtINR, fmtDate } from '..
 import { ORDER_STATUS_COLORS } from '../data/orderStatus';
 import { usePtds } from '../store/ptdStore';
 import { useAssignments } from '../store/assignmentStore';
+import { useCustomers } from '../store/customerStore';
 
 const STATUS_COLORS = {
   Active: 'border-emerald-200 bg-emerald-50 text-emerald-700',
@@ -62,8 +63,12 @@ function CustomerDetail() {
   const [tab, setTab] = useState('Overview');
   const ptds = usePtds();
   const assignments = useAssignments();
+  const liveCustomers = useCustomers();
 
-  const customer = useMemo(() => CUSTOMERS.find((c) => c.customerId === customerId), [customerId]);
+  const customer = useMemo(
+    () => liveCustomers.find((c) => c.customerId === customerId) ?? CUSTOMERS.find((c) => c.customerId === customerId),
+    [customerId, liveCustomers]
+  );
 
   const data = useMemo(() => {
     if (!customer) return null;

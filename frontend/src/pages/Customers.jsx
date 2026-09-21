@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../layouts/Layout';
-import { CUSTOMERS, ORDERS, PAYMENTS, fmtINR } from '../data/mockData';
+import { useCustomers } from '../store/customerStore';
+import { fmtINR } from '../data/mockData';
 
 const STATUS_COLORS = {
   Active: 'border-emerald-200 bg-emerald-50 text-emerald-700',
@@ -22,7 +23,7 @@ function StatusBadge({ status }) {
 }
 
 function TypeBadge({ type }) {
-  return <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${TYPE_COLORS[type] ?? TYPE_COLORS.SME}`}>{type}</span>;
+  return <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${TYPE_COLORS[type] ?? 'border-slate-200 bg-slate-100 text-slate-600'}`}>{type || '—'}</span>;
 }
 
 const inputCls =
@@ -30,20 +31,15 @@ const inputCls =
 
 function Customers() {
   const navigate = useNavigate();
+  const customers = useCustomers();
   const [search, setSearch] = useState('');
   const [type, setType] = useState('');
   const [status, setStatus] = useState('');
 
-  const rows = useMemo(
-    () =>
-      CUSTOMERS.map((c) => {
-        const orders = ORDERS.filter((o) => o.customer === c.name);
-        const received = PAYMENTS.filter((p) => p.customer === c.name).reduce((s, p) => s + p.amount, 0);
-        const value = orders.reduce((s, o) => s + o.value, 0);
-        return { ...c, orderCount: orders.length, value, pending: Math.max(0, value - received) };
-      }),
-    []
-  );
+  const rows = useMemo(() => customers, [customers]);
+
+  const typeOptions = useMemo(() => Array.from(new Set(rows.map((r) => r.type).filter(Boolean))), [rows]);
+  const statusOptions = useMemo(() => Array.from(new Set(rows.map((r) => r.status).filter(Boolean))), [rows]);
 
   const filtered = rows.filter((r) => {
     if (search && !`${r.customerId} ${r.name} ${r.contactPerson} ${r.phone} ${r.email}`.toLowerCase().includes(search.toLowerCase())) return false;
@@ -52,7 +48,7 @@ function Customers() {
     return true;
   });
 
-  const totals = rows.reduce((acc, r) => ({ value: acc.value + r.value, pending: acc.pending + r.pending }), { value: 0, pending: 0 });
+  const totals = rows.reduce((acc, r) => ({ value: acc.value + r.orderValue, pending: acc.pending + r.pending }), { value: 0, pending: 0 });
 
   return (
     <Layout active="customers">
@@ -91,11 +87,11 @@ function Customers() {
           </div>
           <select value={type} onChange={(e) => setType(e.target.value)} className={inputCls}>
             <option value="">Customer Type: All</option>
-            {['Corporate', 'SME', 'Individual', 'Government'].map((t) => <option key={t} value={t}>{t}</option>)}
+            {typeOptions.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
           <select value={status} onChange={(e) => setStatus(e.target.value)} className={inputCls}>
             <option value="">Status: All</option>
-            {['Active', 'Inactive', 'Lead', 'Suspended'].map((s) => <option key={s} value={s}>{s}</option>)}
+            {statusOptions.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
         </div>
 
@@ -136,9 +132,9 @@ function Customers() {
                     <td className="px-2 py-2 text-slate-500">{c.phone}</td>
                     <td className="px-2 py-2 text-slate-500">{c.email}</td>
                     <td className="px-2 py-2"><TypeBadge type={c.type} /></td>
-                    <td className="px-2 py-2 text-right font-semibold text-slate-700">{c.orderCount}</td>
-                    <td className="px-2 py-2 text-right text-slate-600">{fmtINR(c.value)}</td>
-                    <td className={`px-2 py-2 text-right font-semibold ${c.pending > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>{fmtINR(c.pending)}</td>
+                    <td className="px-2 py-2 text-right font-semibold text-slate-700">{c.orderCount || '—'}</td>
+                    <td className="px-2 py-2 text-right text-slate-600">{c.orderValue ? fmtINR(c.orderValue) : '—'}</td>
+                    <td className={`px-2 py-2 text-right font-semibold ${c.pending > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>{c.pending ? fmtINR(c.pending) : '—'}</td>
                     <td className="px-2 py-2"><StatusBadge status={c.status} /></td>
                     <td className="px-2 py-2 text-right">
                       <button

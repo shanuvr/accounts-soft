@@ -1,50 +1,37 @@
-import { useSyncExternalStore } from 'react';
+import { createApiStore } from './createApiStore';
+import * as api from '../api/masters';
 
-const SEED = ['Domain', 'Hosting', 'SSL', 'Development', 'Maintenance', 'QA', 'SEO / SMO', 'Design', 'Marketing'];
-
-let records = [...SEED];
-const listeners = new Set();
-
-function emit() {
-  for (const l of listeners) l();
-}
-
-export function subscribe(cb) {
-  listeners.add(cb);
-  return () => listeners.delete(cb);
-}
-
-export function getSnapshot() {
-  return records;
-}
+const store = createApiStore({
+  fetchList: api.getProductCategories,
+  mapRecord: (r) => r.name,
+});
 
 export function useServiceCategories() {
-  return useSyncExternalStore(subscribe, getSnapshot);
+  return store.useItems();
 }
 
 export function getAllServiceCategories() {
-  return records;
+  return store.all();
 }
 
-export function addServiceCategory(name) {
+const byName = (name) => (r) => r.name === name;
+
+export async function addServiceCategory(name) {
   const n = name?.trim();
   if (!n) return { ok: false, reason: 'name' };
-  if (records.some((r) => r.toLowerCase() === n.toLowerCase())) return { ok: false, reason: 'duplicate' };
-  records = [...records, n];
-  emit();
-  return { ok: true, record: n };
+  return store.run(() => api.createProductCategory({ name: n }));
 }
 
-export function updateServiceCategory(oldName, name) {
+export async function updateServiceCategory(oldName, name) {
   const n = name?.trim();
   if (!n) return { ok: false, reason: 'name' };
-  if (records.some((r) => r.toLowerCase() === n.toLowerCase())) return { ok: false, reason: 'duplicate' };
-  records = records.map((r) => (r === oldName ? n : r));
-  emit();
-  return { ok: true, record: n };
+  const id = store.findId(byName(oldName));
+  if (!id) return { ok: false, reason: 'notfound' };
+  return store.run(() => api.updateProductCategory(id, { name: n }));
 }
 
-export function deleteServiceCategory(name) {
-  records = records.filter((r) => r !== name);
-  emit();
+export async function deleteServiceCategory(name) {
+  const id = store.findId(byName(name));
+  if (!id) return { ok: false, reason: 'notfound' };
+  return store.run(() => api.deleteProductCategory(id));
 }

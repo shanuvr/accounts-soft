@@ -181,7 +181,12 @@ const MASTER_NAV = [
   { label: 'Product / Service Master', path: '/products-services' },
   { label: 'Service Category', path: '/service-categories' },
   { label: 'Payment Methods', path: '/payment-methods' },
+  { label: 'Payment Terms', path: '/payment-terms' },
   { label: 'Tax Master', path: '/tax-master' },
+  { label: 'Delivery Type', path: '/delivery-types' },
+  { label: 'Status Masters', path: '/status-masters' },
+  { label: 'UOM Master', path: '/uom-master' },
+  { label: 'Customer Type', path: '/customer-type-master' },
   { label: 'Employee Master', path: '/employee-master' },
   { label: 'Department Master', path: '/department-master' },
 ];

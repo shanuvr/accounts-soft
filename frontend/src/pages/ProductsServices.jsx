@@ -55,7 +55,7 @@ export default function ProductsServices() {
     setError('');
   };
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     setError('');
     if (!form.name.trim()) {
@@ -68,8 +68,8 @@ export default function ProductsServices() {
       template: form.template,
     };
     const result = editingName
-      ? updateService(editingName, payload)
-      : addService({ ...payload, name: form.name });
+      ? await updateService(editingName, payload)
+      : await addService({ ...payload, name: form.name });
     if (!result.ok) {
       setError(result.reason === 'duplicate' ? 'A service with this name already exists.' : 'Could not save service.');
       return;

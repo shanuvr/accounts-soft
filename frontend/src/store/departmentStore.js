@@ -1,50 +1,37 @@
-import { useSyncExternalStore } from 'react';
+import { createApiStore } from './createApiStore';
+import * as api from '../api/masters';
 
-const SEED = ['Operations', 'Development', 'Design', 'Support', 'Accounts', 'Sales', 'Administration'];
-
-let records = [...SEED];
-const listeners = new Set();
-
-function emit() {
-  for (const l of listeners) l();
-}
-
-export function subscribe(cb) {
-  listeners.add(cb);
-  return () => listeners.delete(cb);
-}
-
-export function getSnapshot() {
-  return records;
-}
+const store = createApiStore({
+  fetchList: api.getDepartments,
+  mapRecord: (r) => r.name,
+});
 
 export function useDepartments() {
-  return useSyncExternalStore(subscribe, getSnapshot);
+  return store.useItems();
 }
 
 export function getAllDepartments() {
-  return records;
+  return store.all();
 }
 
-export function addDepartment(name) {
+const byName = (name) => (r) => r.name === name;
+
+export async function addDepartment(name) {
   const n = name?.trim();
   if (!n) return { ok: false, reason: 'name' };
-  if (records.some((r) => r.toLowerCase() === n.toLowerCase())) return { ok: false, reason: 'duplicate' };
-  records = [...records, n];
-  emit();
-  return { ok: true, record: n };
+  return store.run(() => api.createDepartment({ name: n, code: n.slice(0, 19).toUpperCase().replace(/\s+/g, '_') }));
 }
 
-export function updateDepartment(oldName, name) {
+export async function updateDepartment(oldName, name) {
   const n = name?.trim();
   if (!n) return { ok: false, reason: 'name' };
-  if (records.some((r) => r.toLowerCase() === n.toLowerCase())) return { ok: false, reason: 'duplicate' };
-  records = records.map((r) => (r === oldName ? n : r));
-  emit();
-  return { ok: true, record: n };
+  const id = store.findId(byName(oldName));
+  if (!id) return { ok: false, reason: 'notfound' };
+  return store.run(() => api.updateDepartment(id, { name: n }));
 }
 
-export function deleteDepartment(name) {
-  records = records.filter((r) => r !== name);
-  emit();
+export async function deleteDepartment(name) {
+  const id = store.findId(byName(name));
+  if (!id) return { ok: false, reason: 'notfound' };
+  return store.run(() => api.deleteDepartment(id));
 }

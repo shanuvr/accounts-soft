@@ -46,7 +46,7 @@ export default function EmployeeMaster() {
     setError('');
   };
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     setError('');
     if (!form.name.trim()) {
@@ -54,8 +54,8 @@ export default function EmployeeMaster() {
       return;
     }
     const result = editingName
-      ? updateEmployee(editingName, { department: form.department })
-      : addEmployee({ name: form.name, department: form.department });
+      ? await updateEmployee(editingName, { department: form.department })
+      : await addEmployee({ name: form.name, department: form.department });
     if (!result.ok) {
       setError(result.reason === 'duplicate' ? 'An employee with this name already exists.' : 'Could not save employee.');
       return;

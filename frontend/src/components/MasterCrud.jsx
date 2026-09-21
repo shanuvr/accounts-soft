@@ -19,6 +19,7 @@ export default function MasterCrud({
   const [editingName, setEditingName] = useState(null);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const filteredItems = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -38,14 +39,16 @@ export default function MasterCrud({
     setError('');
   };
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     setError('');
     if (!name.trim()) {
       setError('Name is required.');
       return;
     }
-    const result = editingName ? updateItem(editingName, name) : addItem(name);
+    setSaving(true);
+    const result = editingName ? await updateItem(editingName, name) : await addItem(name);
+    setSaving(false);
     if (!result.ok) {
       setError(result.reason === 'duplicate' ? 'This item already exists.' : 'Could not save.');
       return;
@@ -113,9 +116,10 @@ export default function MasterCrud({
                 <div className="pt-2 flex items-center gap-2">
                   <button
                     type="submit"
-                    className="flex-1 h-9 rounded-lg bg-emerald-600 text-[13px] font-medium text-white transition hover:bg-emerald-700 shadow-sm shadow-emerald-600/25 active:scale-[0.99]"
+                    disabled={saving}
+                    className="flex-1 h-9 rounded-lg bg-emerald-600 text-[13px] font-medium text-white transition hover:bg-emerald-700 shadow-sm shadow-emerald-600/25 active:scale-[0.99] disabled:opacity-60"
                   >
-                    {editingName ? 'Save Changes' : `Save ${title}`}
+                    {saving ? 'Saving...' : editingName ? 'Save Changes' : `Save ${title}`}
                   </button>
                   {editingName && (
                     <button

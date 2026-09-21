@@ -15,7 +15,12 @@ import ProductsServices from './pages/ProductsServices'
 import CategorySubcategoryMaster from './pages/CategorySubcategoryMaster'
 import ServiceCategory from './pages/ServiceCategory'
 import PaymentMethods from './pages/PaymentMethods'
+import PaymentTerms from './pages/PaymentTerms'
 import TaxMaster from './pages/TaxMaster'
+import DeliveryTypeMaster from './pages/DeliveryTypeMaster'
+import StatusMasters from './pages/StatusMasters'
+import UOMMaster from './pages/UOMMaster'
+import CustomerTypeMaster from './pages/CustomerTypeMaster'
 import EmployeeMaster from './pages/EmployeeMaster'
 import DepartmentMaster from './pages/DepartmentMaster'
 import Payments from './pages/Payments'
@@ -57,7 +62,12 @@ function App() {
       <Route path="/products-services" element={<ProductsServices />} />
       <Route path="/service-categories" element={<ServiceCategory />} />
       <Route path="/payment-methods" element={<PaymentMethods />} />
+      <Route path="/payment-terms" element={<PaymentTerms />} />
       <Route path="/tax-master" element={<TaxMaster />} />
+      <Route path="/delivery-types" element={<DeliveryTypeMaster />} />
+      <Route path="/status-masters" element={<StatusMasters />} />
+      <Route path="/uom-master" element={<UOMMaster />} />
+      <Route path="/customer-type-master" element={<CustomerTypeMaster />} />
       <Route path="/employee-master" element={<EmployeeMaster />} />
       <Route path="/department-master" element={<DepartmentMaster />} />
       <Route path="/ptd" element={<PtdList />} />

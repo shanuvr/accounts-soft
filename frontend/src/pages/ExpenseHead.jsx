@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { jsPDF } from 'jspdf';
 import Layout from '../layouts/Layout';
 import { useExpenseHeads, addExpenseHead, deleteExpenseHead } from '../store/expenseHeadStore';
+import { useCategories, useSubcategories } from '../store/categorySubcategoryStore';
 import { fmtINR, fmtDate } from '../data/mockData';
 
 const inputCls =
@@ -20,25 +21,6 @@ const EXPENSE_HEAD_OPTIONS = [
   'Software Subscriptions',
 ];
 
-const CATEGORY_OPTIONS = [
-  'Administrative',
-  'Operating Expenses',
-  'IT & Infrastructure',
-  'Sales & Marketing',
-  'Human Resources',
-];
-
-const SUBCATEGORY_OPTIONS = [
-  'Office Stationery',
-  'Fuel & Transit',
-  'Internet & Phone',
-  'Pantry & Catering',
-  'Hardware Repair',
-  'Consulting',
-  'Software Subscription',
-  'Office Rent',
-];
-
 const BANK_LIST = [
   'HDFC BANK',
   'ICICI BANK',
@@ -50,6 +32,8 @@ const BANK_LIST = [
 
 function ExpenseHead() {
   const expenses = useExpenseHeads();
+  const categories = useCategories();
+  const subcategories = useSubcategories();
 
   // Form State
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -63,6 +47,11 @@ function ExpenseHead() {
   const [bankPaymentType, setBankPaymentType] = useState('UPI'); // UPI, Card
   const [bankName, setBankName] = useState('HDFC BANK');
   const [description, setDescription] = useState('');
+
+  const categoryOptions = categories.map((c) => c.name);
+  const activeCategory = categoryOptions.includes(category) ? category : categoryOptions[0] || '';
+  const subcategoryOptions = subcategories.filter((s) => s.categoryName === activeCategory).map((s) => s.name);
+  const activeSubcategory = subcategoryOptions.includes(subcategory) ? subcategory : subcategoryOptions[0] || '';
 
   // Table Filter State
   const [search, setSearch] = useState('');
@@ -86,6 +75,12 @@ function ExpenseHead() {
     });
   }, [expenses, search, dateFrom, dateTo]);
 
+  const handleCategoryChange = (e) => {
+    const next = e.target.value;
+    setCategory(next);
+    setSubcategory(subcategories.filter((s) => s.categoryName === next).map((s) => s.name)[0] || '');
+  };
+
   const totalExpenseAmount = useMemo(() => {
     return filtered.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
   }, [filtered]);
@@ -93,8 +88,8 @@ function ExpenseHead() {
   const handleResetForm = () => {
     setDate(new Date().toISOString().slice(0, 10));
     setExpenseHead('Office Supplies');
-    setCategory('Administrative');
-    setSubcategory('Office Stationery');
+    setCategory(categoryOptions[0] || 'Administrative');
+    setSubcategory(subcategories.filter((s) => s.categoryName === (categoryOptions[0] || 'Administrative')).map((s) => s.name)[0] || '');
     setAmount('');
     setCashAmount('');
     setBankAmount('');
@@ -106,11 +101,9 @@ function ExpenseHead() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    let finalAmount = 0;
+    let finalAmount;
     if (paymentMethod === 'Both') {
-      const c = Number(cashAmount) || 0;
-      const b = Number(bankAmount) || 0;
-      finalAmount = c + b;
+      finalAmount = (Number(cashAmount) || 0) + (Number(bankAmount) || 0);
       if (finalAmount <= 0) {
         alert('Please enter a valid Cash Amount or Bank Amount.');
         return;
@@ -126,8 +119,8 @@ function ExpenseHead() {
     addExpenseHead({
       date,
       expenseHead,
-      category,
-      subcategory,
+      category: activeCategory,
+      subcategory: activeSubcategory,
       amount: finalAmount,
       cashAmount: paymentMethod === 'Both' ? (Number(cashAmount) || 0) : 0,
       bankAmount: paymentMethod === 'Both' ? (Number(bankAmount) || 0) : 0,
@@ -434,11 +427,12 @@ function ExpenseHead() {
                 <label htmlFor="exp-category" className={labelCls}>Category</label>
                 <select
                   id="exp-category"
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
+                  value={activeCategory}
+                  onChange={handleCategoryChange}
                   className={inputCls}
                 >
-                  {CATEGORY_OPTIONS.map((opt) => (
+                  {categoryOptions.length === 0 && <option value="">No categories available</option>}
+                  {categoryOptions.map((opt) => (
                     <option key={opt} value={opt}>{opt}</option>
                   ))}
                 </select>
@@ -449,11 +443,12 @@ function ExpenseHead() {
                 <label htmlFor="exp-subcat" className={labelCls}>Subcategory</label>
                 <select
                   id="exp-subcat"
-                  value={subcategory}
+                  value={activeSubcategory}
                   onChange={(e) => setSubcategory(e.target.value)}
                   className={inputCls}
                 >
-                  {SUBCATEGORY_OPTIONS.map((opt) => (
+                  {subcategoryOptions.length === 0 && <option value="">No subcategories</option>}
+                  {subcategoryOptions.map((opt) => (
                     <option key={opt} value={opt}>{opt}</option>
                   ))}
                 </select>

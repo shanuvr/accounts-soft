@@ -1,3 +1,5 @@
 from django.contrib import admin
+from .models import PTDATemplate, PTDA
 
-# Register your models here.
+admin.site.register(PTDATemplate)
+admin.site.register(PTDA)

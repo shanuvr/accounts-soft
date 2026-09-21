@@ -9,6 +9,14 @@ import {
   deleteSubcategory,
 } from '../store/categorySubcategoryStore';
 
+const storeFailure = (res) => {
+  if (!res?.ok) {
+    alert('Could not save: ' + (res?.reason || 'unexpected error'));
+    return true;
+  }
+  return false;
+};
+
 const inputCls =
   'h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[13px] text-slate-700 placeholder:text-slate-400 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100';
 const labelCls = 'mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-500';
@@ -52,32 +60,34 @@ function CategorySubcategoryMaster() {
     });
   }, [categories, search]);
 
-  const handleSubcategorySubmit = (e) => {
+  const handleSubcategorySubmit = async (e) => {
     e.preventDefault();
     if (!subName.trim()) {
       alert('Please enter a subcategory name.');
       return;
     }
-    addSubcategory({
+    const res = await addSubcategory({
       categoryName: activeCategory,
       name: subName,
       description: subDesc,
     });
+    if (storeFailure(res)) return;
     setSubName('');
     setSubDesc('');
   };
 
-  const handleCategorySubmit = (e) => {
+  const handleCategorySubmit = async (e) => {
     e.preventDefault();
     if (!catName.trim()) {
       alert('Please enter a category name.');
       return;
     }
-    const created = addCategory({
+    const res = await addCategory({
       name: catName,
       description: catDesc,
     });
-    setSelectedCategoryName(created.name);
+    if (storeFailure(res)) return;
+    setSelectedCategoryName(res.record.name);
     setCatName('');
     setCatDesc('');
     setFormMode('subcategory'); // switch to subcategory after creating category
@@ -317,7 +327,11 @@ function CategorySubcategoryMaster() {
                         <td className="whitespace-nowrap px-4 py-3 text-center">
                           <button
                             type="button"
-                            onClick={() => deleteSubcategory(s.id)}
+                            onClick={async () => {
+                              if (!window.confirm('Delete this subcategory?')) return;
+                              const res = await deleteSubcategory(s.id);
+                              if (storeFailure(res)) return;
+                            }}
                             className="rounded p-1 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
                             title="Delete Subcategory"
                           >
@@ -369,7 +383,11 @@ function CategorySubcategoryMaster() {
                           <td className="whitespace-nowrap px-4 py-3 text-center">
                             <button
                               type="button"
-                              onClick={() => deleteCategory(c.id)}
+                              onClick={async () => {
+                                if (!window.confirm('Delete this category? Its subcategories will also be removed.')) return;
+                                const res = await deleteCategory(c.id);
+                                if (storeFailure(res)) return;
+                              }}
                               className="rounded p-1 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
                               title="Delete Category"
                             >
