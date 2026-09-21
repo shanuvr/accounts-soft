@@ -52,22 +52,23 @@ provided, the shared DB is MySQL; otherwise a local `shared.sqlite3` seeded by
 
 ## API Endpoints
 
-All API routes are under `/api/v1/`:
+The frontend calls the API under `/v1/api/` (Django is mounted at `/v1/` and
+serves bare `api/` routes), so in production the server must expose:
 
-- `/api/v1/auth/token/` — JWT token obtain
-- `/api/v1/auth/token/refresh/` — JWT token refresh
-- `/api/v1/users/profiles/` — User profiles
-- `/api/v1/customers/` — Customer management
-- `/api/v1/masters/` — Payment methods, terms, taxes, delivery types, statuses
-- `/api/v1/orders/` — Orders and order services
-- `/api/v1/services/` — Service items
-- `/api/v1/ptda/` — PTDAs and templates
-- `/api/v1/assignments/` — Assignments
-- `/api/v1/deliveries/` — Deliveries
-- `/api/v1/payments/` — Payments and schedules
-- `/api/v1/documents/` — Documents
-- `/api/v1/activity/` — Audit logs
-- `/api/v1/reports/` — Report configurations
+- `/v1/api/auth/token/` — JWT token obtain
+- `/v1/api/auth/token/refresh/` — JWT token refresh
+- `/v1/api/users/profiles/` — User profiles
+- `/v1/api/customers/` — Customer management
+- `/v1/api/masters/` — Payment methods, terms, taxes, delivery types, statuses
+- `/v1/api/orders/` — Orders and order services
+- `/v1/api/services/` — Service items
+- `/v1/api/ptda/` — PTDAs and templates
+- `/v1/api/assignments/` — Assignments
+- `/v1/api/deliveries/` — Deliveries
+- `/v1/api/payments/` — Payments and schedules
+- `/v1/api/documents/` — Documents
+- `/v1/api/activity/` — Audit logs
+- `/v1/api/reports/` — Report configurations
 
 ## Project Structure
 
