@@ -1,0 +1,75 @@
+# =========================
+# Django / Python
+# =========================
+
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Django
+*.log
+db.sqlite3
+db.sqlite3-journal
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Migrations (optional - usually commit migrations)
+# */migrations/*.py
+# !*/migrations/__init__.py
+
+# Media and static files
+media/
+staticfiles/
+
+# =========================
+# React / Vite
+# =========================
+
+node_modules/
+dist/
+build/
+
+# Vite
+.vite/
+
+# Environment variables
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# =========================
+# IDE / Editors
+# =========================
+
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+.idea/
+
+# =========================
+# OS
+# =========================
+
+.DS_Store
+Thumbs.db
+
+# =========================
+# Testing / Coverage
+# =========================
+
+.coverage
+htmlcov/
+.pytest_cache/
