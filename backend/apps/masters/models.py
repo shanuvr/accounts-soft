@@ -32,6 +32,7 @@ class PaymentTerm(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        ordering = ['-created_at']
         db_table = 'payment_terms'
         app_label = 'masters'
 
@@ -48,6 +49,7 @@ class Tax(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        ordering = ['-created_at']
         db_table = 'taxes'
         app_label = 'masters'
 
@@ -62,6 +64,7 @@ class DeliveryType(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        ordering = ['-created_at']
         db_table = 'delivery_types'
         app_label = 'masters'
 
@@ -77,6 +80,7 @@ class OrderStatus(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        ordering = ['-created_at']
         db_table = 'order_statuses'
         app_label = 'masters'
 
@@ -92,6 +96,7 @@ class PTDAStatus(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        ordering = ['-created_at']
         db_table = 'ptda_statuses'
         app_label = 'masters'
 
@@ -107,6 +112,7 @@ class AssignmentStatus(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        ordering = ['-created_at']
         db_table = 'assignment_statuses'
         app_label = 'masters'
 
@@ -122,6 +128,7 @@ class DeliveryStatus(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        ordering = ['-created_at']
         db_table = 'delivery_statuses'
         app_label = 'masters'
 
@@ -137,6 +144,7 @@ class PaymentStatus(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        ordering = ['-created_at']
         db_table = 'payment_statuses'
         app_label = 'masters'
 

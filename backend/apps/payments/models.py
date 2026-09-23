@@ -35,6 +35,7 @@ class PaymentSchedule(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        ordering = ['-created_at']
         db_table = 'payment_schedules'
         app_label = 'payments'
 

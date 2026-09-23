@@ -28,8 +28,8 @@ class Migration(migrations.Migration):
                 ('completed_at', models.DateTimeField(blank=True, null=True)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('updated_at', models.DateTimeField(auto_now=True)),
-                ('department', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='customers.department')),
-                ('employee', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='customers.employee')),
+                ('department', models.ForeignKey(blank=True, db_constraint=False, null=True, on_delete=django.db.models.deletion.SET_NULL, to='customers.department')),
+                ('employee', models.ForeignKey(blank=True, db_constraint=False, null=True, on_delete=django.db.models.deletion.SET_NULL, to='customers.employee')),
                 ('order_service', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='assignments', to='services.orderservice')),
             ],
             options={

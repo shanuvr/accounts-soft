@@ -29,6 +29,7 @@ class CustomerType(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        ordering = ['-created_at']
         db_table = 'customer_types'
         app_label = 'customers'
 
@@ -144,6 +145,7 @@ class ProductCategory(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        ordering = ['-created_at']
         db_table = 'product_categories'
         app_label = 'customers'
 
@@ -166,6 +168,7 @@ class Product(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        ordering = ['-created_at']
         db_table = 'products'
         app_label = 'customers'
 

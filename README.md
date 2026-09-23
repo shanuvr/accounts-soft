@@ -6,14 +6,22 @@ Order-to-Delivery and Financial Operations platform.
 
 - **Backend**: Django 6.1 + Django REST Framework + JWT Authentication
 - **Frontend**: React 19 + Vite + React Router + Tailwind CSS 4
-- **Database (dedicated)**: Account Soft's own database — Account Soft masters
-  (Payment Methods, Payment Terms, Taxes, Delivery Types, Statuses, UOM,
-  Customer Types, Product/Service catalogue) plus all operational data.
-- **Shared DB (SystemSoft)**: The shared core masters — Customers, Employees,
-  Departments — are read/written in the **SystemSoft / Lead Soft** suite's
-  database (`leadsdb`). **Customers, Employees, Departments do not live in
-  Account Soft's dedicated DB.**
-- **Default**: SQLite for both (local development); MySQL via `.env` when enabled.
+- **Database**: Account Soft's own dedicated MySQL database (accounts_db) — all
+  operational data plus the masters catalogue (Payment Methods, Payment Terms,
+  Taxes, Delivery Types, Statuses, Categories/Subcategories, UOM, Customer
+  Types, Product/Service categories).
+- **Shared core data (SystemSoft)**: Customers, Employees and Departments are
+  NOT stored in accounts_db and NOT accessed via a second database connection.
+  They are read/written through the **SystemSoft / Lead Soft API**
+  (`LEAD_SOFT_API_URL` / `LEAD_SOFT_API_TOKEN`). The client scaffold lives in
+  `backend/apps/customers/services.py`; when the API URL is unset the
+  customer/department/employee endpoints return empty results.
+- Default: SQLite for local development when `DB_NAME` is not set in `.env`;
+  MySQL when enabled.
+
+## Prerequisites
+
+`Mysql 8.4 LTS`
 
 ## Quick Start
 
@@ -41,14 +49,11 @@ npm run dev
 Copy `.env.example` to `.env` and configure:
 
 - `DB_NAME`, `DB_USER`, `DB_PASSWORD` — Account Soft's dedicated MySQL database
-- `SHARED_DB_NAME`, `SHARED_DB_USER`, `SHARED_DB_PASSWORD` — SystemSoft `leadsdb`
-  (shared core masters: Customers, Employees, Departments)
-- `LEAD_SOFT_API_URL`, `LEAD_SOFT_API_TOKEN` — optional, for later order import
+- `LEAD_SOFT_API_URL`, `LEAD_SOFT_API_TOKEN` — SystemSoft / Lead Soft API used
+  for the shared core masters (Customers, Employees, Departments)
 
-When `DB_NAME` is provided in `.env`, the backend uses MySQL for the dedicated
-DB. Otherwise, SQLite (`backend/db.sqlite3`) is used. When `SHARED_DB_NAME` is
-provided, the shared DB is MySQL; otherwise a local `shared.sqlite3` seeded by
-`python manage.py seed_masters` is used.
+When `DB_NAME` is provided in `.env`, the backend uses MySQL for the database.
+Otherwise, SQLite (`backend/db.sqlite3`) is used.
 
 ## API Endpoints
 
@@ -99,14 +104,34 @@ frontend/
 
 ## SystemSoft / Lead Soft Integration
 
-The shared core masters — **Customers** (`transactions_clientdetail`),
-**Employees** (`master_staff`) and **Departments/Branches** (`master_branch`) —
-are owned by the SystemSoft / Lead Soft suite and are accessed by Account Soft
-through its `leadsdb` database (configured as the `shared` database alias, with
-a Django database router in `config/database_router.py`). Imported orders retain
-their original Lead Soft reference.
+The shared core masters — **Customers**, **Employees** and
+**Departments/Branches** — are owned by the SystemSoft / Lead Soft suite and are
+accessed by Account Soft through the SystemSoft API (client scaffold in
+`backend/apps/customers/services.py`, endpoints under `/v1/api/customers/`,
+`/v1/api/customers/employees/` and `/v1/api/customers/departments/`). No direct
+database connection is made to the SystemSoft core. Imported orders retain their
+original Lead Soft reference.
 
 ## Default Credentials
 
 - Email: `admin@accountsoft.com`
 - Password: `admin123`
+
+
+
+## Run
+
+### Backend
+
+```bash
+cd backend
+venv\Scripts\activate
+python manage.py runserver
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm run dev
+```

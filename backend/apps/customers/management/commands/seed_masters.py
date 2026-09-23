@@ -1,15 +1,13 @@
-from django.conf import settings
 from django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):
-    help = 'Seed default master data into Account Soft databases (dedicated + shared fallback).'
+    help = 'Seed default master data into the Account Soft database.'
 
     def handle(self, *args, **options):
-        self.seed_dedicated()
-        self.seed_shared()
+        self.seed_masters()
 
-    def seed_dedicated(self):
+    def seed_masters(self):
         from customers.models import CustomerType, Product, ProductCategory, UOM
         from masters.models import (
             AssignmentStatus,
@@ -129,116 +127,4 @@ class Command(BaseCommand):
                 },
             )
 
-        self.stdout.write(self.style.SUCCESS('Seeded dedicated masters (default DB).'))
-
-    def seed_shared(self):
-        db = 'shared'
-        engine = settings.DATABASES[db]['ENGINE']
-        if 'sqlite' not in engine:
-            self.stdout.write('Shared DB is MySQL (SystemSoft) — no seeding needed.')
-            return
-        self._ensure_shared_sqlite_tables(db)
-        self.seed_shared_sqlite_fallback(db)
-
-    def _ensure_shared_sqlite_tables(self, db):
-        from django.db import connections
-
-        with connections[db].cursor() as cursor:
-            for statement in SHARED_SQLITE_DDL:
-                cursor.execute(statement)
-
-    def seed_shared_sqlite_fallback(self, db):
-        from customers.models import Customer, Department, Employee
-
-        departments = ['Operations', 'Development', 'Design', 'Support', 'Accounts', 'Sales', 'Administration']
-        dept_map = {}
-        for i, name in enumerate(departments, start=1):
-            dept, _ = Department.objects.using(db).get_or_create(
-                code=f'BR{i:02d}',
-                defaults={'name': name},
-            )
-            dept_map[name] = dept
-
-        employees = [
-            ('ST001', 'Rahul Sharma', 'Operations'),
-            ('ST002', 'Sneha Patil', 'Operations'),
-            ('ST003', 'Amit Verma', 'Development'),
-            ('ST004', 'Rohit Gupta', 'Development'),
-            ('ST005', 'Priya Nair', 'Accounts'),
-            ('ST006', 'Karan Malhotra', 'Sales'),
-            ('ST007', 'Anita Desai', 'Sales'),
-        ]
-        for code, name, dept in employees:
-            Employee.objects.using(db).get_or_create(
-                employee_code=code,
-                defaults={'name': name, 'department': dept_map.get(dept), 'email': f'{name.lower().split()[0]}@accountsoft.com'},
-            )
-
-        customers = [
-            ('CUST-001', 'ABC Technologies Pvt Ltd', 'Rahul Sharma', '98765 43210', 'contact@abctech.com', 'Corporate', 'Active'),
-            ('CUST-002', 'BlueSky Media', "Karan D'Souza", '98111 22233', 'hello@blueskymedia.in', 'SME', 'Active'),
-            ('CUST-003', 'GreenLeaf Organics', 'Suresh Kumar', '97000 11122', 'contact@greenleaffoods.in', 'SME', 'Active'),
-            ('CUST-004', 'Nova Systems', 'Vikram Rathore', '98220 44556', 'projects@novasystems.com', 'Corporate', 'Active'),
-            ('CUST-005', 'Zenith Corp', 'Meera Iyer', '99887 66554', 'finance@zenithcorp.com', 'Corporate', 'Active'),
-        ]
-        for cid, company, contact, phone, email, category, status in customers:
-            Customer.objects.using(db).get_or_create(
-                customer_id=cid,
-                defaults={
-                    'name': company,
-                    'contact_person': contact,
-                    'phone': phone,
-                    'email': email,
-                    'customer_type': category,
-                    'status': status,
-                },
-            )
-
-        self.stdout.write(self.style.SUCCESS('Seeded shared masters fallback (shared.sqlite3).'))
-
-
-SHARED_SQLITE_DDL = [
-    """
-    CREATE TABLE IF NOT EXISTS master_branch (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      code VARCHAR(20) NOT NULL,
-      name VARCHAR(50) NOT NULL,
-      address VARCHAR(200) NOT NULL DEFAULT '',
-      created_at DATETIME NOT NULL,
-      updated_at DATETIME NOT NULL
-    )
-    """,
-    "CREATE UNIQUE INDEX IF NOT EXISTS uniq_mb_code ON master_branch (code)",
-    """
-    CREATE TABLE IF NOT EXISTS master_staff (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      code VARCHAR(20) NOT NULL UNIQUE,
-      name VARCHAR(120) NOT NULL,
-      role VARCHAR(120) NOT NULL DEFAULT '',
-      mobile VARCHAR(20) NOT NULL DEFAULT '',
-      email VARCHAR(254) NOT NULL DEFAULT '',
-      branch_id BIGINT,
-      created_at DATETIME NOT NULL,
-      updated_at DATETIME NOT NULL
-    )
-    """,
-    """
-    CREATE TABLE IF NOT EXISTS transactions_clientdetail (
-      id VARCHAR(20) PRIMARY KEY,
-      order_no VARCHAR(30) NOT NULL DEFAULT '',
-      lead_id VARCHAR(30) NOT NULL DEFAULT '',
-      client_name VARCHAR(120) NOT NULL DEFAULT '',
-      company VARCHAR(200) NOT NULL,
-      mobile VARCHAR(20) NOT NULL DEFAULT '',
-      email VARCHAR(254) NOT NULL DEFAULT '',
-      category VARCHAR(100) NOT NULL DEFAULT '',
-      accepted_date VARCHAR(30) NOT NULL DEFAULT '',
-      collected_by VARCHAR(120) NOT NULL DEFAULT '',
-      notes LONGTEXT,
-      status VARCHAR(50) NOT NULL DEFAULT 'Active',
-      client_token VARCHAR(64) NOT NULL DEFAULT '',
-      created_at DATETIME NOT NULL,
-      updated_at DATETIME NOT NULL
-    )
-    """,
-]
+        self.stdout.write(self.style.SUCCESS('Seeded masters and product catalogue.'))

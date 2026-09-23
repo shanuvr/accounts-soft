@@ -56,6 +56,7 @@ class OrderService(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        ordering = ['-created_at']
         db_table = 'order_services'
         app_label = 'services'
 

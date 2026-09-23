@@ -74,11 +74,11 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # --- Database Configuration ---
-# Account Soft uses a single database of its own. Shared/Core data (Customers,
-# Employees, Products, etc.) is accessed through the Lead Soft / SystemSoft API,
-# not through a second database.
-# Default: SQLite (works immediately). When MySQL credentials are provided in
-# .env, the MySQL database is used.
+# Account Soft uses a single dedicated MySQL database (accounts_db). All
+# operational data and the masters catalogue (Payment Methods, Taxes, Statuses,
+# Categories, ...) live here. Shared core data (Customers, Employees,
+# Departments) is NOT stored locally — it is accessed through the SystemSoft /
+# Lead Soft API (see LEAD_SOFT_API_* below).
 if os.getenv('DB_NAME'):
     DATABASES = {
         'default': {
@@ -101,32 +101,6 @@ else:
             'NAME': BASE_DIR / 'db.sqlite3',
         },
     }
-
-# --- Shared Database (SystemSoft / Lead Soft) ---
-# Shared core masters (Customers, Employees, Departments) are owned by the
-# SystemSoft suite (its MySQL `leadsdb`). Account Soft reads/writes them there.
-# When SHARED_DB_NAME is provided, MySQL is used; otherwise a local
-# shared.sqlite3 (seeded by `manage.py seed_masters`) is the fallback.
-if os.getenv('SHARED_DB_NAME'):
-    DATABASES['shared'] = {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.getenv('SHARED_DB_NAME'),
-        'USER': os.getenv('SHARED_DB_USER', 'root'),
-        'PASSWORD': os.getenv('SHARED_DB_PASSWORD', ''),
-        'HOST': os.getenv('SHARED_DB_HOST', 'localhost'),
-        'PORT': os.getenv('SHARED_DB_PORT', '3306'),
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-            'charset': 'utf8mb4',
-        },
-    }
-else:
-    DATABASES['shared'] = {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'shared.sqlite3',
-    }
-
-DATABASE_ROUTERS = ['config.database_router.AccountSoftRouter']
 
 # --- Auth & API ---
 AUTH_PASSWORD_VALIDATORS = [
