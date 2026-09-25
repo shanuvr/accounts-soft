@@ -955,11 +955,11 @@ function OrderDetail() {
     }
   };
 
-  const savePtd = (serviceId, targetStatus, data, billable, price) => {
+  const savePtd = async (serviceId, targetStatus, data, billable, price) => {
     const svc = services.find((s) => s.id === serviceId);
     if (!svc) return;
     const cat = catalog.find((c) => c.name === svc.name);
-    const record = createOrUpdatePtd({
+    const record = await createOrUpdatePtd({
       orderId: order.orderId,
       customer: order.customer,
       serviceName: svc.name,
@@ -969,6 +969,7 @@ function OrderDetail() {
       billable,
       price: billable ? Math.max(0, Number(price) || 0) : 0,
     });
+    if (!record) return;
     const next = services.map((s) =>
       s.id === serviceId
         ? { ...s, ptdStatus: targetStatus, price: billable ? record.price : 0, ptd: { id: record.id, status: targetStatus, data, billable, price: billable ? record.price : 0 } }

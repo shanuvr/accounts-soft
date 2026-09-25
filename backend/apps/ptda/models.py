@@ -27,6 +27,8 @@ class PTDA(models.Model):
     status = models.CharField(max_length=20, default='Pending')
     required = models.BooleanField(default=True)
     is_sensitive = models.BooleanField(default=False)
+    billable = models.BooleanField(default=True)
+    price = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
