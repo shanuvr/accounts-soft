@@ -22,11 +22,14 @@ class PTDATemplate(models.Model):
 class PTDA(models.Model):
     order_service = models.ForeignKey('services.OrderService', on_delete=models.CASCADE, related_name='ptdas')
     template = models.ForeignKey('ptda.PTDATemplate', on_delete=models.SET_NULL, null=True, blank=True)
+    template_name = models.CharField(max_length=200, blank=True, default='')
     title = models.CharField(max_length=200)
     data = models.JSONField(default=dict, help_text='Field values for this PTDA instance')
     status = models.CharField(max_length=20, default='Pending')
     required = models.BooleanField(default=True)
     is_sensitive = models.BooleanField(default=False)
+    billable = models.BooleanField(default=True)
+    price = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -1,34 +1,15 @@
-import { useSyncExternalStore } from 'react';
-
-let records = {};
-const listeners = new Set();
-
-function emit() {
-  for (const l of listeners) l();
-}
-
-export function subscribe(cb) {
-  listeners.add(cb);
-  return () => listeners.delete(cb);
-}
-
-export function getSnapshot() {
-  return records;
-}
+import { useOrders, getOrderById, updateOrderHours } from './orderStore';
 
 export function useOrderHours() {
-  return useSyncExternalStore(subscribe, getSnapshot);
+  return useOrders();
 }
 
 export function getOrderHours(orderId) {
-  return records[orderId] ?? 0;
+  return getOrderById(orderId)?.projectHours ?? 0;
 }
 
-export function setOrderHours(orderId, hours) {
-  const n = Math.max(0, Number(hours) || 0);
-  if (records[orderId] === n) return;
-  records = { ...records, [orderId]: n };
-  emit();
+export async function setOrderHours(orderId, hours) {
+  return updateOrderHours(orderId, hours);
 }
 
 export function getOrderHoursSummary(orderId, assignments) {

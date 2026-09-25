@@ -1,114 +1,108 @@
-import { useSyncExternalStore } from 'react';
+import { createApiStore } from './createApiStore';
+import * as api from '../api/data';
+import { resolveOrderServiceId } from './orderServiceIndex';
 
 export const ASSIGNMENT_STATUSES = ['Assigned', 'In Progress', 'Completed', 'On Hold', 'Cancelled'];
 
-let records = [];
-let counter = 1;
-const listeners = new Set();
+const PRIORITY_WRITE = { Low: 'Low', Normal: 'Medium', High: 'High', Urgent: 'Critical' };
+const PRIORITY_READ = { Low: 'Low', Medium: 'Normal', High: 'High', Critical: 'Urgent' };
 
-function emit() {
-  for (const l of listeners) l();
+function mapRecord(r) {
+  const startDate = (r.start_date || '').slice(0, 10);
+  return {
+    id: r.id,
+    orderServiceId: r.order_service,
+    orderId: r.order_id || '',
+    customer: r.customer_name || '',
+    serviceName: r.service_name || '',
+    assignedTo: r.employee || '',
+    assignedTeam: r.department || '',
+    assignedBy: '',
+    assignedOn: startDate || (r.created_at || '').slice(0, 10),
+    expectedDelivery: (r.due_date || '').slice(0, 10),
+    priority: PRIORITY_READ[r.priority] ?? r.priority ?? 'Normal',
+    instructions: r.description || '',
+    status: r.status || 'Pending',
+    estimatedHours: 0,
+    allocatedHours: Number(r.allocated_hours) || 0,
+    progress: Number(r.progress) || 0,
+    activity: [],
+    createdAt: r.created_at || '',
+    updatedAt: r.updated_at || '',
+  };
 }
 
-const todayISO = () => new Date().toISOString().slice(0, 10);
+const store = createApiStore({
+  fetchList: api.getAssignments,
+  mapRecord,
+});
 
 export function subscribe(cb) {
-  listeners.add(cb);
-  return () => listeners.delete(cb);
+  return store.subscribe(cb);
 }
 
 export function getSnapshot() {
-  return records;
+  return store.getSnapshot();
 }
 
 export function useAssignments() {
-  return useSyncExternalStore(subscribe, getSnapshot);
+  return store.useItems();
 }
 
 export function getAssignmentById(id) {
-  return records.find((r) => r.id === id);
+  return store.all().find((r) => String(r.id) === String(id));
 }
 
 export function getAssignmentFor(orderId, serviceName) {
-  return records.find((r) => r.orderId === orderId && r.serviceName === serviceName);
+  return store.all().find((r) => r.orderId === orderId && r.serviceName === serviceName);
 }
 
 export function deleteAssignmentFor(orderId, serviceName) {
-  const next = records.filter((r) => !(r.orderId === orderId && r.serviceName === serviceName));
-  if (next.length !== records.length) {
-    records = next;
-    emit();
-  }
-}
-
-function appendActivity(prev, changes, note, by) {
-  const entries = [...(prev.activity ?? [])];
-  const push = (text) => entries.push({ date: todayISO(), text });
-  if (changes.assignedTo !== undefined && changes.assignedTo !== prev.assignedTo) push(`Reassigned to ${changes.assignedTo}`);
-  if (changes.assignedTeam !== undefined && changes.assignedTeam !== prev.assignedTeam) push(`Assigned team changed to ${changes.assignedTeam}`);
-  if (changes.status !== undefined && changes.status !== prev.status) push(`Status changed to ${changes.status}`);
-  if (changes.expectedDelivery !== undefined && changes.expectedDelivery !== prev.expectedDelivery) push('Expected completion date updated');
-  if (changes.priority !== undefined && changes.priority !== prev.priority) push(`Priority changed to ${changes.priority}`);
-  if (changes.estimatedHours !== undefined && Number(changes.estimatedHours) !== Number(prev.estimatedHours)) push(`Estimated hours changed to ${changes.estimatedHours} hrs`);
-  if (changes.allocatedHours !== undefined && Number(changes.allocatedHours) !== Number(prev.allocatedHours)) push(`Allocated hours changed to ${changes.allocatedHours} hrs`);
-  if (changes.instructions !== undefined && changes.instructions !== prev.instructions) push('Instructions updated');
-  if (note?.trim()) push(note.trim());
-  if (by?.trim()) push(`Action by ${by.trim()}`);
-  return entries;
-}
-
-export function createAssignment({ orderId, customer, serviceName, assignedTo, assignedTeam, assignedBy, assignedOn, expectedDelivery, priority, instructions, status = 'Assigned', estimatedHours, allocatedHours, note }) {
-  const existing = records.find((r) => r.orderId === orderId && r.serviceName === serviceName);
-  if (existing) {
-    const changes = {
-      ...(assignedTo !== undefined ? { assignedTo } : {}),
-      ...(assignedTeam !== undefined ? { assignedTeam } : {}),
-      ...(expectedDelivery !== undefined ? { expectedDelivery } : {}),
-      ...(priority !== undefined ? { priority } : {}),
-      ...(instructions !== undefined ? { instructions } : {}),
-      ...(status !== undefined ? { status } : {}),
-      ...(estimatedHours !== undefined ? { estimatedHours } : {}),
-      ...(allocatedHours !== undefined ? { allocatedHours } : {}),
-    };
-    const activity = appendActivity(existing, changes, note);
-    records = records.map((r) => (r.id === existing.id ? { ...r, ...changes, activity } : r));
-    emit();
-    return records.find((r) => r.id === existing.id);
-  }
-  const id = `ASN-${String(counter++).padStart(3, '0')}`;
-  const record = {
-    id,
-    orderId,
-    customer,
-    serviceName,
-    assignedTo,
-    assignedTeam,
-    assignedBy: assignedBy ?? '',
-    assignedOn: assignedOn ?? todayISO(),
-    expectedDelivery: expectedDelivery ?? '',
-    priority: priority ?? 'Normal',
-    instructions: instructions ?? '',
-    status,
-    estimatedHours: estimatedHours ?? 0,
-    allocatedHours: allocatedHours ?? 0,
-    activity: [{ date: assignedOn ?? todayISO(), text: `Assigned to ${assignedTo}` }],
-    createdAt: todayISO(),
-  };
-  records = [...records, record];
-  emit();
-  return record;
-}
-
-export function reassignAssignment(id, { assignedTo, assignedTeam, note, by }) {
-  const rec = records.find((r) => r.id === id);
+  const rec = getAssignmentFor(orderId, serviceName);
   if (!rec) return null;
-  return createAssignment({
-    orderId: rec.orderId,
-    customer: rec.customer,
-    serviceName: rec.serviceName,
-    assignedTo,
-    assignedTeam,
-    status: 'Assigned',
-    note: note?.trim() ? `${note.trim()} · Reassigned by ${by ?? '—'}` : `Reassigned by ${by ?? '—'}`,
-  });
+  return store.run(() => api.deleteAssignment(rec.id));
+}
+
+export async function createAssignment({ orderId, serviceName, assignedTo, assignedTeam, assignedOn, expectedDelivery, priority, instructions, status = 'Assigned', allocatedHours }) {
+  const orderServiceId = await resolveOrderServiceId(orderId, serviceName);
+  if (!orderServiceId) return { ok: false, reason: 'notfound' };
+  const existing = store.all().find((r) => r.orderId === orderId && r.serviceName === serviceName);
+  if (existing) {
+    const changes = {};
+    if (assignedTo !== undefined) changes.employee = assignedTo;
+    if (assignedTeam !== undefined) changes.department = assignedTeam;
+    if (assignedOn !== undefined) changes.start_date = assignedOn || null;
+    if (expectedDelivery !== undefined) changes.due_date = expectedDelivery || null;
+    if (priority !== undefined) changes.priority = PRIORITY_WRITE[priority] ?? priority ?? 'Medium';
+    if (status !== undefined) changes.status = status;
+    if (instructions !== undefined) changes.description = instructions || '';
+    if (allocatedHours !== undefined) changes.allocated_hours = Math.max(0, Number(allocatedHours) || 0);
+    return store.run(() => api.updateAssignment(existing.id, changes));
+  }
+  return store.run(() =>
+    api.createAssignment({
+      order_service: orderServiceId,
+      employee: assignedTo || '',
+      department: assignedTeam || '',
+      title: serviceName,
+      description: instructions || '',
+      priority: PRIORITY_WRITE[priority] ?? priority ?? 'Medium',
+      status,
+      start_date: assignedOn || null,
+      due_date: expectedDelivery || null,
+      allocated_hours: Math.max(0, Number(allocatedHours) || 0),
+    })
+  );
+}
+
+export function reassignAssignment(id, { assignedTo, assignedTeam }) {
+  const rec = getAssignmentById(id);
+  if (!rec) return null;
+  return store.run(() =>
+    api.updateAssignment(Number(id), {
+      employee: assignedTo,
+      department: assignedTeam,
+      status: 'Assigned',
+    })
+  );
 }

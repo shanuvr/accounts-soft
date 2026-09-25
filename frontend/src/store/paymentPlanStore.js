@@ -1,29 +1,50 @@
-import { useSyncExternalStore } from 'react';
+import { createApiStore } from './createApiStore';
+import * as api from '../api/data';
+import { ensureLocalOrder } from './orderStore';
 
-let plans = [];
-let planCounter = 1;
-let stageCounter = 1;
-const listeners = new Set();
-
-function emit() {
-  for (const l of listeners) l();
+function mapRecord(r) {
+  return {
+    stageId: r.id,
+    orderId: r.order_id || '',
+    customer: r.customer_name || '',
+    name: r.name || 'Payment Plan',
+    type: r.plan_type || 'Milestone',
+    title: r.notes || 'Stage',
+    amount: Number(r.amount) || 0,
+    dueDate: (r.due_date || '').slice(0, 10),
+    status: r.status || 'Pending',
+  };
 }
 
+const store = createApiStore({
+  fetchList: api.getPaymentSchedules,
+  mapRecord,
+});
+
 export function subscribe(cb) {
-  listeners.add(cb);
-  return () => listeners.delete(cb);
+  return store.subscribe(cb);
 }
 
 export function getSnapshot() {
-  return plans;
+  return store.getSnapshot();
 }
 
 export function usePaymentPlans() {
-  return useSyncExternalStore(subscribe, getSnapshot);
+  return store.useItems();
 }
 
 export function getPlanFor(orderId) {
-  return plans.find((p) => p.orderId === orderId);
+  const stages = store.all().filter((s) => s.orderId === orderId);
+  if (stages.length === 0) return null;
+  const first = stages[0];
+  return {
+    planId: `PLAN-${orderId}`,
+    orderId,
+    customer: first.customer,
+    name: first.name,
+    type: first.type,
+    stages,
+  };
 }
 
 export function getStageStatus(stage, orderId, payments) {
@@ -42,8 +63,14 @@ export function getPlanView(orderId, payments) {
 }
 
 export function getScheduledStages(payments) {
+  const plansByOrder = new Map();
+  for (const s of store.all()) {
+    const plan = plansByOrder.get(s.orderId) ?? { orderId: s.orderId, customer: s.customer, planId: `PLAN-${s.orderId}`, planName: s.name, planType: s.type, stages: [] };
+    plan.stages.push(s);
+    plansByOrder.set(s.orderId, plan);
+  }
   const out = [];
-  for (const plan of plans) {
+  for (const plan of plansByOrder.values()) {
     for (const stage of plan.stages) {
       const received = payments
         .filter((p) => p.orderId === plan.orderId && p.planStage === stage.title)
@@ -67,28 +94,26 @@ export function getScheduledStages(payments) {
   return out.sort((a, b) => (a.dueDate ?? '').localeCompare(b.dueDate ?? ''));
 }
 
-export function createPaymentPlan({ orderId, customer, name, type, stages }) {
-  const existing = plans.find((p) => p.orderId === orderId);
-  const nextStages = stages.map((s, i) => ({
-    stageId: existing?.stages[i]?.stageId ?? `STG-${String(stageCounter++).padStart(3, '0')}`,
-    title: s.title,
-    amount: Number(s.amount),
-    dueDate: s.dueDate,
-  }));
-
+export async function createPaymentPlan({ orderId, name, type, stages }) {
+  const orderPk = await ensureLocalOrder(orderId);
+  if (!orderPk) return null;
+  const existing = getPlanFor(orderId);
   if (existing) {
-    plans = plans.map((p) => (p.planId === existing.planId ? { ...p, name, type, stages: nextStages } : p));
-  } else {
-    const plan = {
-      planId: `PAYPLAN-${String(planCounter++).padStart(3, '0')}`,
-      orderId,
-      customer,
-      name,
-      type,
-      stages: nextStages,
-    };
-    plans = [...plans, plan];
+    for (const st of existing.stages) {
+      await store.run(() => api.deletePaymentSchedule(st.stageId));
+    }
   }
-  emit();
-  return plans.find((p) => p.orderId === orderId);
+  for (const s of stages) {
+    const payload = {
+      order: orderPk,
+      name: name || 'Payment Plan',
+      plan_type: type || 'Milestone',
+      due_date: s.dueDate,
+      amount: Math.max(0, Number(s.amount) || 0),
+      status: 'Pending',
+      notes: s.title,
+    };
+    await store.run(() => api.createPaymentSchedule(payload));
+  }
+  return getPlanFor(orderId);
 }

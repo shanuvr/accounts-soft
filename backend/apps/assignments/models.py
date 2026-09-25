@@ -10,6 +10,7 @@ class Assignment(models.Model):
     priority = models.CharField(max_length=20, default='Medium', choices=[('Low', 'Low'), ('Medium', 'Medium'), ('High', 'High'), ('Critical', 'Critical')])
     status = models.CharField(max_length=20, default='Pending')
     progress = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    allocated_hours = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     start_date = models.DateField(null=True, blank=True)
     due_date = models.DateField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)

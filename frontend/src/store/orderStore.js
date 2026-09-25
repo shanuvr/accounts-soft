@@ -6,6 +6,8 @@ function mapRecord(r) {
   const rawValue = isExternal ? r.order_value : (r.final_amount ?? r.subtotal ?? 0);
   const value = Number(rawValue);
   return {
+    id: r.id ?? null,
+    source: isExternal ? 'external' : 'local',
     orderId: r.order_id,
     customer: r.company || r.customer || '',
     value: Number.isFinite(value) ? value : 0,
@@ -15,6 +17,7 @@ function mapRecord(r) {
     orderStatus: isExternal ? 'Pending' : r.order_status || 'Pending',
     paymentStatus: isExternal ? 'Unpaid' : r.payment_status || 'Unpaid',
     salesPerson: r.sales_person || '',
+    projectHours: Number(r.project_hours) || 0,
   };
 }
 
@@ -75,4 +78,30 @@ export async function addOrder({ customer, value, orderDate, deliveryDate, order
     tax_amount: 0,
   };
   return store.run(() => api.createOrder(payload));
+}
+
+/** Returns a local DB pk for an order, lazily creating the local Order row for external (Lead Soft) orders. */
+export async function ensureLocalOrder(orderId) {
+  const order = getOrderById(orderId);
+  if (!order) return null;
+  if (order.id) return order.id;
+  const payload = {
+    order_id: order.orderId,
+    customer: order.customer || '',
+    order_date: order.orderDate || String(order.createdAt || '').slice(0, 10) || new Date().toISOString().slice(0, 10),
+    delivery_date: order.deliveryDate || new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10),
+    sales_person: order.salesPerson || '',
+    subtotal: order.value || 0,
+    discount: 0,
+    tax_amount: 0,
+    project_hours: order.projectHours || 0,
+  };
+  const res = await store.run(() => api.createOrder(payload));
+  return res.ok ? (res.record?.id ?? null) : null;
+}
+
+export async function updateOrderHours(orderId, hours) {
+  const pk = await ensureLocalOrder(orderId);
+  if (!pk) return { ok: false, reason: 'notfound' };
+  return store.run(() => api.updateOrder(pk, { project_hours: Math.max(0, Number(hours) || 0) }));
 }

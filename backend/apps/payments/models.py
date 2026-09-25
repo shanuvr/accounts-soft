@@ -12,6 +12,7 @@ class Payment(models.Model):
     received_by = models.CharField(max_length=200, blank=True)
     bank_name = models.CharField(max_length=100, blank=True)
     invoice_id = models.CharField(max_length=50, blank=True)
+    plan_stage = models.CharField(max_length=200, blank=True)
     is_refunded = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -28,6 +29,8 @@ class Payment(models.Model):
 
 class PaymentSchedule(models.Model):
     order = models.ForeignKey('orders.Order', on_delete=models.CASCADE, related_name='payment_schedules')
+    name = models.CharField(max_length=200, blank=True, default='Payment Plan')
+    plan_type = models.CharField(max_length=50, blank=True, default='Milestone')
     due_date = models.DateField()
     amount = models.DecimalField(max_digits=14, decimal_places=2)
     status = models.CharField(max_length=20, default='Pending')

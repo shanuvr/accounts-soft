@@ -1,118 +1,87 @@
-import { useSyncExternalStore } from 'react';
+import { createApiStore } from './createApiStore';
+import * as api from '../api/data';
+import { resolveOrderServiceId } from './orderServiceIndex';
 
-const SEED = [
-  {
-    id: 'PTD-001',
-    orderId: 'ORD-1024',
-    customer: 'ABC Technologies Pvt Ltd',
-    serviceName: 'Domain Registration',
-    template: 'domain',
-    status: 'Completed',
-    data: {
-      domainName: 'abctechnologies.in',
-      extension: '.in',
-      registrar: 'GoDaddy',
-      registrationDate: '2026-09-05',
-      expiryDate: '2027-09-05',
-      autoRenewal: 'Yes',
-      dnsProvider: 'Cloudflare',
-      nameservers: 'ns1.cloudflare.com\nns2.cloudflare.com',
-      technicalOwner: 'Rahul Sharma',
-      notes: 'Primary domain for the corporate website.',
-    },
-    billable: true,
-    price: 1500,
-    createdBy: 'Rahul Sharma',
-    updatedAt: '2026-09-10',
-  },
-  {
-    id: 'PTD-002',
-    orderId: 'ORD-1021',
-    customer: 'Nova Systems',
-    serviceName: 'Web Hosting',
-    template: 'hosting',
-    status: 'Draft',
-    data: {
-      hostingProvider: 'Bluehost',
-      hostingPlan: 'Business Pro',
-      serverName: 'nova-prod-01',
-      ipAddress: '103.21.58.41',
-      os: 'Linux',
-      storage: '100 GB',
-      bandwidth: 'Unlimited',
-      startDate: '2026-08-25',
-      expiryDate: '2027-08-25',
-      technicalOwner: 'Amit Verma',
-      notes: '',
-    },
-    billable: true,
-    price: 8000,
-    createdBy: 'Rahul Sharma',
-    updatedAt: '2026-09-12',
-  },
-];
-
-let records = SEED.map((r) => ({ ...r }));
-let counter = 10;
-const listeners = new Set();
-
-function emit() {
-  for (const l of listeners) l();
+function mapRecord(r) {
+  return {
+    id: r.id,
+    orderServiceId: r.order_service,
+    orderId: r.order_id || '',
+    serviceName: r.service_name || '',
+    customer: r.customer_name || '',
+    template: r.template_name || 'generic',
+    title: r.title || r.service_name || '',
+    status: r.status || 'Pending',
+    data: r.data || {},
+    required: r.required,
+    isSensitive: r.is_sensitive,
+    billable: r.billable,
+    price: Number(r.price) || 0,
+    createdBy: '',
+    createdAt: r.created_at || '',
+    updatedAt: r.updated_at || '',
+  };
 }
 
+const store = createApiStore({
+  fetchList: api.getPtdas,
+  mapRecord,
+});
+
 export function subscribe(cb) {
-  listeners.add(cb);
-  return () => listeners.delete(cb);
+  return store.subscribe(cb);
 }
 
 export function getSnapshot() {
-  return records;
+  return store.getSnapshot();
 }
 
 export function usePtds() {
-  return useSyncExternalStore(subscribe, getSnapshot);
+  return store.useItems();
 }
 
 export function getPtdById(id) {
-  return records.find((r) => r.id === id);
+  return store.all().find((r) => String(r.id) === String(id));
 }
 
 export function getPtdFor(orderId, serviceName) {
-  return records.find((r) => r.orderId === orderId && r.serviceName === serviceName);
+  return store.all().find((r) => r.orderId === orderId && r.serviceName === serviceName);
 }
 
 export function deletePtdFor(orderId, serviceName) {
-  const next = records.filter((r) => !(r.orderId === orderId && r.serviceName === serviceName));
-  if (next.length !== records.length) {
-    records = next;
-    emit();
-  }
+  const rec = getPtdFor(orderId, serviceName);
+  if (!rec) return null;
+  return store.run(() => api.deletePtda(rec.id));
 }
 
-export function createOrUpdatePtd({ orderId, customer, serviceName, template, status, data, billable = true, price = 0 }) {
-  const existing = records.find((r) => r.orderId === orderId && r.serviceName === serviceName);
+export async function createOrUpdatePtd({ orderId, serviceName, template, status, data, billable = true, price = 0 }) {
+  const existing = store.all().find((r) => r.orderId === orderId && r.serviceName === serviceName);
+  const tpl = template || 'generic';
   if (existing) {
-    records = records.map((r) =>
-      r.id === existing.id ? { ...r, status, data, billable, price, updatedAt: new Date().toISOString().slice(0, 10) } : r
+    return store.run(() =>
+      api.updatePtda(existing.id, {
+        title: serviceName,
+        data: data || {},
+        status,
+        billable,
+        price: billable ? Math.max(0, Number(price) || 0) : 0,
+        template_name: tpl,
+      })
     );
-    emit();
-    return records.find((r) => r.id === existing.id);
   }
-  const id = `PTD-${String(counter++).padStart(3, '0')}`;
-  const record = {
-    id,
-    orderId,
-    customer,
-    serviceName,
-    template,
-    status,
-    data,
-    billable,
-    price,
-    createdBy: 'Rahul Sharma',
-    updatedAt: new Date().toISOString().slice(0, 10),
-  };
-  records = [...records, record];
-  emit();
-  return record;
+  const orderServiceId = await resolveOrderServiceId(orderId, serviceName);
+  if (!orderServiceId) return { ok: false, reason: 'notfound' };
+  return store.run(() =>
+    api.createPtda({
+      order_service: orderServiceId,
+      title: serviceName,
+      data: data || {},
+      status,
+      required: true,
+      is_sensitive: false,
+      billable,
+      price: billable ? Math.max(0, Number(price) || 0) : 0,
+      template_name: tpl,
+    })
+  );
 }

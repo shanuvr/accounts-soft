@@ -1,88 +1,95 @@
-import { useSyncExternalStore } from 'react';
+import { createApiStore } from './createApiStore';
+import * as api from '../api/data';
+import { resolveOrderServiceId } from './orderServiceIndex';
 
-let records = [];
-let counter = 1;
-const listeners = new Set();
+const todayISO = () => new Date().toISOString().slice(0, 10);
 
-function emit() {
-  for (const l of listeners) l();
+function mapRecord(r) {
+  return {
+    id: r.id,
+    orderServiceId: r.order_service,
+    orderId: r.order_id || '',
+    customer: r.customer_name || '',
+    serviceName: r.service_name || '',
+    expectedDeliveryDate: (r.scheduled_date || '').slice(0, 10),
+    status: r.status || 'Pending',
+    actualDeliveryDate: r.actual_date ? String(r.actual_date).slice(0, 10) : null,
+    deliveredBy: '',
+    deliveredOn: r.actual_date ? String(r.actual_date).slice(0, 10) : null,
+    customerConfirmation: r.status === 'Delivered' ? 'Confirmed' : 'Pending',
+    trackingNumber: r.tracking_number || '',
+    notes: r.notes || '',
+  };
 }
 
+const store = createApiStore({
+  fetchList: api.getDeliveries,
+  mapRecord,
+});
+
 export function subscribe(cb) {
-  listeners.add(cb);
-  return () => listeners.delete(cb);
+  return store.subscribe(cb);
 }
 
 export function getSnapshot() {
-  return records;
+  return store.getSnapshot();
 }
 
 export function useDeliveries() {
-  return useSyncExternalStore(subscribe, getSnapshot);
+  return store.useItems();
 }
 
 export function getDeliveryById(id) {
-  return records.find((r) => r.id === id);
+  return store.all().find((r) => String(r.id) === String(id));
 }
 
 export function getDeliveryFor(orderId, serviceName) {
-  return records.find((r) => r.orderId === orderId && r.serviceName === serviceName);
+  return store.all().find((r) => r.orderId === orderId && r.serviceName === serviceName);
 }
 
 export function deleteDeliveryFor(orderId, serviceName) {
-  const next = records.filter((r) => !(r.orderId === orderId && r.serviceName === serviceName));
-  if (next.length !== records.length) {
-    records = next;
-    emit();
-  }
+  const rec = getDeliveryFor(orderId, serviceName);
+  if (!rec) return null;
+  return store.run(() => api.deleteDelivery(rec.id));
 }
 
-export function createOrSyncDelivery({ orderId, customer, serviceName, expectedDeliveryDate }) {
-  const existing = records.find((r) => r.orderId === orderId && r.serviceName === serviceName);
+export async function createOrSyncDelivery({ orderId, serviceName, expectedDeliveryDate }) {
+  const existing = getDeliveryFor(orderId, serviceName);
   if (existing) {
     if (expectedDeliveryDate && expectedDeliveryDate !== existing.expectedDeliveryDate) {
-      records = records.map((r) => (r.id === existing.id ? { ...r, expectedDeliveryDate } : r));
-      emit();
+      return store.run(() => api.updateDelivery(existing.id, { scheduled_date: expectedDeliveryDate }));
     }
-    return records.find((r) => r.id === existing.id);
+    return existing;
   }
-  const id = `DEL-${String(counter++).padStart(3, '0')}`;
-  const record = {
-    id,
-    orderId,
-    customer,
-    serviceName,
-    expectedDeliveryDate: expectedDeliveryDate ?? '',
-    status: 'Pending',
-    actualDeliveryDate: null,
-    deliveredBy: null,
-    deliveredOn: null,
-    customerConfirmation: 'Pending',
-    notes: '',
-  };
-  records = [...records, record];
-  emit();
-  return record;
-}
-
-export function markDelivered(id, { actualDeliveryDate, deliveredBy, deliveredOn, customerConfirmation, notes }) {
-  records = records.map((r) =>
-    r.id === id
-      ? {
-          ...r,
-          status: 'Delivered',
-          actualDeliveryDate,
-          deliveredBy,
-          deliveredOn,
-          customerConfirmation,
-          notes: notes ?? r.notes,
-        }
-      : r
+  const orderServiceId = await resolveOrderServiceId(orderId, serviceName);
+  if (!orderServiceId) return { ok: false, reason: 'notfound' };
+  return store.run(() =>
+    api.createDelivery({
+      order_service: orderServiceId,
+      scheduled_date: expectedDeliveryDate || todayISO(),
+      status: 'Pending',
+      notes: '',
+    })
   );
-  emit();
 }
 
-export function updateDelivery(id, patch) {
-  records = records.map((r) => (r.id === id ? { ...r, ...patch } : r));
-  emit();
+export async function markDelivered(id, { actualDeliveryDate, deliveredOn, notes }) {
+  const rec = getDeliveryById(id);
+  if (!rec) return null;
+  return store.run(() =>
+    api.updateDelivery(Number(id), {
+      actual_date: actualDeliveryDate || deliveredOn || rec.expectedDeliveryDate || todayISO(),
+      status: 'Delivered',
+      notes: notes ?? rec.notes ?? '',
+    })
+  );
+}
+
+export async function updateDelivery(id, patch) {
+  const payload = {};
+  if (patch.expectedDeliveryDate !== undefined) payload.scheduled_date = patch.expectedDeliveryDate || null;
+  if (patch.status !== undefined) payload.status = patch.status;
+  if (patch.notes !== undefined) payload.notes = patch.notes || '';
+  if (patch.actualDeliveryDate !== undefined) payload.actual_date = patch.actualDeliveryDate || null;
+  return store.run(() => api.updateDelivery(Number(id), payload));
 }

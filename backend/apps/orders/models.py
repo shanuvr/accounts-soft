@@ -17,6 +17,7 @@ class Order(models.Model):
     payment_status = models.CharField(max_length=20, default='Unpaid')
     delivery_status = models.CharField(max_length=20, default='Pending')
     sales_person = models.CharField(max_length=200, blank=True)
+    project_hours = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     notes = models.TextField(blank=True)
     is_cancelled = models.BooleanField(default=False)
     cancelled_at = models.DateTimeField(null=True, blank=True)
