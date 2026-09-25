@@ -11,6 +11,7 @@ function mapRecord(r) {
     value: Number.isFinite(value) ? value : 0,
     orderDate: r.order_date || '',
     deliveryDate: r.delivery_date || '',
+    createdAt: isExternal ? r.order_created_at || '' : r.created_at || '',
     orderStatus: isExternal ? 'Pending' : r.order_status || 'Pending',
     paymentStatus: isExternal ? 'Unpaid' : r.payment_status || 'Unpaid',
     salesPerson: r.sales_person || '',

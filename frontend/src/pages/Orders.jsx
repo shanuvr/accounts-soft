@@ -23,9 +23,12 @@ function Badge({ status, map }) {
   );
 }
 
-function orderAge(dateStr) {
-  const ms = new Date() - new Date(dateStr + 'T00:00:00');
-  const d = Math.floor(ms / (1000 * 60 * 60 * 24));
+function orderAge(o) {
+  const raw = o.createdAt || o.orderDate;
+  if (!raw) return { label: '—', cls: 'text-slate-400' };
+  const parsed = new Date(raw.includes('T') ? raw : raw + 'T00:00:00');
+  if (Number.isNaN(parsed.getTime())) return { label: '—', cls: 'text-slate-400' };
+  const d = Math.floor((new Date() - parsed) / (1000 * 60 * 60 * 24));
   if (d < 0) return { label: '—', cls: 'text-slate-400' };
   if (d < 30) return { label: `${d}d`, cls: 'text-emerald-600' };
   if (d < 365) return { label: `${Math.floor(d / 30)}m ${d % 30}d`, cls: 'text-amber-600' };
@@ -330,7 +333,7 @@ function Orders() {
                   <td className="whitespace-nowrap px-2 py-2 font-semibold text-slate-800">{fmtINR(o.value)}</td>
                   <td className="whitespace-nowrap px-2 py-2 text-slate-600">{fmtDate(o.orderDate)}</td>
                   <td className="whitespace-nowrap px-2 py-2">
-                    <span className={`font-semibold ${orderAge(o.orderDate).cls}`}>{orderAge(o.orderDate).label}</span>
+                    <span className={`font-semibold ${orderAge(o).cls}`}>{orderAge(o).label}</span>
                   </td>
                   <td className="whitespace-nowrap px-2 py-2">
                     <span className={`font-semibold ${ptds.some((p) => p.orderId === o.orderId) ? 'text-emerald-700' : 'text-slate-400'}`}>
