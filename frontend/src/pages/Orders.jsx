@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../layouts/Layout';
-import { CUSTOMERS, EMPLOYEES, fmtINR, fmtDate } from '../data/mockData';
+import { EMPLOYEES, fmtINR, fmtDate } from '../data/mockData';
 import { ORDER_STATUSES, ORDER_STATUS_COLORS, isActiveOrder } from '../data/orderStatus';
 import { usePtds } from '../store/ptdStore';
 import { useOrders, addOrder } from '../store/orderStore';
@@ -81,12 +81,7 @@ function NewOrderModal({ onClose }) {
         <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
           <div>
             <p className={labelCls}>Customer</p>
-            <select value={form.customer} onChange={set('customer')} className={fieldCls}>
-              <option value="">Select customer…</option>
-              {CUSTOMERS.filter((c) => c.status === 'Active').map((c) => (
-                <option key={c.name} value={c.name}>{c.name}</option>
-              ))}
-            </select>
+            <input value={form.customer} onChange={set('customer')} placeholder="Enter customer name" className={fieldCls} />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
