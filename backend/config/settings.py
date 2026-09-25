@@ -156,6 +156,16 @@ LEAD_SOFT_API_URL = os.getenv('LEAD_SOFT_API_URL', '')
 LEAD_SOFT_API_TOKEN = os.getenv('LEAD_SOFT_API_TOKEN', '')
 LEAD_SOFT_API_TIMEOUT = int(os.getenv('LEAD_SOFT_API_TIMEOUT', '15'))
 
+# --- External Orders (Lead Soft) ---
+# Account Soft's Orders section is fed by the read-only external orders feed on
+# the Lead Soft app (GET /api/external/orders/). The base URL points at that
+# endpoint and EXTERNAL_ORDERS_API_KEY holds the shared API key. When the URL or
+# key is unset the external feed returns empty results (like the customers
+# endpoints above).
+EXTERNAL_ORDERS_API_URL = os.getenv('EXTERNAL_ORDERS_API_URL', '')
+EXTERNAL_ORDERS_API_KEY = os.getenv('EXTERNAL_ORDERS_API_KEY', '')
+EXTERNAL_ORDERS_API_TIMEOUT = int(os.getenv('EXTERNAL_ORDERS_API_TIMEOUT', '15'))
+
 MAILERS = {
     'default': {'BACKEND': 'django.core.mail.backends.console.EmailBackend'},
 }

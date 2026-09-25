@@ -12,6 +12,12 @@ export const createOrder = (data) => client.post('/orders/orders/', data).then(r
 export const updateOrder = (id, data) => client.patch(`/orders/orders/${id}/`, data).then(r => r.data)
 export const deleteOrder = (id) => client.delete(`/orders/orders/${id}/`)
 
+const unwrap = (r) => r.data?.results ?? r.data;
+
+export const getLocalOrders = () => client.get('/orders/orders/', { params: { page_size: 500 } }).then(unwrap)
+export const getExternalOrders = () =>
+  client.get('/orders/external/', { params: { page: 1, page_size: 500 } }).then((r) => r.data?.results ?? [])
+
 export const getPayments = (orderId) => {
   const url = orderId ? `/orders/orders/${orderId}/payments/` : '/payments/payments/'
   return client.get(url).then(r => r.data)

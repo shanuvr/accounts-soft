@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
-import { PAYMENTS, ORDERS } from '../data/mockData';
+import { PAYMENTS } from '../data/mockData';
+import { getOrderById, getAllOrders } from './orderStore';
 
 let records = PAYMENTS.map((p) => ({ ...p }));
 let counter = records.reduce((m, r) => Math.max(m, Number(r.paymentId.replace('RECIP-', '')) || 0), 0) + 1;
@@ -33,7 +34,7 @@ export function getPaymentsFor(orderId) {
 }
 
 export function getOrderPaymentSummary(orderId) {
-  const orderValue = ORDERS.find((o) => o.orderId === orderId)?.value ?? 0;
+  const orderValue = getOrderById(orderId)?.value ?? 0;
   const payments = getPaymentsFor(orderId);
   const received = payments.reduce((s, p) => s + p.amount, 0);
   const pending = Math.max(0, orderValue - received);
@@ -47,18 +48,19 @@ export function getOrderPaymentSummary(orderId) {
 }
 
 export function getGlobalSummary() {
+  const orders = getAllOrders();
   let totalValue = 0;
   let totalReceived = 0;
   let totalPending = 0;
   let totalOverpaid = 0;
-  for (const o of ORDERS) {
+  for (const o of orders) {
     const s = getOrderPaymentSummary(o.orderId);
     totalValue += s.orderValue;
     totalReceived += s.received;
     totalPending += s.pending;
     totalOverpaid += s.overpaid;
   }
-  return { totalValue, totalReceived, totalPending, totalOverpaid, transactionCount: records.length, orderCount: ORDERS.length };
+  return { totalValue, totalReceived, totalPending, totalOverpaid, transactionCount: records.length, orderCount: orders.length };
 }
 
 export function createPayment({ orderId, customer, amount, date, method, reference = '', receivedBy = '', notes = '', status = 'Received', planStage = null, invoiceId = null }) {

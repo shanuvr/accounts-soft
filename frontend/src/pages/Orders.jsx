@@ -5,6 +5,7 @@ import { CUSTOMERS, EMPLOYEES, fmtINR, fmtDate } from '../data/mockData';
 import { ORDER_STATUSES, ORDER_STATUS_COLORS, isActiveOrder } from '../data/orderStatus';
 import { usePtds } from '../store/ptdStore';
 import { useOrders, addOrder } from '../store/orderStore';
+import { usePayments, getOrderPaymentSummary } from '../store/paymentStore';
 
 const PAYMENT_STATUS_COLORS = {
   'Unpaid': 'border-slate-200 bg-slate-100 text-slate-600',
@@ -53,8 +54,7 @@ function NewOrderModal({ onClose }) {
 
   const submit = () => {
     if (!valid) return;
-    addOrder(form);
-    onClose();
+    addOrder(form).then(() => onClose());
   };
 
   const fieldCls = 'h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-[13px] text-slate-700 placeholder:text-slate-400 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100';
@@ -155,6 +155,8 @@ function Orders() {
   const navigate = useNavigate();
   const ptds = usePtds();
   const orders = useOrders();
+  usePayments();
+  const paymentStatusFor = (o) => getOrderPaymentSummary(o.orderId).status;
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [payment, setPayment] = useState('');
@@ -181,7 +183,7 @@ function Orders() {
     } else if (o.orderStatus === 'Delivered') {
       return false;
     }
-    if (payment && o.paymentStatus !== payment) return false;
+    if (payment && paymentStatusFor(o) !== payment) return false;
     if (customer && o.customer !== customer) return false;
     if (salesPerson && o.salesPerson !== salesPerson) return false;
     if (dateFrom && o.orderDate < dateFrom) return false;
@@ -337,7 +339,7 @@ function Orders() {
                   </td>
                   <td className="whitespace-nowrap px-2 py-2 text-slate-600">{fmtDate(o.deliveryDate)}</td>
                   <td className="whitespace-nowrap px-2 py-2"><Badge status={o.orderStatus} map={ORDER_STATUS_COLORS} /></td>
-                  <td className="whitespace-nowrap px-2 py-2"><Badge status={o.paymentStatus} map={PAYMENT_STATUS_COLORS} /></td>
+                  <td className="whitespace-nowrap px-2 py-2"><Badge status={paymentStatusFor(o)} map={PAYMENT_STATUS_COLORS} /></td>
                   <td className="whitespace-nowrap px-2 py-2 text-slate-700">{o.salesPerson}</td>
                   <td className="whitespace-nowrap px-2 py-2 text-right">
                     <button

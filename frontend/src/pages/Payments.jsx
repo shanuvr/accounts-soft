@@ -4,6 +4,7 @@ import Layout from '../layouts/Layout';
 import { usePayments, getGlobalSummary } from '../store/paymentStore';
 import { usePaymentPlans, getScheduledStages } from '../store/paymentPlanStore';
 import { usePaymentMethods } from '../store/paymentMethodStore';
+import { useOrders } from '../store/orderStore';
 import { fmtINR, fmtDate } from '../data/mockData';
 
 const PAYMENT_STATUS = {
@@ -31,6 +32,7 @@ function Badge({ status, map }) {
 function Payments() {
   const navigate = useNavigate();
   const payments = usePayments();
+  useOrders();
   usePaymentPlans();
   const paymentMethods = usePaymentMethods();
   const [search, setSearch] = useState('');
