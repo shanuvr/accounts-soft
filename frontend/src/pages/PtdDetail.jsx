@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
 import Layout from '../layouts/Layout';
-import { usePtds, createOrUpdatePtd } from '../store/ptdStore';
+import { usePtds, getPtdById, createOrUpdatePtd } from '../store/ptdStore';
 import { useAssignments } from '../store/assignmentStore';
 import PtdFields from '../components/PtdFields';
 import { PTD_TEMPLATES } from '../data/ptdTemplates';
@@ -35,9 +35,9 @@ function PtdDetail() {
   const { ptdId } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const ptds = usePtds();
+  usePtds();
   const assignments = useAssignments();
-  const record = ptds.find((p) => p.id === ptdId);
+  const record = getPtdById(ptdId);
   const allocatedHours = record ? assignments.find((a) => a.orderId === record.orderId && a.serviceName === record.serviceName)?.allocatedHours ?? 0 : 0;
 
   const [editing, setEditing] = useState(searchParams.get('edit') === '1');

@@ -124,7 +124,7 @@ original Lead Soft reference.
 ### Backend
 
 ```bash
-cd backend
+cd ~\Desktop\Codebase\accounts-soft\backend
 venv\Scripts\activate
 python manage.py runserver
 ```
@@ -132,6 +132,6 @@ python manage.py runserver
 ### Frontend
 
 ```bash
-cd frontend
+cd ~\Desktop\Codebase\accounts-soft\frontend
 npm run dev
 ```
