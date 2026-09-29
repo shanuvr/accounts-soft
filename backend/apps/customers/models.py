@@ -57,20 +57,20 @@ class Department(models.Model):
 
 
 class Employee(models.Model):
-    """Shared master owned by SystemSoft (leadsdb: master_staff)."""
+    """Employees available when assigning services, grouped by department."""
 
     employee_code = models.CharField(max_length=20, unique=True, blank=True, db_column='code')
-    name = models.CharField(max_length=120)
+    name = models.CharField(max_length=120, unique=True)
     designation = models.CharField(max_length=120, blank=True, db_column='role')
     phone = models.CharField(max_length=20, blank=True, db_column='mobile')
     email = models.EmailField(blank=True)
-    department = models.IntegerField(null=True, blank=True, db_column='branch_id')
+    department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True, db_column='branch_id', related_name='employees')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        managed = False
-        db_table = 'master_staff'
+        ordering = ['-created_at']
+        db_table = 'employees'
         app_label = 'customers'
 
     def save(self, *args, **kwargs):

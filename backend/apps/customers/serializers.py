@@ -54,15 +54,34 @@ class ProductCategorySerializer(serializers.ModelSerializer):
 
 class EmployeeSerializer(serializers.ModelSerializer):
     department = serializers.SerializerMethodField()
+    department_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     class Meta:
         model = Employee
-        fields = ['id', 'employee_code', 'name', 'designation', 'phone', 'email', 'department', 'created_at', 'updated_at']
+        fields = ['id', 'employee_code', 'name', 'designation', 'phone', 'email', 'department', 'department_name', 'created_at', 'updated_at']
 
     def get_department(self, obj):
         if isinstance(obj.department, str):
             return obj.department
         return getattr(obj.department, 'name', obj.department or '')
+
+    def create(self, validated_data):
+        department_name = validated_data.pop('department_name', '')
+        instance = super().create(validated_data)
+        self._apply_department(instance, department_name)
+        return instance
+
+    def update(self, instance, validated_data):
+        department_name = validated_data.pop('department_name', '')
+        instance = super().update(instance, validated_data)
+        self._apply_department(instance, department_name)
+        return instance
+
+    def _apply_department(self, instance, department_name):
+        if department_name is not None:
+            department = Department.objects.filter(name=department_name).first()
+            instance.department = department
+            instance.save(update_fields=['department'])
 
 
 class DepartmentSerializer(serializers.ModelSerializer):

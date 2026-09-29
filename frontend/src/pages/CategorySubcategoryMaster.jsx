@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import Layout from '../layouts/Layout';
+import ConfirmDialog from '../components/ConfirmDialog';
 import {
   useCategories,
   useSubcategories,
@@ -40,6 +41,9 @@ function CategorySubcategoryMaster() {
 
   // Search Filter
   const [search, setSearch] = useState('');
+
+  // Confirmation Dialog
+  const [confirm, setConfirm] = useState(null);
 
   // Active Category Name fallback
   const activeCategory = selectedCategoryName || (categories[0]?.name || 'Administrative');
@@ -327,11 +331,19 @@ function CategorySubcategoryMaster() {
                         <td className="whitespace-nowrap px-4 py-3 text-center">
                           <button
                             type="button"
-                            onClick={async () => {
-                              if (!window.confirm('Delete this subcategory?')) return;
-                              const res = await deleteSubcategory(s.id);
-                              if (storeFailure(res)) return;
-                            }}
+                            onClick={() =>
+                              setConfirm({
+                                title: 'Delete subcategory',
+                                message: `Delete "${s.name}"? This cannot be undone.`,
+                                confirmLabel: 'Delete',
+                                destructive: true,
+                                onConfirm: async () => {
+                                  const res = await deleteSubcategory(s.id);
+                                  if (storeFailure(res)) return;
+                                  setConfirm(null);
+                                },
+                              })
+                            }
                             className="rounded p-1 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
                             title="Delete Subcategory"
                           >
@@ -383,11 +395,19 @@ function CategorySubcategoryMaster() {
                           <td className="whitespace-nowrap px-4 py-3 text-center">
                             <button
                               type="button"
-                              onClick={async () => {
-                                if (!window.confirm('Delete this category? Its subcategories will also be removed.')) return;
-                                const res = await deleteCategory(c.id);
-                                if (storeFailure(res)) return;
-                              }}
+                              onClick={() =>
+                                setConfirm({
+                                  title: 'Delete category',
+                                  message: `Delete "${c.name}"? Its subcategories will also be removed.`,
+                                  confirmLabel: 'Delete',
+                                  destructive: true,
+                                  onConfirm: async () => {
+                                    const res = await deleteCategory(c.id);
+                                    if (storeFailure(res)) return;
+                                    setConfirm(null);
+                                  },
+                                })
+                              }
                               className="rounded p-1 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
                               title="Delete Category"
                             >
@@ -419,6 +439,15 @@ function CategorySubcategoryMaster() {
           </div>
         </div>
       </div>
+      <ConfirmDialog
+        open={Boolean(confirm)}
+        title={confirm?.title}
+        message={confirm?.message}
+        confirmLabel={confirm?.confirmLabel}
+        destructive={confirm?.destructive}
+        onConfirm={confirm?.onConfirm}
+        onCancel={() => setConfirm(null)}
+      />
     </Layout>
   );
 }

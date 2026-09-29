@@ -19,6 +19,7 @@ import { useTaxMaster } from '../store/taxStore';
 import { useAuth } from '../store/authStore';
 import { useOrderHours, setOrderHours } from '../store/orderHoursStore';
 import PtdFields from '../components/PtdFields';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const SERVICE_STATUS = {
   'Not Started': 'border-slate-200 bg-slate-100 text-slate-600',
@@ -939,6 +940,7 @@ function OrderDetail() {
   }, [order, services]);
   const [hoursInput, setHoursInput] = useState(String(hoursSummary.total || ''));
   const [invoiceModal, setInvoiceModal] = useState(false);
+  const [confirm, setConfirm] = useState(null);
 
   const openForm = () => {
     const first = catalog[0];
@@ -1047,12 +1049,20 @@ function OrderDetail() {
     );
   }
 
-  const deleteService = async (s) => {
-    if (!window.confirm(`Delete "${s.name}" from this order? This also removes its PTD, assignment and delivery record if any.`)) return;
-    deletePtdFor(order.orderId, s.name);
-    deleteAssignmentFor(order.orderId, s.name);
-    deleteDeliveryFor(order.orderId, s.name);
-    await removeOrderService(s.id);
+  const deleteServiceEntry = (s) => {
+    setConfirm({
+      title: 'Delete service',
+      message: `Delete "${s.name}" from this order? This also removes its PTD, assignment and delivery record if any.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+      onConfirm: async () => {
+        deletePtdFor(order.orderId, s.name);
+        deleteAssignmentFor(order.orderId, s.name);
+        deleteDeliveryFor(order.orderId, s.name);
+        await removeOrderService(s.id);
+        setConfirm(null);
+      },
+    });
   };
 
   const servicesTotal = services.reduce((sum, s) => sum + s.price, 0);
@@ -1227,7 +1237,7 @@ function OrderDetail() {
                       <Badge status={s.assignment ? s.assignment.status : s.status} map={SERVICE_STATUS} />
                       <button
                         type="button"
-                        onClick={() => deleteService(s)}
+                        onClick={() => deleteServiceEntry(s)}
                         aria-label={`Delete ${s.name}`}
                         title="Delete service"
                         className="flex h-7 w-7 items-center justify-center rounded-lg border border-transparent text-slate-300 opacity-0 transition-all hover:border-red-200 hover:bg-red-50 hover:text-red-500 group-hover:opacity-100"
@@ -1599,6 +1609,16 @@ function OrderDetail() {
           onSave={generateInvoice}
         />
       )}
+
+      <ConfirmDialog
+        open={Boolean(confirm)}
+        title={confirm?.title}
+        message={confirm?.message}
+        confirmLabel={confirm?.confirmLabel}
+        destructive={confirm?.destructive}
+        onConfirm={confirm?.onConfirm}
+        onCancel={() => setConfirm(null)}
+      />
     </Layout>
   );
 }

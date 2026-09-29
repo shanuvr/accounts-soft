@@ -10,12 +10,12 @@ Order-to-Delivery and Financial Operations platform.
   operational data plus the masters catalogue (Payment Methods, Payment Terms,
   Taxes, Delivery Types, Statuses, Categories/Subcategories, UOM, Customer
   Types, Departments, Product/Service categories).
-- **Shared core data (SystemSoft)**: Customers and Employees are NOT stored in
-  accounts_db and NOT accessed via a second database connection. They are
-  read/written through the **SystemSoft / Lead Soft API**
+- **Shared core data (SystemSoft)**: Customers are NOT stored in accounts_db
+  and NOT accessed via a second database connection. They are read/written
+  through the **SystemSoft / Lead Soft API**
   (`LEAD_SOFT_API_URL` / `LEAD_SOFT_API_TOKEN`). The client scaffold lives in
-  `backend/apps/customers/services.py`; when the API URL is unset the
-  customer/employee endpoints return empty results.
+  `backend/apps/customers/services.py`; when the API URL is unset the customer
+  endpoints return empty results.
 - Default: SQLite for local development when `DB_NAME` is not set in `.env`;
   MySQL when enabled.
 
@@ -50,7 +50,7 @@ Copy `.env.example` to `.env` and configure:
 
 - `DB_NAME`, `DB_USER`, `DB_PASSWORD` — Account Soft's dedicated MySQL database
 - `LEAD_SOFT_API_URL`, `LEAD_SOFT_API_TOKEN` — SystemSoft / Lead Soft API used
-  for the shared core masters (Customers, Employees)
+  for the shared core master (Customers)
 
 When `DB_NAME` is provided in `.env`, the backend uses MySQL for the database.
 Otherwise, SQLite (`backend/db.sqlite3`) is used.
@@ -104,12 +104,11 @@ frontend/
 
 ## SystemSoft / Lead Soft Integration
 
-The shared core masters — **Customers** and **Employees** — are owned by the
-SystemSoft / Lead Soft suite and are accessed by Account Soft through the
-SystemSoft API (client scaffold in `backend/apps/customers/services.py`,
-endpoints under `/v1/api/customers/` and `/v1/api/customers/employees/`). No
-direct database connection is made to the SystemSoft core. Imported orders
-retain their original Lead Soft reference.
+The shared core master — **Customers** — is owned by the SystemSoft / Lead Soft
+suite and is accessed by Account Soft through the SystemSoft API (client
+scaffold in `backend/apps/customers/services.py`, endpoint under
+`/v1/api/customers/`). No direct database connection is made to the SystemSoft
+core. Imported orders retain their original Lead Soft reference.
 
 ## Default Credentials
 

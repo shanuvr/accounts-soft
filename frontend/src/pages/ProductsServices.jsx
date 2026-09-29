@@ -3,6 +3,7 @@ import { useServices, addService, updateService, deleteService } from '../store/
 import { useServiceCategories } from '../store/serviceCategoryStore';
 import { PTD_TEMPLATES } from '../data/ptdTemplates';
 import Layout from '../layouts/Layout';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const inputCls =
   'h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[13px] text-slate-700 placeholder:text-slate-400 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100';
@@ -25,6 +26,7 @@ export default function ProductsServices() {
   const [editingName, setEditingName] = useState(null);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [confirm, setConfirm] = useState(null);
 
   const categories = Array.from(new Set([...services.map((s) => s.category), ...serviceCategories])).filter(Boolean);
 
@@ -78,10 +80,17 @@ export default function ProductsServices() {
   };
 
   const remove = (service) => {
-    if (window.confirm(`Delete "${service.name}" from the service catalogue?`)) {
-      deleteService(service.name);
-      if (editingName === service.name) beginAdd();
-    }
+    setConfirm({
+      title: 'Delete service',
+      message: `Delete "${service.name}" from the service catalogue? This cannot be undone.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+      onConfirm: () => {
+        deleteService(service.name);
+        if (editingName === service.name) beginAdd();
+        setConfirm(null);
+      },
+    });
   };
 
   return (
@@ -299,6 +308,15 @@ export default function ProductsServices() {
           </div>
         </div>
       </div>
+      <ConfirmDialog
+        open={Boolean(confirm)}
+        title={confirm?.title}
+        message={confirm?.message}
+        confirmLabel={confirm?.confirmLabel}
+        destructive={confirm?.destructive}
+        onConfirm={confirm?.onConfirm}
+        onCancel={() => setConfirm(null)}
+      />
     </Layout>
   );
 }

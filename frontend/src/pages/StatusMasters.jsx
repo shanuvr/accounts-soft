@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import Layout from '../layouts/Layout';
 import { useStatuses, STATUS_GROUPS, addStatus, updateStatus, deleteStatus } from '../store/statusStore';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const inputCls =
   'h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[13px] text-slate-700 placeholder:text-slate-400 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100';
@@ -23,6 +24,7 @@ export default function StatusMasters() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
+  const [confirm, setConfirm] = useState(null);
 
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -69,11 +71,18 @@ export default function StatusMasters() {
     beginAdd();
   };
 
-  const remove = async (s) => {
-    if (window.confirm(`Delete "${s.name}"?`)) {
-      await deleteStatus(group, s.name);
-      if (editingName === s.name) beginAdd();
-    }
+  const remove = (s) => {
+    setConfirm({
+      title: 'Delete status',
+      message: `Delete "${s.name}"? This cannot be undone.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+      onConfirm: async () => {
+        await deleteStatus(group, s.name);
+        if (editingName === s.name) beginAdd();
+        setConfirm(null);
+      },
+    });
   };
 
   return (
@@ -273,6 +282,15 @@ export default function StatusMasters() {
           </div>
         </div>
       </div>
+      <ConfirmDialog
+        open={Boolean(confirm)}
+        title={confirm?.title}
+        message={confirm?.message}
+        confirmLabel={confirm?.confirmLabel}
+        destructive={confirm?.destructive}
+        onConfirm={confirm?.onConfirm}
+        onCancel={() => setConfirm(null)}
+      />
     </Layout>
   );
 }

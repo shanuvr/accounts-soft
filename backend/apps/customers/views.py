@@ -78,10 +78,9 @@ class CustomerViewSet(SystemSoftResourceViewSet):
     search_fields = ['name', 'contact_person', 'phone', 'email', 'customer_id']
 
 
-class EmployeeViewSet(SystemSoftResourceViewSet):
-    resource = 'employees'
-    resource_singular = 'employee'
-    model = Employee
+class EmployeeViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticated]
+    queryset = Employee.objects.all()
     serializer_class = EmployeeSerializer
     search_fields = ['name', 'employee_code', 'email', 'designation']
 

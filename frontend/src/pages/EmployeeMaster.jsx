@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useEmployees, addEmployee, updateEmployee, deleteEmployee } from '../store/employeeStore';
 import { useDepartments } from '../store/departmentStore';
 import Layout from '../layouts/Layout';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const inputCls =
   'h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[13px] text-slate-700 placeholder:text-slate-400 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100';
@@ -23,6 +24,7 @@ export default function EmployeeMaster() {
   const [editingName, setEditingName] = useState(null);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [confirm, setConfirm] = useState(null);
 
   const filteredEmployees = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -64,10 +66,17 @@ export default function EmployeeMaster() {
   };
 
   const remove = (emp) => {
-    if (window.confirm(`Delete "${emp.name}" from the employee master?`)) {
-      deleteEmployee(emp.name);
-      if (editingName === emp.name) beginAdd();
-    }
+    setConfirm({
+      title: 'Delete employee',
+      message: `Delete "${emp.name}" from the employee master? This cannot be undone.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+      onConfirm: () => {
+        deleteEmployee(emp.name);
+        if (editingName === emp.name) beginAdd();
+        setConfirm(null);
+      },
+    });
   };
 
   return (
@@ -237,6 +246,15 @@ export default function EmployeeMaster() {
           </div>
         </div>
       </div>
+      <ConfirmDialog
+        open={Boolean(confirm)}
+        title={confirm?.title}
+        message={confirm?.message}
+        confirmLabel={confirm?.confirmLabel}
+        destructive={confirm?.destructive}
+        onConfirm={confirm?.onConfirm}
+        onCancel={() => setConfirm(null)}
+      />
     </Layout>
   );
 }

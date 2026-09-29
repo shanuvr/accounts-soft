@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import Layout from '../layouts/Layout';
+import ConfirmDialog from './ConfirmDialog';
 
 const inputCls =
   'h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[13px] text-slate-700 placeholder:text-slate-400 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100';
@@ -20,6 +21,7 @@ export default function MasterCrud({
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [saving, setSaving] = useState(false);
+  const [confirm, setConfirm] = useState(null);
 
   const filteredItems = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -57,10 +59,17 @@ export default function MasterCrud({
   };
 
   const remove = (n) => {
-    if (window.confirm(`Delete "${n}"?`)) {
-      deleteItem(n);
-      if (editingName === n) beginAdd();
-    }
+    setConfirm({
+      title: 'Delete item',
+      message: `Delete "${n}"? This cannot be undone.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+      onConfirm: () => {
+        deleteItem(n);
+        if (editingName === n) beginAdd();
+        setConfirm(null);
+      },
+    });
   };
 
   return (
@@ -217,6 +226,15 @@ export default function MasterCrud({
           </div>
         </div>
       </div>
+      <ConfirmDialog
+        open={Boolean(confirm)}
+        title={confirm?.title}
+        message={confirm?.message}
+        confirmLabel={confirm?.confirmLabel}
+        destructive={confirm?.destructive}
+        onConfirm={confirm?.onConfirm}
+        onCancel={() => setConfirm(null)}
+      />
     </Layout>
   );
 }

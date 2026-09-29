@@ -8,7 +8,7 @@ class Command(BaseCommand):
         self.seed_masters()
 
     def seed_masters(self):
-        from customers.models import CustomerType, Department, Product, ProductCategory, UOM
+        from customers.models import CustomerType, Department, Employee, Product, ProductCategory, UOM
         from masters.models import (
             AssignmentStatus,
             Category,
@@ -76,6 +76,26 @@ class Command(BaseCommand):
         ]
         for code, name in departments:
             Department.objects.get_or_create(code=code, defaults={'name': name})
+
+        team = [
+            ('Rahul Sharma', 'Operations'),
+            ('Sneha Patil', 'Operations'),
+            ('Amit Verma', 'Development'),
+            ('Rohit Gupta', 'Development'),
+            ('Priya Nair', 'Accounts'),
+            ('Karan Malhotra', 'Sales'),
+            ('Anita Desai', 'Sales'),
+        ]
+        for index, (emp_name, dept_name) in enumerate(team, start=1):
+            department = Department.objects.filter(name=dept_name).first()
+            Employee.objects.get_or_create(
+                employee_code=f'ST{index:03d}',
+                defaults={
+                    'name': emp_name,
+                    'department': department,
+                    'email': f'{emp_name.lower().split()[0]}@accountsoft.com',
+                },
+            )
 
         category_data = [
             ('Domain', 'Domain registration and management services'),
