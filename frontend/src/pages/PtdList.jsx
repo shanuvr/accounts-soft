@@ -178,7 +178,7 @@ function PtdList() {
     if (customer && o.customer !== customer) return false;
     if (orderStatus === 'Delivered') {
       if (o.orderStatus !== 'Delivered') return false;
-    } else if (orderStatus !== 'All' && o.orderStatus === 'Delivered') {
+    } else if (orderStatus !== 'All' && o.orderStatus !== 'Pending' && o.orderStatus !== 'Ongoing') {
       return false;
     }
     return true;
