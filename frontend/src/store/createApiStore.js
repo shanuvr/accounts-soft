@@ -75,6 +75,11 @@ export function createApiStore({ fetchList, mapRecord = (r) => r }) {
     }
   }
 
+  function applyLocal(mutator) {
+    records = mutator(records);
+    emit();
+  }
+
   return {
     useItems,
     load,
@@ -85,5 +90,6 @@ export function createApiStore({ fetchList, mapRecord = (r) => r }) {
     findId,
     findAll,
     run,
+    applyLocal,
   };
 }

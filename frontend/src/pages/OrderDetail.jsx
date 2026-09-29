@@ -17,7 +17,7 @@ import { createOrSyncDelivery, deleteDeliveryFor } from '../store/deliveryStore'
 import { usePaymentMethods } from '../store/paymentMethodStore';
 import { useTaxMaster } from '../store/taxStore';
 import { useAuth } from '../store/authStore';
-import { useOrderHours, getOrderHoursSummary, setOrderHours } from '../store/orderHoursStore';
+import { useOrderHours, setOrderHours } from '../store/orderHoursStore';
 import PtdFields from '../components/PtdFields';
 
 const SERVICE_STATUS = {
@@ -930,7 +930,13 @@ function OrderDetail() {
   const [assignService, setAssignService] = useState(null);
   const [payModal, setPayModal] = useState(false);
   const [scheduleModal, setScheduleModal] = useState(false);
-  const hoursSummary = useMemo(() => getOrderHoursSummary(orderId, services.filter((s) => s.assignment).map((s) => s.assignment)), [orderId, services]);
+  const hoursSummary = useMemo(() => {
+    const total = Number(order?.projectHours) || 0;
+    const used = services
+      .filter((s) => s.assignment)
+      .reduce((sum, s) => sum + (Number(s.assignment.allocatedHours) || 0), 0);
+    return { total, used, remaining: Math.max(0, total - used), overBudget: used > total && total > 0 };
+  }, [order, services]);
   const [hoursInput, setHoursInput] = useState(String(hoursSummary.total || ''));
   const [invoiceModal, setInvoiceModal] = useState(false);
 

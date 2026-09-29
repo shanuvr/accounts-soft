@@ -101,7 +101,9 @@ export async function ensureLocalOrder(orderId) {
 }
 
 export async function updateOrderHours(orderId, hours) {
+  const value = Math.max(0, Number(hours) || 0);
+  store.applyLocal((recs) => recs.map((o) => (o.orderId === orderId ? { ...o, projectHours: value } : o)));
   const pk = await ensureLocalOrder(orderId);
   if (!pk) return { ok: false, reason: 'notfound' };
-  return store.run(() => api.updateOrder(pk, { project_hours: Math.max(0, Number(hours) || 0) }));
+  return store.run(() => api.updateOrder(pk, { project_hours: value }));
 }

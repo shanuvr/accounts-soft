@@ -6,6 +6,11 @@ from .models import Order, OrderService
 from .serializers import OrderSerializer, OrderServiceSerializer
 from .services import client as external_orders
 
+import time
+
+EXTERNAL_FEED_TTL = 15
+_external_cache = {'at': 0.0, 'data': None}
+
 class OrderViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     queryset = Order.objects.all()
@@ -27,8 +32,13 @@ class ExternalOrdersView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        now = time.time()
+        if _external_cache['data'] is not None and now - _external_cache['at'] < EXTERNAL_FEED_TTL:
+            return Response(_external_cache['data'])
         page = request.query_params.get('page', 1)
         page_size = request.query_params.get('page_size', 500)
         company = request.query_params.get('company', '')
         envelope = external_orders.list_orders(page=page, page_size=page_size, company=company)
+        _external_cache['at'] = now
+        _external_cache['data'] = envelope
         return Response(envelope)
