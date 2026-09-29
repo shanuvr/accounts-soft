@@ -1,14 +1,15 @@
 import { useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Layout from '../layouts/Layout';
-import { ORDER_SERVICES, fmtINR, fmtDate } from '../data/mockData';
+import { fmtINR, fmtDate } from '../data/mockData';
 import { ORDER_STATUS_COLORS } from '../data/orderStatus';
-import { useOrders } from '../store/orderStore';
+import { useOrders, ensureLocalOrder } from '../store/orderStore';
+import { useOrderServices, addOrderService, removeOrderService } from '../store/orderServiceStore';
 import { useServices, getServiceByName } from '../store/serviceStore';
 import { useEmployees } from '../store/employeeStore';
 import { useDepartments } from '../store/departmentStore';
-import { getPtdFor, createOrUpdatePtd, deletePtdFor } from '../store/ptdStore';
-import { getAssignmentFor, createAssignment, deleteAssignmentFor } from '../store/assignmentStore';
+import { usePtds, createOrUpdatePtd, deletePtdFor } from '../store/ptdStore';
+import { useAssignments, createAssignment, deleteAssignmentFor } from '../store/assignmentStore';
 import { usePayments, getOrderPaymentSummary, createPayment } from '../store/paymentStore';
 import { usePaymentPlans, getPlanView, createPaymentPlan } from '../store/paymentPlanStore';
 import { useInvoices, getInvoicesFor, saveInvoice, getInvoiceStatus, syncAutoDraftInvoice, removeInvoice, getAutoDraftFor } from '../store/invoiceStore';
@@ -897,17 +898,32 @@ function OrderDetail() {
   useOrderHours();
   const [editingHours, setEditingHours] = useState(false);
 
-  const initialServices = (ORDER_SERVICES[order?.orderId] ?? []).map((s) => {
-    const ptd = getPtdFor(order?.orderId, s.name);
-    const asn = getAssignmentFor(order?.orderId, s.name);
-    return {
-      ...s,
-      ...(ptd ? { ptdStatus: ptd.status, price: ptd.billable ? ptd.price ?? 0 : 0, ptd: { id: ptd.id, status: ptd.status, data: ptd.data, billable: ptd.billable, price: ptd.billable ? ptd.price ?? 0 : 0 } } : {}),
-      ...(asn ? { assignment: asn, status: asn.status } : {}),
-    };
-  });
+  const orderServices = useOrderServices();
+  const ptds = usePtds();
+  const assignments = useAssignments();
 
-  const [services, setServices] = useState(initialServices);
+  const services = useMemo(() => {
+    return orderServices
+      .filter((os) => os.orderId === orderId)
+      .map((os) => {
+        const name = os.serviceName;
+        const ptd = ptds.find((p) => p.orderId === orderId && p.serviceName === name);
+        const asn = assignments.find((a) => a.orderId === orderId && a.serviceName === name);
+        const cat = catalog.find((c) => c.name === name);
+        const requiresPtd = cat?.ptdRequired ?? os.requiresPtda ?? false;
+        return {
+          id: os.id,
+          name,
+          price: ptd && ptd.billable ? ptd.price ?? 0 : 0,
+          deliveryDate: os.deliveryDate,
+          status: os.status ?? 'Not Started',
+          ptdRequired: requiresPtd,
+          ptdStatus: ptd ? ptd.status : requiresPtd ? 'Not Created' : 'Not Required',
+          ptd: ptd ? { id: ptd.id, status: ptd.status, data: ptd.data, billable: ptd.billable, price: ptd.billable ? ptd.price ?? 0 : 0 } : undefined,
+          assignment: asn ?? undefined,
+        };
+      });
+  }, [orderServices, ptds, assignments, catalog, orderId]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: '', deliveryDate: '' });
   const [ptdService, setPtdService] = useState(null);
@@ -929,23 +945,23 @@ function OrderDetail() {
     setForm((f) => ({ ...f, name }));
   };
 
-  const addService = (e) => {
+  const addService = async (e) => {
     e.preventDefault();
     if (!form.name) return;
     const cat = catalog.find((c) => c.name === form.name);
-    setServices((prev) => [
-      ...prev,
-      {
-        id: `SVC-${prev.length + 1}`,
-        name: form.name,
-        price: 0,
-        deliveryDate: form.deliveryDate,
-        status: 'Not Started',
-        ptdRequired: cat?.ptdRequired ?? false,
-        ptdStatus: cat?.ptdRequired ? 'Not Created' : 'Not Required',
-      },
-    ]);
-    createOrSyncDelivery({ orderId: order.orderId, customer: order.customer, serviceName: form.name, expectedDeliveryDate: form.deliveryDate });
+    const orderPk = await ensureLocalOrder(order.orderId);
+    if (!orderPk) return;
+    const res = await addOrderService({
+      serviceName: form.name,
+      quantity: 1,
+      unitPrice: 0,
+      requiresPtda: cat?.ptdRequired ?? false,
+      deliveryDate: form.deliveryDate,
+      status: 'Not Started',
+    }, orderPk);
+    if (res?.ok) {
+      createOrSyncDelivery({ orderId: order.orderId, customer: order.customer, serviceName: form.name, expectedDeliveryDate: form.deliveryDate });
+    }
     setShowForm(false);
     const next = catalog[0];
     if (next) {
@@ -975,7 +991,6 @@ function OrderDetail() {
         ? { ...s, ptdStatus: targetStatus, price: billable ? record.price : 0, ptd: { id: record.id, status: targetStatus, data, billable, price: billable ? record.price : 0 } }
         : s
     );
-    setServices(next);
     syncAutoDraftInvoice({ orderId: order.orderId, customer: order.customer, services: next });
     setPtdService(null);
   };
@@ -983,16 +998,13 @@ function OrderDetail() {
   const assignServiceHandler = (serviceId, payload) => {
     const svc = services.find((s) => s.id === serviceId);
     if (!svc) return;
-    const record = createAssignment({
+    createAssignment({
       orderId: order.orderId,
       customer: order.customer,
       serviceName: svc.name,
       ...payload,
       assignedBy: user.name,
     });
-    setServices((prev) =>
-      prev.map((s) => (s.id === serviceId ? { ...s, assignment: record, status: record.status } : s))
-    );
     setAssignService(null);
   };
 
@@ -1029,12 +1041,12 @@ function OrderDetail() {
     );
   }
 
-  const deleteService = (s) => {
+  const deleteService = async (s) => {
     if (!window.confirm(`Delete "${s.name}" from this order? This also removes its PTD, assignment and delivery record if any.`)) return;
     deletePtdFor(order.orderId, s.name);
     deleteAssignmentFor(order.orderId, s.name);
     deleteDeliveryFor(order.orderId, s.name);
-    setServices((prev) => prev.filter((x) => x.id !== s.id));
+    await removeOrderService(s.id);
   };
 
   const servicesTotal = services.reduce((sum, s) => sum + s.price, 0);

@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../layouts/Layout';
-import { EMPLOYEES, fmtINR, fmtDate } from '../data/mockData';
+import { fmtINR, fmtDate } from '../data/mockData';
 import { ORDER_STATUSES, ORDER_STATUS_COLORS, isActiveOrder } from '../data/orderStatus';
 import { usePtds } from '../store/ptdStore';
 import { useOrders, addOrder } from '../store/orderStore';
 import { usePayments, getOrderPaymentSummary } from '../store/paymentStore';
+import { useEmployees } from '../store/employeeStore';
 
 const PAYMENT_STATUS_COLORS = {
   'Unpaid': 'border-slate-200 bg-slate-100 text-slate-600',
@@ -42,6 +43,7 @@ function todayISO(offsetDays = 0) {
 }
 
 function NewOrderModal({ onClose }) {
+  const employees = useEmployees();
   const [form, setForm] = useState({
     customer: '',
     value: '',
@@ -93,7 +95,7 @@ function NewOrderModal({ onClose }) {
               <p className={labelCls}>Sales Person</p>
               <select value={form.salesPerson} onChange={set('salesPerson')} className={fieldCls}>
                 <option value="">Select…</option>
-                {EMPLOYEES.map((e) => (
+                {employees.map((e) => (
                   <option key={e.name} value={e.name}>{e.name}</option>
                 ))}
               </select>
