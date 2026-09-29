@@ -4,7 +4,8 @@ import Layout from '../layouts/Layout';
 import { usePtds } from '../store/ptdStore';
 import { useAssignments } from '../store/assignmentStore';
 import { PTD_TEMPLATES } from '../data/ptdTemplates';
-import { ORDERS, fmtINR, fmtDate } from '../data/mockData';
+import { fmtINR, fmtDate } from '../data/mockData';
+import { useOrders } from '../store/orderStore';
 
 const PTD_STATUS_COLORS = {
   Completed: 'border-emerald-200 bg-emerald-50 text-emerald-700',
@@ -143,6 +144,7 @@ function PtdModal({ ptd, order, hours, onClose }) {
 function PtdList() {
   const ptds = usePtds();
   const assignments = useAssignments();
+  const orderRecords = useOrders();
   const [search, setSearch] = useState('');
   const [customer, setCustomer] = useState('');
   const [orderStatus, setOrderStatus] = useState('');
@@ -153,9 +155,9 @@ function PtdList() {
     assignments.find((a) => a.orderId === orderId && a.serviceName === serviceName)?.allocatedHours ?? 0;
 
   const orders = useMemo(() => {
-    const idSet = new Set([...ORDERS.map((o) => o.orderId), ...ptds.map((p) => p.orderId)]);
+    const idSet = new Set([...orderRecords.map((o) => o.orderId), ...ptds.map((p) => p.orderId)]);
     return [...idSet].map((id) => {
-      const order = ORDERS.find((o) => o.orderId === id);
+      const order = orderRecords.find((o) => o.orderId === id);
       const orderPtds = ptds.filter((p) => p.orderId === id);
       return {
         orderId: id,
@@ -166,7 +168,7 @@ function PtdList() {
         ptds: orderPtds,
       };
     });
-  }, [ptds]);
+  }, [orderRecords, ptds]);
 
   const customers = useMemo(() => [...new Set(orders.map((o) => o.customer))], [orders]);
 
