@@ -170,14 +170,17 @@ function Orders() {
     { label: 'Pending', count: orders.filter((o) => o.orderStatus === 'Pending').length, color: 'bg-amber-500', icon: 'clock' },
     { label: 'Ongoing', count: orders.filter((o) => o.orderStatus === 'Ongoing').length, color: 'bg-blue-500', icon: 'play' },
     { label: 'Delivered', count: orders.filter((o) => o.orderStatus === 'Delivered').length, color: 'bg-emerald-500', icon: 'check' },
-    { label: 'Overdue', count: overduedOrders.length, color: 'bg-red-500', icon: 'alert' },
     { label: 'Cancelled', count: orders.filter((o) => o.orderStatus === 'Cancelled').length, color: 'bg-slate-500', icon: 'x' },
   ];
 
   const filtered = orders.filter((o) => {
     if (search && !`${o.orderId} ${o.customer} ${o.salesPerson}`.toLowerCase().includes(search.toLowerCase())) return false;
     if (status) {
-      if (o.orderStatus !== status) return false;
+      if (status === '__overdue') {
+        if (!(isActiveOrder(o.orderStatus) && new Date(o.deliveryDate) < new Date())) return false;
+      } else if (o.orderStatus !== status) {
+        return false;
+      }
     } else if (o.orderStatus !== 'Pending' && o.orderStatus !== 'Ongoing') {
       return false;
     }
@@ -249,16 +252,20 @@ function Orders() {
       </div>
 
       {/* Summary cards */}
-      <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-3 xl:grid-cols-6">
+      <div className="mt-4 grid grid-cols-3 gap-2 lg:grid-cols-5">
         {summary.map((s) => (
-          <div key={s.label} className="rounded-xl border border-slate-200 bg-white px-3 py-2.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[10.5px] font-medium uppercase tracking-wide text-slate-400">{s.label}</span>
-              <span className={`flex h-6 w-6 items-center justify-center rounded-md text-white ${s.color}`}>{icons[s.icon]}</span>
-            </div>
-            <p className="mt-1 text-[17px] font-semibold tracking-tight text-slate-900">{s.count}</p>
+          <div key={s.label} className="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5">
+            <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-white ${s.color}`}>{icons[s.icon]}</span>
+            <span className="text-[17px] font-semibold leading-tight tracking-tight text-slate-900">{s.count}</span>
+            <span className="truncate text-[11px] font-medium uppercase tracking-wide text-slate-400">{s.label}</span>
           </div>
         ))}
+      </div>
+
+      <div className="mt-1.5 flex justify-end">
+        <button type="button" onClick={() => setStatus('__overdue')} className="text-[12px] font-medium text-red-600 transition-colors hover:underline hover:text-red-700">
+          {overduedOrders.length} orders overdue
+        </button>
       </div>
 
       {/* Filters */}
@@ -280,6 +287,7 @@ function Orders() {
           </div>
           <select value={status} onChange={(e) => setStatus(e.target.value)} className={inputCls}>
             <option value="">Active orders</option>
+            <option value="__overdue">Overdue</option>
             {ORDER_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
           <select value={payment} onChange={(e) => setPayment(e.target.value)} className={inputCls}>
