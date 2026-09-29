@@ -178,7 +178,7 @@ function Orders() {
     if (search && !`${o.orderId} ${o.customer} ${o.salesPerson}`.toLowerCase().includes(search.toLowerCase())) return false;
     if (status) {
       if (o.orderStatus !== status) return false;
-    } else if (o.orderStatus === 'Delivered') {
+    } else if (o.orderStatus !== 'Pending' && o.orderStatus !== 'Ongoing') {
       return false;
     }
     if (payment && o.paymentStatus !== payment) return false;
