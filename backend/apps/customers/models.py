@@ -38,17 +38,18 @@ class CustomerType(models.Model):
 
 
 class Department(models.Model):
-    """Shared master owned by SystemSoft (leadsdb: master_branch)."""
+    """Departments used to group employees and form teams."""
 
     code = models.CharField(max_length=20, unique=True)
-    name = models.CharField(max_length=50)
-    address = models.CharField(max_length=200, blank=True)
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        managed = False
-        db_table = 'master_branch'
+        ordering = ['-created_at']
+        db_table = 'departments'
         app_label = 'customers'
 
     def __str__(self):
@@ -63,7 +64,7 @@ class Employee(models.Model):
     designation = models.CharField(max_length=120, blank=True, db_column='role')
     phone = models.CharField(max_length=20, blank=True, db_column='mobile')
     email = models.EmailField(blank=True)
-    department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True, db_column='branch_id', related_name='employees')
+    department = models.IntegerField(null=True, blank=True, db_column='branch_id')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

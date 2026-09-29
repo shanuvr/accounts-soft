@@ -8,7 +8,7 @@ class Command(BaseCommand):
         self.seed_masters()
 
     def seed_masters(self):
-        from customers.models import CustomerType, Product, ProductCategory, UOM
+        from customers.models import CustomerType, Department, Product, ProductCategory, UOM
         from masters.models import (
             AssignmentStatus,
             Category,
@@ -64,6 +64,18 @@ class Command(BaseCommand):
 
         for name in ['Individual', 'Business', 'Corporate', 'Government', 'Partner']:
             CustomerType.objects.get_or_create(name=name)
+
+        departments = [
+            ('BR01', 'Operations'),
+            ('BR02', 'Development'),
+            ('BR03', 'Design'),
+            ('BR04', 'Support'),
+            ('BR05', 'Accounts'),
+            ('BR06', 'Sales'),
+            ('BR07', 'Administration'),
+        ]
+        for code, name in departments:
+            Department.objects.get_or_create(code=code, defaults={'name': name})
 
         category_data = [
             ('Domain', 'Domain registration and management services'),

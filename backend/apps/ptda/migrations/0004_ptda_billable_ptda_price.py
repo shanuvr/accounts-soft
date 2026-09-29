@@ -1,21 +1,10 @@
-from django.db import migrations, models
+from django.db import migrations
 
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ptda', '0003_alter_ptda_options'),
+        ('ptda', '0004_ptda_billable_ptda_price_ptda_template_name'),
     ]
 
-    operations = [
-        migrations.AddField(
-            model_name='ptda',
-            name='billable',
-            field=models.BooleanField(default=True),
-        ),
-        migrations.AddField(
-            model_name='ptda',
-            name='price',
-            field=models.DecimalField(decimal_places=2, default=0, max_digits=14),
-        ),
-    ]
+    operations = []

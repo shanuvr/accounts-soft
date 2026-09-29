@@ -86,10 +86,9 @@ class EmployeeViewSet(SystemSoftResourceViewSet):
     search_fields = ['name', 'employee_code', 'email', 'designation']
 
 
-class DepartmentViewSet(SystemSoftResourceViewSet):
-    resource = 'departments'
-    resource_singular = 'department'
-    model = Department
+class DepartmentViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticated]
+    queryset = Department.objects.all()
     serializer_class = DepartmentSerializer
     search_fields = ['name', 'code']
 

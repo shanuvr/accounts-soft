@@ -62,7 +62,7 @@ class EmployeeSerializer(serializers.ModelSerializer):
     def get_department(self, obj):
         if isinstance(obj.department, str):
             return obj.department
-        return obj.department.name if obj.department else ''
+        return getattr(obj.department, 'name', obj.department or '')
 
 
 class DepartmentSerializer(serializers.ModelSerializer):
