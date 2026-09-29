@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import Layout from '../layouts/Layout';
 import { fmtINR, fmtDate } from '../data/mockData';
 import { ORDER_STATUS_COLORS } from '../data/orderStatus';
-import { useOrders, ensureLocalOrder } from '../store/orderStore';
+import { useOrders, useOrdersLoaded, ensureLocalOrder } from '../store/orderStore';
 import { useOrderServices, addOrderService, removeOrderService } from '../store/orderServiceStore';
 import { useServices, getServiceByName } from '../store/serviceStore';
 import { useEmployees } from '../store/employeeStore';
@@ -888,6 +888,7 @@ function OrderDetail() {
   const { orderId } = useParams();
   const navigate = useNavigate();
   const orders = useOrders();
+  const ordersLoaded = useOrdersLoaded();
   const order = orders.find((o) => o.orderId === orderId);
   const user = useAuth();
   const payments = usePayments();
@@ -1032,6 +1033,26 @@ function OrderDetail() {
     saveInvoice({ ...payload, status });
     setInvoiceModal(false);
   };
+
+  if (!ordersLoaded) {
+    return (
+      <Layout active="orders">
+        <button type="button" onClick={() => navigate('/orders')} className="flex items-center gap-1.5 text-[13px] font-medium text-emerald-600 hover:text-emerald-700">
+          <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 12H5M11 6l-6 6 6 6" />
+          </svg>
+          Back to Orders
+        </button>
+        <div className="mt-8 rounded-xl border border-slate-200 bg-white p-12 text-center">
+          <svg viewBox="0 0 24 24" fill="none" className="mx-auto h-8 w-8 animate-spin text-emerald-600">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" />
+            <path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+          </svg>
+          <p className="mt-3 text-sm font-medium text-slate-500">Loading order...</p>
+        </div>
+      </Layout>
+    );
+  }
 
   if (!order) {
     return (

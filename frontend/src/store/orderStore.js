@@ -48,6 +48,10 @@ export function useOrders() {
   return store.useItems();
 }
 
+export function useOrdersLoaded() {
+  return store.useIsLoaded();
+}
+
 export function getAllOrders() {
   return store.all();
 }

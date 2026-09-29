@@ -13,6 +13,7 @@ function classifyError(err) {
 export function createApiStore({ fetchList, mapRecord = (r) => r }) {
   let raw = [];
   let records = [];
+  let loaded = false;
   let loadingPromise = null;
   const listeners = new Set();
 
@@ -32,6 +33,9 @@ export function createApiStore({ fetchList, mapRecord = (r) => r }) {
           raw = [];
           records = [];
         })
+        .then(() => {
+          loaded = true;
+        })
         .finally(() => {
           loadingPromise = null;
           emit();
@@ -44,6 +48,10 @@ export function createApiStore({ fetchList, mapRecord = (r) => r }) {
     return records;
   }
 
+  function getLoadedSnapshot() {
+    return loaded;
+  }
+
   function subscribe(cb) {
     listeners.add(cb);
     return () => listeners.delete(cb);
@@ -54,6 +62,13 @@ export function createApiStore({ fetchList, mapRecord = (r) => r }) {
       load();
     }, []);
     return useSyncExternalStore(subscribe, getSnapshot);
+  }
+
+  function useIsLoaded() {
+    useEffect(() => {
+      load();
+    }, []);
+    return useSyncExternalStore(subscribe, getLoadedSnapshot);
   }
 
   function findAll(predicate) {
@@ -82,6 +97,7 @@ export function createApiStore({ fetchList, mapRecord = (r) => r }) {
 
   return {
     useItems,
+    useIsLoaded,
     load,
     getSnapshot,
     subscribe,
