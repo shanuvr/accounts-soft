@@ -14,9 +14,10 @@ function mapRecord(r) {
     expectedDeliveryDate: (r.scheduled_date || '').slice(0, 10),
     status: r.status || 'Pending',
     actualDeliveryDate: r.actual_date ? String(r.actual_date).slice(0, 10) : null,
-    deliveredBy: '',
+    deliveryType: r.delivery_type ?? null,
+    deliveredBy: r.delivered_by || '',
     deliveredOn: r.actual_date ? String(r.actual_date).slice(0, 10) : null,
-    customerConfirmation: r.status === 'Delivered' ? 'Confirmed' : 'Pending',
+    customerConfirmation: r.customer_confirmation || (r.status === 'Delivered' ? 'Confirmed' : 'Pending'),
     trackingNumber: r.tracking_number || '',
     notes: r.notes || '',
   };
@@ -73,13 +74,16 @@ export async function createOrSyncDelivery({ orderId, serviceName, expectedDeliv
   );
 }
 
-export async function markDelivered(id, { actualDeliveryDate, deliveredOn, notes }) {
+export async function markDelivered(id, { actualDeliveryDate, deliveredOn, deliveredBy, customerConfirmation, trackingNumber, notes }) {
   const rec = getDeliveryById(id);
   if (!rec) return null;
   return store.run(() =>
     api.updateDelivery(Number(id), {
       actual_date: actualDeliveryDate || deliveredOn || rec.expectedDeliveryDate || todayISO(),
       status: 'Delivered',
+      delivered_by: deliveredBy ?? rec.deliveredBy ?? '',
+      customer_confirmation: customerConfirmation ?? rec.customerConfirmation ?? 'Pending',
+      tracking_number: trackingNumber ?? rec.trackingNumber ?? '',
       notes: notes ?? rec.notes ?? '',
     })
   );
@@ -89,6 +93,10 @@ export async function updateDelivery(id, patch) {
   const payload = {};
   if (patch.expectedDeliveryDate !== undefined) payload.scheduled_date = patch.expectedDeliveryDate || null;
   if (patch.status !== undefined) payload.status = patch.status;
+  if (patch.deliveryType !== undefined) payload.delivery_type = patch.deliveryType || null;
+  if (patch.trackingNumber !== undefined) payload.tracking_number = patch.trackingNumber || '';
+  if (patch.deliveredBy !== undefined) payload.delivered_by = patch.deliveredBy || '';
+  if (patch.customerConfirmation !== undefined) payload.customer_confirmation = patch.customerConfirmation || 'Pending';
   if (patch.notes !== undefined) payload.notes = patch.notes || '';
   if (patch.actualDeliveryDate !== undefined) payload.actual_date = patch.actualDeliveryDate || null;
   return store.run(() => api.updateDelivery(Number(id), payload));

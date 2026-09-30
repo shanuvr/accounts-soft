@@ -122,6 +122,7 @@ core. Imported orders retain their original Lead Soft reference.
 ### Backend
 
 ```bash
+$ENV:ENV = "dev"
 cd ~\Desktop\Codebase\accounts-soft\backend
 venv\Scripts\activate
 python manage.py runserver

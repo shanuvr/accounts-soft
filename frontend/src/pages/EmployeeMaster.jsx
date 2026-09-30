@@ -81,7 +81,7 @@ export default function EmployeeMaster() {
 
   return (
     <Layout active="masters">
-      <div className="p-5">
+      <div className="px-5 pb-5 pt-0">
         <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Employee Master</h1>

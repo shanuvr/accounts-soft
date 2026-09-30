@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Layout from '../layouts/Layout';
-import { useInvoices, getInvoiceById, saveInvoice, setInvoiceStatus, markInvoiceSent, getInvoicePaymentSummary, getInvoiceStatus } from '../store/invoiceStore';
+import { useInvoices, getInvoiceById, saveInvoice, setInvoiceStatus, getInvoicePaymentSummary, getInvoiceStatus, sendInvoiceEmail } from '../store/invoiceStore';
 import { usePayments, createPayment } from '../store/paymentStore';
 import { usePaymentMethods } from '../store/paymentMethodStore';
 import { useTaxMaster } from '../store/taxStore';
+import { useCustomers } from '../store/customerStore';
 import { fmtINR, fmtDate } from '../data/mockData';
 import { useAuth } from '../store/authStore';
 import { downloadInvoicePdf } from '../utils/invoicePdf';
@@ -33,6 +34,20 @@ const addDaysISO = (d, n) => {
   const dt = new Date(d + 'T00:00:00');
   dt.setDate(dt.getDate() + n);
   return dt.toISOString().slice(0, 10);
+};
+
+const formatSentTime = (iso) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return String(iso);
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const day = String(d.getDate()).padStart(2, '0');
+  const year = d.getFullYear();
+  let h = d.getHours();
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${day}-${months[d.getMonth()]}-${year} ${h}:${min} ${ampm}`;
 };
 
 function Badge({ status, map }) {
@@ -250,10 +265,13 @@ function InvoiceDetail() {
   const { invoiceId } = useParams();
   const navigate = useNavigate();
   const user = useAuth();
+  const customers = useCustomers();
   useInvoices();
   const payments = usePayments();
   const [editing, setEditing] = useState(false);
   const [paying, setPaying] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState('');
 
   const invoice = getInvoiceById(invoiceId);
 
@@ -270,13 +288,14 @@ function InvoiceDetail() {
 
   const summary = getInvoicePaymentSummary(invoice.invoiceId, payments);
   const status = getInvoiceStatus(invoice, payments);
+  const recipient = customers.find((c) => c.name === invoice.customer)?.email || '';
 
   const downloadPdf = () => {
     downloadInvoicePdf(invoice, user);
   };
 
-  const save = (patch) => {
-    saveInvoice({ ...invoice, ...patch });
+  const save = async (patch) => {
+    await saveInvoice({ ...invoice, ...patch });
     setEditing(false);
   };
 
@@ -285,17 +304,31 @@ function InvoiceDetail() {
     setPaying(false);
   };
 
-  const send = () => {
-    markInvoiceSent(invoice.invoiceId, todayISO());
+  const send = async () => {
+    if (!recipient) {
+      setSendError(`No email address on record for ${invoice.customer}. Add it in the Customers module and try again.`);
+      return;
+    }
+    setSendError('');
+    setSending(true);
+    try {
+      const res = await sendInvoiceEmail(invoice.invoiceId, { recipient });
+      if (!res.ok) throw new Error(res.message);
+    } catch (err) {
+      setSendError(err.message || 'Could not email the invoice. Check the SMTP settings.');
+      setSending(false);
+      return;
+    }
+    setSending(false);
   };
 
-  const issue = () => {
-    setInvoiceStatus(invoice.invoiceId, 'Issued');
+  const issue = async () => {
+    await setInvoiceStatus(invoice.invoiceId, 'Issued');
   };
 
   return (
     <Layout active="invoices">
-      <div className="p-6">
+      <div className="px-6 pb-6 pt-0">
         <button type="button" onClick={() => navigate('/invoices')} className="print:hidden mb-4 flex items-center gap-1 text-[12px] font-medium text-slate-500 transition-colors hover:text-emerald-600">
           <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
           Back to Invoices
@@ -350,8 +383,14 @@ function InvoiceDetail() {
               </button>
             )}
             {invoice.status !== 'Draft' && invoice.status !== 'Cancelled' && (
-              <button type="button" onClick={send} disabled={!!invoice.sentAt} className="rounded-lg border border-slate-200 px-3.5 py-2 text-[12px] font-medium text-slate-600 transition-colors hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-40">
-                {invoice.sentAt ? '✓ Sent' : 'Send'}
+              <button
+                type="button"
+                onClick={send}
+                disabled={!!invoice.sentAt || sending}
+                title={invoice.sentAt ? `Sent on ${formatSentTime(invoice.sentAt)}` : `Email ${invoice.invoiceId} to ${recipient || 'the customer'} as an invoice.`}
+                className="rounded-lg border border-slate-200 px-3.5 py-2 text-[12px] font-medium text-slate-600 transition-colors hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {sending ? 'Sending…' : invoice.sentAt ? '✓ Sent' : 'Send'}
               </button>
             )}
             <button
@@ -376,11 +415,14 @@ function InvoiceDetail() {
               Print
             </button>
           </div>
+          {sendError && (
+            <p className="print:hidden mx-6 mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-[12.5px] text-red-700">{sendError}</p>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Items & totals */}
-          <div className="lg:col-span-2">
+          <div className="space-y-6 lg:col-span-2">
             <Card title='Invoice Items'>
               <div className="overflow-hidden rounded-lg border border-slate-200">
                 <table className="w-full text-left text-[13px]">
@@ -414,6 +456,33 @@ function InvoiceDetail() {
                 <p className="mt-5 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-[12.5px] leading-5 text-slate-600">
                   <span className="font-semibold text-slate-700">Notes: </span>{invoice.notes}
                 </p>
+              )}
+            </Card>
+
+            <Card title="Payments Linked to This Invoice">
+              {summary.payments.length === 0 ? (
+                <p className="py-4 text-center text-[13px] text-slate-400">No payments recorded against this invoice yet. Use Record Payment to link one.</p>
+              ) : (
+                <div className="space-y-2">
+                  {summary.payments.map((p) => (
+                    <button
+                      key={p.paymentId}
+                      type="button"
+                      onClick={() => navigate(`/payments/${p.paymentId}`)}
+                      className="flex w-full items-center justify-between gap-3 rounded-lg border border-slate-200 px-4 py-2.5 text-left transition-colors hover:bg-slate-50"
+                    >
+                      <span className="flex items-center gap-3">
+                        <span className="text-[13px] font-semibold text-emerald-700 hover:underline">{p.paymentId}</span>
+                        <span className="text-[12.5px] text-slate-500">{fmtDate(p.date)}</span>
+                        <span className="text-[12.5px] text-slate-500">{p.method}</span>
+                      </span>
+                      <span className="flex items-center gap-3">
+                        <span className="text-[13px] font-semibold text-slate-800">{fmtINR(p.amount)}</span>
+                        <Badge status={p.status} map={PAYMENT_TXN_STATUS} />
+                      </span>
+                    </button>
+                  ))}
+                </div>
               )}
             </Card>
           </div>
@@ -486,35 +555,6 @@ function InvoiceDetail() {
           </div>
         </div>
 
-        {/* Linked payments */}
-        <div className="mt-6">
-          <Card title="Payments Linked to This Invoice">
-            {summary.payments.length === 0 ? (
-              <p className="py-4 text-center text-[13px] text-slate-400">No payments recorded against this invoice yet. Use Record Payment to link one.</p>
-            ) : (
-              <div className="space-y-2">
-                {summary.payments.map((p) => (
-                  <button
-                    key={p.paymentId}
-                    type="button"
-                    onClick={() => navigate(`/payments/${p.paymentId}`)}
-                    className="flex w-full items-center justify-between gap-3 rounded-lg border border-slate-200 px-4 py-2.5 text-left transition-colors hover:bg-slate-50"
-                  >
-                    <span className="flex items-center gap-3">
-                      <span className="text-[13px] font-semibold text-emerald-700 hover:underline">{p.paymentId}</span>
-                      <span className="text-[12.5px] text-slate-500">{fmtDate(p.date)}</span>
-                      <span className="text-[12.5px] text-slate-500">{p.method}</span>
-                    </span>
-                    <span className="flex items-center gap-3">
-                      <span className="text-[13px] font-semibold text-slate-800">{fmtINR(p.amount)}</span>
-                      <Badge status={p.status} map={PAYMENT_TXN_STATUS} />
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </Card>
-        </div>
       </div>
 
       {editing && <EditModal invoice={invoice} onClose={() => setEditing(false)} onSave={save} />}

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import Layout from '../layouts/Layout';
 import { fmtDate } from '../data/mockData';
 import { useDeliveries, getDeliveryById, markDelivered, updateDelivery } from '../store/deliveryStore';
+import { useDeliveryTypes } from '../store/deliveryTypeStore';
 import { getAssignmentFor } from '../store/assignmentStore';
 import { useAuth } from '../store/authStore';
 import { todayStr, isOverdue, DELIVERY_STATUS_COLORS } from './DeliveryList';
@@ -39,13 +40,19 @@ function DeliveryDetail() {
   const [editing, setEditing] = useState(false);
 
   useDeliveries();
+  const deliveryTypes = useDeliveryTypes();
 
   const delivery = getDeliveryById(deliveryId);
   const assignment = delivery ? getAssignmentFor(delivery.orderId, delivery.serviceName) ?? null : null;
 
+  const deliveryTypeName = delivery?.deliveryType
+    ? (deliveryTypes.find((t) => String(t.id) === String(delivery.deliveryType))?.name ?? '')
+    : '';
+
   const [form, setForm] = useState(() => delivery ? {
     actualDeliveryDate: delivery.actualDeliveryDate ?? delivery.expectedDeliveryDate ?? todayStr,
     customerConfirmation: delivery.customerConfirmation === 'Confirmed' ? 'Confirmed' : 'Pending',
+    trackingNumber: delivery.trackingNumber ?? '',
     notes: delivery.notes ?? '',
   } : null);
 
@@ -65,6 +72,9 @@ function DeliveryDetail() {
     setEditForm({
       expectedDeliveryDate: delivery.expectedDeliveryDate,
       status: delivery.status,
+      deliveryType: delivery.deliveryType ?? '',
+      trackingNumber: delivery.trackingNumber ?? '',
+      deliveredBy: delivery.deliveredBy ?? '',
       customerConfirmation: delivery.customerConfirmation ?? 'Pending',
       notes: delivery.notes ?? '',
     });
@@ -77,6 +87,7 @@ function DeliveryDetail() {
       deliveredBy: user?.name ?? 'Anita Desai',
       deliveredOn: todayStr,
       customerConfirmation: form.customerConfirmation,
+      trackingNumber: form.trackingNumber,
       notes: form.notes,
     });
     setMarking(false);
@@ -89,7 +100,7 @@ function DeliveryDetail() {
 
   return (
     <Layout active="delivery">
-      <div className="p-6">
+      <div className="px-6 pb-6 pt-0">
         <button type="button" onClick={() => navigate('/delivery')} className="mb-4 flex items-center gap-1 text-[12px] font-medium text-slate-500 transition-colors hover:text-emerald-600">
           <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
           Back to Delivery Tracking
@@ -125,6 +136,8 @@ function DeliveryDetail() {
             <div className="grid grid-cols-2 gap-x-5">
               <InfoRow label="Order" value={delivery.orderId} />
               <InfoRow label="Service" value={delivery.serviceName} />
+              <InfoRow label="Delivery Type" value={deliveryTypeName} />
+              <InfoRow label="Tracking No." value={delivery.trackingNumber || null} />
               <InfoRow label="Expected Delivery" value={fmtDate(delivery.expectedDeliveryDate)} />
               <InfoRow label="Actual Delivery" value={delivery.actualDeliveryDate ? fmtDate(delivery.actualDeliveryDate) : null} />
               <InfoRow label="Status" value={delivery.status} />
@@ -180,6 +193,10 @@ function DeliveryDetail() {
                 <input type="date" value={form.actualDeliveryDate} onChange={(e) => setForm((f) => ({ ...f, actualDeliveryDate: e.target.value }))} className={fieldCls} />
               </div>
               <div>
+                <label className="mb-1 block text-[12px] font-medium text-slate-600">Tracking Number</label>
+                <input value={form.trackingNumber} onChange={(e) => setForm((f) => ({ ...f, trackingNumber: e.target.value }))} className={fieldCls} placeholder="Courier / tracking reference" />
+              </div>
+              <div>
                 <label className="mb-1 block text-[12px] font-medium text-slate-600">Customer Confirmation</label>
                 <select value={form.customerConfirmation} onChange={(e) => setForm((f) => ({ ...f, customerConfirmation: e.target.value }))} className={fieldCls}>
                   <option value="Confirmed">Confirmed</option>
@@ -217,6 +234,21 @@ function DeliveryDetail() {
                 <select value={editForm.status} onChange={(e) => setEditForm((f) => ({ ...f, status: e.target.value }))} className={fieldCls}>
                   {['Pending', 'In Progress', 'Ready for Delivery', 'Delivered', 'Cancelled'].map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-[12px] font-medium text-slate-600">Delivery Type</label>
+                <select value={editForm.deliveryType} onChange={(e) => setEditForm((f) => ({ ...f, deliveryType: e.target.value }))} className={fieldCls}>
+                  <option value="">Not selected</option>
+                  {deliveryTypes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-[12px] font-medium text-slate-600">Tracking Number</label>
+                <input value={editForm.trackingNumber} onChange={(e) => setEditForm((f) => ({ ...f, trackingNumber: e.target.value }))} className={fieldCls} placeholder="Courier / tracking reference" />
+              </div>
+              <div>
+                <label className="mb-1 block text-[12px] font-medium text-slate-600">Delivered By</label>
+                <input value={editForm.deliveredBy} onChange={(e) => setEditForm((f) => ({ ...f, deliveredBy: e.target.value }))} className={fieldCls} placeholder="Who handled the delivery" />
               </div>
               <div>
                 <label className="mb-1 block text-[12px] font-medium text-slate-600">Customer Confirmation</label>

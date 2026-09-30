@@ -1,120 +1,69 @@
-import { useSyncExternalStore } from 'react';
+import { createApiStore } from './createApiStore';
+import * as api from '../api/data';
+import { ensureLocalOrder } from './orderStore';
 
-const SEED_INVOICES = [
-  {
-    invoiceId: 'INV-001',
-    orderId: 'ORD-1024',
-    customer: 'ABC Technologies Pvt Ltd',
-    invoiceType: 'Full Invoice',
+function mapRecord(r) {
+  return {
+    id: r.id,
+    invoiceId: r.invoice_id || '',
+    orderId: r.order_id || '',
+    customer: r.customer_name || '',
+    invoiceType: r.invoice_type || 'Full Invoice',
     planId: null,
-    planStage: null,
-    invoiceDate: '2026-09-06',
-    dueDate: '2026-09-20',
-    paymentTerms: 'Net 14',
-    items: [
-      { name: 'Domain Registration', quantity: 1, price: 3000 },
-      { name: 'Web Design', quantity: 1, price: 10000 },
-      { name: 'Website Programming Dynamic Section', quantity: 1, price: 2000 },
-    ],
-    subtotal: 15000,
-    discount: 0,
-    tax: 0,
-    taxRate: 0,
-    total: 15000,
-    status: 'Issued',
-    notes: '',
-    sentAt: '2026-09-06',
-  },
-  {
-    invoiceId: 'INV-002',
-    orderId: 'ORD-1023',
-    customer: 'BlueSky Media',
-    invoiceType: 'Full Invoice',
-    planId: null,
-    planStage: null,
-    invoiceDate: '2026-09-05',
-    dueDate: '2026-08-28',
-    paymentTerms: 'Due on Receipt',
-    items: [
-      { name: 'Domain Registration', quantity: 1, price: 3000 },
-      { name: 'Web Design', quantity: 1, price: 10000 },
-      { name: 'Website Programming Dynamic Section', quantity: 1, price: 2000 },
-    ],
-    subtotal: 15000,
-    discount: 0,
-    tax: 0,
-    taxRate: 0,
-    total: 15000,
-    status: 'Issued',
-    notes: '',
-    sentAt: '2026-09-05',
-  },
-  {
-    invoiceId: 'INV-003',
-    orderId: 'ORD-1021',
-    customer: 'Nova Systems',
-    invoiceType: 'Full Invoice',
-    planId: null,
-    planStage: null,
-    invoiceDate: '2026-08-26',
-    dueDate: '2026-09-02',
-    paymentTerms: 'Net 7',
-    items: [
-      { name: 'Domain Registration', quantity: 1, price: 3000 },
-      { name: 'Web Design', quantity: 1, price: 10000 },
-      { name: 'Website Programming Dynamic Section', quantity: 1, price: 2000 },
-    ],
-    subtotal: 15000,
-    discount: 0,
-    tax: 0,
-    taxRate: 0,
-    total: 15000,
-    status: 'Issued',
-    notes: '',
-    sentAt: '2026-08-26',
-  },
-];
-
-let invoices = SEED_INVOICES.map((i) => ({ ...i }));
-let invoiceCounter = 10;
-const listeners = new Set();
-
-const todayISO = () => new Date().toISOString().slice(0, 10);
-
-function emit() {
-  for (const l of listeners) l();
+    planStage: r.plan_stage || null,
+    invoiceDate: (r.invoice_date || '').slice(0, 10),
+    dueDate: (r.due_date || '').slice(0, 10),
+    paymentTerms: r.payment_terms || 'Net 7',
+    items: Array.isArray(r.items) ? r.items : [],
+    subtotal: Number(r.subtotal) || 0,
+    discount: Number(r.discount) || 0,
+    tax: Number(r.tax) || 0,
+    taxRate: Number(r.tax_rate) || 0,
+    total: Number(r.total) || 0,
+    status: r.status || 'Draft',
+    sentAt: r.sent_at || null,
+    notes: r.notes || '',
+    auto: r.auto || false,
+  };
 }
 
+const store = createApiStore({
+  fetchList: api.getInvoices,
+  mapRecord,
+});
+
 export function subscribe(cb) {
-  listeners.add(cb);
-  return () => listeners.delete(cb);
+  return store.subscribe(cb);
 }
 
 export function getSnapshot() {
-  return invoices;
+  return store.getSnapshot();
 }
 
 export function useInvoices() {
-  return useSyncExternalStore(subscribe, getSnapshot);
-}
-
-export function getInvoiceById(id) {
-  return invoices.find((r) => r.invoiceId === id);
-}
-
-export function getInvoicesFor(orderId) {
-  return invoices
-    .filter((r) => r.orderId === orderId)
-    .sort((a, b) => (a.invoiceId < b.invoiceId ? 1 : a.invoiceId > b.invoiceId ? -1 : 0));
+  return store.useItems();
 }
 
 export function getAllInvoices() {
-  return [...invoices].sort((a, b) => (a.invoiceId < b.invoiceId ? 1 : a.invoiceId > b.invoiceId ? -1 : 0));
+  return [...store.all()].sort((a, b) => (a.invoiceId < b.invoiceId ? 1 : a.invoiceId > b.invoiceId ? -1 : 0));
+}
+
+export function getInvoiceById(id) {
+  return store.all().find((r) => String(r.invoiceId) === String(id));
+}
+
+export function getInvoicesFor(orderId) {
+  return store
+    .all()
+    .filter((r) => r.orderId === orderId)
+    .sort((a, b) => (a.invoiceId < b.invoiceId ? 1 : a.invoiceId > b.invoiceId ? -1 : 0));
 }
 
 export function getInvoicedAmount(orderId) {
   return getInvoicesFor(orderId).reduce((s, i) => s + i.total, 0);
 }
+
+const todayISO = () => new Date().toISOString().slice(0, 10);
 
 export function getInvoicePaymentSummary(invoiceId, payments) {
   const invoice = getInvoiceById(invoiceId);
@@ -146,55 +95,71 @@ export function getInvoiceStatus(invoice, payments) {
   return pastDue ? 'Overdue' : 'Issued';
 }
 
-export function saveInvoice(data) {
-  const existing = data.invoiceId ? invoices.find((i) => i.invoiceId === data.invoiceId) : null;
-  const record = {
-    invoiceId: existing?.invoiceId ?? `INV-${String(invoiceCounter).padStart(3, '0')}`,
-    orderId: data.orderId,
-    customer: data.customer,
-    invoiceType: data.invoiceType ?? 'Full Invoice',
-    planId: data.planId ?? null,
-    planStage: data.planStage ?? null,
-    invoiceDate: data.invoiceDate,
-    dueDate: data.dueDate,
-    paymentTerms: data.paymentTerms ?? 'Net 7',
+function buildPayload(data, orderPk) {
+  return {
+    order: orderPk,
+    invoice_type: data.invoiceType ?? 'Full Invoice',
+    plan_stage: data.planStage ?? '',
+    invoice_date: data.invoiceDate,
+    due_date: data.dueDate,
+    payment_terms: data.paymentTerms ?? 'Net 7',
     items: data.items ?? [],
-    subtotal: data.subtotal ?? 0,
-    discount: data.discount ?? 0,
-    tax: data.tax ?? 0,
-    taxRate: data.taxRate ?? 0,
-    total: data.total ?? 0,
+    subtotal: Number(data.subtotal) || 0,
+    discount: Number(data.discount) || 0,
+    tax: Number(data.tax) || 0,
+    tax_rate: Number(data.taxRate) || 0,
+    total: Number(data.total) || 0,
     status: data.status ?? 'Draft',
+    sent_at: data.sentAt || null,
     notes: data.notes ?? '',
-    sentAt: data.sentAt ?? existing?.sentAt ?? null,
-    auto: data.auto ?? existing?.auto ?? false,
+    auto: data.auto ?? false,
   };
-  if (!existing) invoiceCounter += 1;
-  invoices = existing ? invoices.map((i) => (i.invoiceId === existing.invoiceId ? record : i)) : [...invoices, record];
-  emit();
-  return record;
 }
 
-export function setInvoiceStatus(id, status) {
-  const target = invoices.find((i) => i.invoiceId === id);
+async function upsertInvoice(data) {
+  const existing = data.id ? store.all().find((i) => i.id === data.id) : null;
+  const orderPk = await ensureLocalOrder(data.orderId);
+  if (!orderPk) return { ok: false, reason: 'notfound' };
+  const payload = buildPayload(data, orderPk);
+  if (existing) return store.run(() => api.updateInvoice(existing.id, payload));
+  return store.run(() => api.createInvoice(payload));
+}
+
+export async function saveInvoice(data) {
+  return upsertInvoice(data);
+}
+
+export async function setInvoiceStatus(id, status) {
+  const target = store.all().find((i) => i.invoiceId === id);
   if (!target) return null;
-  invoices = invoices.map((i) => (i.invoiceId === id ? { ...i, status } : i));
-  emit();
-  return invoices.find((i) => i.invoiceId === id);
+  const res = await store.run(() => api.updateInvoice(target.id, { status }));
+  return res.ok ? res.record : null;
 }
 
-export function markInvoiceSent(id, date) {
-  const target = invoices.find((i) => i.invoiceId === id);
+export async function markInvoiceSent(id, date) {
+  const target = store.all().find((i) => i.invoiceId === id);
   if (!target) return null;
-  invoices = invoices.map((i) => (i.invoiceId === id ? { ...i, sentAt: date } : i));
-  emit();
-  return invoices.find((i) => i.invoiceId === id);
+  const res = await store.run(() => api.updateInvoice(target.id, { sent_at: date || null }));
+  return res.ok ? res.record : null;
 }
 
-export function removeInvoice(id) {
-  if (!invoices.some((i) => i.invoiceId === id)) return;
-  invoices = invoices.filter((i) => i.invoiceId !== id);
-  emit();
+export async function sendInvoiceEmail(invoiceId, { recipient }) {
+  const target = store.all().find((i) => i.invoiceId === invoiceId);
+  if (!target) return { ok: false, message: 'Invoice not found' };
+  try {
+    const record = await api.sendInvoice(target.id, { recipient });
+    await store.load();
+    return { ok: true, record };
+  } catch (err) {
+    const message = err?.response?.data?.detail || err?.message || 'Could not send the invoice';
+    return { ok: false, message };
+  }
+}
+
+export async function removeInvoice(id) {
+  const target = store.all().find((i) => i.invoiceId === id);
+  if (!target) return;
+  await store.run(() => api.deleteInvoice(target.id));
 }
 
 function addDays(dateISO, days) {
@@ -204,14 +169,14 @@ function addDays(dateISO, days) {
 }
 
 export function getAutoDraftFor(orderId) {
-  return invoices.find((i) => i.orderId === orderId && i.auto && i.status === 'Draft') ?? null;
+  return store.all().find((i) => i.orderId === orderId && i.auto && i.status === 'Draft') ?? null;
 }
 
 export function hasIssuedInvoice(orderId) {
-  return invoices.some((i) => i.orderId === orderId && i.status !== 'Draft' && i.status !== 'Cancelled');
+  return store.all().some((i) => i.orderId === orderId && i.status !== 'Draft' && i.status !== 'Cancelled');
 }
 
-export function syncAutoDraftInvoice({ orderId, customer, services }) {
+export async function syncAutoDraftInvoice({ orderId, customer, services }) {
   if (hasIssuedInvoice(orderId)) return null;
   const existing = getAutoDraftFor(orderId);
   const items = services
@@ -226,13 +191,14 @@ export function syncAutoDraftInvoice({ orderId, customer, services }) {
     }));
 
   if (items.length === 0) {
-    if (existing) removeInvoice(existing.invoiceId);
+    if (existing) await removeInvoice(existing.invoiceId);
     return null;
   }
 
   const subtotal = items.reduce((sum, i) => sum + i.amount, 0);
   const today = todayISO();
-  return saveInvoice({
+  return upsertInvoice({
+    id: existing?.id,
     invoiceId: existing?.invoiceId,
     orderId,
     customer,

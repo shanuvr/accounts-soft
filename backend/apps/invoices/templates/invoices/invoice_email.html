@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invoice {{ invoice_id }}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f1f5f9;font-family:Arial,Helvetica,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f1f5f9;padding:24px 0;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="640" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
+          <!-- Header -->
+          <tr>
+            <td style="background-color:#0f172a;padding:22px 28px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="text-align:left;">
+                    <span style="font-size:18px;font-weight:bold;color:#ffffff;">PROGRAMERS</span>
+                    <br>
+                    <span style="font-size:12px;color:#94a3b8;">Programers International</span>
+                  </td>
+                  <td style="text-align:right;">
+                    <span style="font-size:12px;color:#94a3b8;">{{ invoice_type }}</span>
+                    <br>
+                    <span style="font-size:14px;font-weight:bold;color:#ffffff;">Invoice No: {{ invoice_id }}</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <!-- Meta -->
+          <tr>
+            <td style="padding:22px 28px 8px 28px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="vertical-align:top;">
+                    <p style="margin:0 0 6px 0;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8;"><strong>Bill To</strong></p>
+                    <p style="margin:0;font-size:15px;font-weight:bold;color:#0f172a;">{{ customer }}</p>
+                    {% if order_id %}
+                    <p style="margin:4px 0 0 0;font-size:12px;color:#64748b;">Order: {{ order_id }}</p>
+                    {% endif %}
+                    {% if plan_stage %}
+                    <p style="margin:2px 0 0 0;font-size:12px;color:#64748b;">{{ plan_stage }}</p>
+                    {% endif %}
+                  </td>
+                  <td style="vertical-align:top;text-align:right;">
+                    <table role="presentation" style="margin-left:auto;border-collapse:collapse;font-size:12px;color:#475569;">
+                      <tr>
+                        <td style="padding:2px 8px 2px 0;color:#94a3b8;">Invoice Date</td>
+                        <td style="padding:2px 0;font-weight:bold;color:#0f172a;">{{ invoice_date }}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:2px 8px 2px 0;color:#94a3b8;">Due Date</td>
+                        <td style="padding:2px 0;font-weight:bold;color:#0f172a;">{{ due_date }}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:2px 8px 2px 0;color:#94a3b8;">Terms</td>
+                        <td style="padding:2px 0;">{{ payment_terms }}</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <!-- Items -->
+          <tr>
+            <td style="padding:16px 28px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">
+                <tr style="background-color:#f8fafc;">
+                  <td style="padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#64748b;">#</td>
+                  <td style="padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#64748b;">Description</td>
+                  <td style="padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#64748b;text-align:right;">Qty</td>
+                  <td style="padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#64748b;text-align:right;">Rate</td>
+                  <td style="padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#64748b;text-align:right;">Amount</td>
+                </tr>
+                {% for item in items %}
+                <tr style="border-top:1px solid #f1f5f9;">
+                  <td style="padding:9px 12px;font-size:13px;color:#475569;">{{ forloop.counter }}</td>
+                  <td style="padding:9px 12px;font-size:13px;color:#0f172a;">{{ item.name }}</td>
+                  <td style="padding:9px 12px;font-size:13px;color:#475569;text-align:right;">{{ item.quantity }}</td>
+                  <td style="padding:9px 12px;font-size:13px;color:#475569;text-align:right;">{{ item.rate }}</td>
+                  <td style="padding:9px 12px;font-size:13px;color:#0f172a;text-align:right;">{{ item.amount }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="5" style="padding:16px 12px;font-size:13px;color:#94a3b8;text-align:center;">No items on this invoice.</td>
+                </tr>
+                {% endfor %}
+              </table>
+            </td>
+          </tr>
+          <!-- Totals -->
+          <tr>
+            <td style="padding:0 28px 18px 28px;">
+              <table role="presentation" width="280" cellpadding="0" cellspacing="0" style="margin-left:auto;font-size:13px;color:#475569;">
+                <tr>
+                  <td style="padding:4px 0;color:#64748b;">Subtotal</td>
+                  <td style="padding:4px 0;text-align:right;color:#0f172a;">{{ subtotal }}</td>
+                </tr>
+                {% if discount %}<tr>
+                  <td style="padding:4px 0;color:#64748b;">Discount</td>
+                  <td style="padding:4px 0;text-align:right;color:#0f172a;">&minus; {{ discount }}</td>
+                </tr>{% endif %}
+                {% if tax %}<tr>
+                  <td style="padding:4px 0;color:#64748b;">Tax ({{ tax_rate }}%)</td>
+                  <td style="padding:4px 0;text-align:right;color:#0f172a;">{{ tax }}</td>
+                </tr>{% endif %}
+                <tr>
+                  <td style="padding:8px 0;border-top:2px solid #0f172a;font-size:14px;font-weight:bold;color:#0f172a;">Total</td>
+                  <td style="padding:8px 0;border-top:2px solid #0f172a;font-size:14px;font-weight:bold;color:#0f172a;text-align:right;">{{ total }}</td>
+                </tr>
+              </table>
+              <p style="margin:10px 0 0 0;font-size:12px;color:#64748b;"><strong>Amount in words:</strong> {{ total_words }}</p>
+              {% if notes %}
+              <p style="margin:12px 0 0 0;font-size:12px;color:#475569;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px 12px;"><strong>Notes:</strong> {{ notes }}</p>
+              {% endif %}
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="background-color:#f8fafc;border-top:1px solid #e2e8f0;padding:16px 28px;text-align:center;">
+              <p style="margin:0;font-size:13px;font-weight:bold;color:#0f172a;">Programers International</p>
+              <p style="margin:4px 0 0 0;font-size:11px;color:#64748b;">{{ company_address }}</p>
+              <p style="margin:2px 0 0 0;font-size:11px;color:#64748b;">{{ company_email }} | {{ company_website }} | Ph: {{ company_phone }}</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

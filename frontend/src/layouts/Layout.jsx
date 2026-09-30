@@ -42,7 +42,7 @@ function Layout({ active, children }) {
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-7xl flex-1 overflow-y-auto px-6 py-8">{children}</main>
+        <main className="mx-auto w-full max-w-7xl flex-1 overflow-y-auto px-6 pt-4 pb-8">{children}</main>
       </div>
     </div>
   );
