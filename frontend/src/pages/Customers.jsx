@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../layouts/Layout';
-import { useCustomers } from '../store/customerStore';
+import { useCustomers, useCustomersError } from '../store/customerStore';
+import { useOrders } from '../store/orderStore';
+import { usePayments, getOrderPaymentSummary } from '../store/paymentStore';
 import { fmtINR } from '../data/mockData';
 
 const STATUS_COLORS = {
@@ -32,11 +34,24 @@ const inputCls =
 function Customers() {
   const navigate = useNavigate();
   const customers = useCustomers();
+  const customersError = useCustomersError();
+  const orders = useOrders();
+  usePayments();
   const [search, setSearch] = useState('');
   const [type, setType] = useState('');
   const [status, setStatus] = useState('');
 
-  const rows = useMemo(() => customers, [customers]);
+  const rows = useMemo(
+    () =>
+      customers.map((c) => {
+        const customerOrders = orders.filter((o) => o.customer === c.name);
+        const orderCount = customerOrders.length;
+        const orderValue = customerOrders.reduce((s, o) => s + (o.value || 0), 0);
+        const pending = customerOrders.reduce((s, o) => s + getOrderPaymentSummary(o.orderId).pending, 0);
+        return { ...c, orderCount, orderValue, pending };
+      }),
+    [customers, orders]
+  );
 
   const typeOptions = useMemo(() => Array.from(new Set(rows.map((r) => r.type).filter(Boolean))), [rows]);
   const statusOptions = useMemo(() => Array.from(new Set(rows.map((r) => r.status).filter(Boolean))), [rows]);
@@ -117,7 +132,13 @@ function Customers() {
               <tbody>
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={11} className="px-4 py-10 text-center text-slate-400">No customers match your filters.</td>
+                    <td colSpan={11} className="px-4 py-10 text-center text-slate-400">
+                      {customersError
+                        ? "Couldn't load customers — the customers service is unavailable. Please try again later."
+                        : !search && !type && !status
+                        ? 'No customers yet — records appear once customers are added to the shared system.'
+                        : 'No customers match your filters.'}
+                    </td>
                   </tr>
                 )}
                 {filtered.map((c) => (

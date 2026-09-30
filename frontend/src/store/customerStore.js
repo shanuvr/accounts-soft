@@ -22,6 +22,10 @@ export function useCustomers() {
   return store.useItems();
 }
 
+export function useCustomersError() {
+  return store.useLoadError();
+}
+
 export function getAllCustomers() {
   return store.all();
 }

@@ -1,8 +1,11 @@
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Layout from '../layouts/Layout';
-import { CUSTOMERS, ORDERS, PAYMENTS, ORDER_SERVICES, fmtINR, fmtDate } from '../data/mockData';
+import { fmtINR, fmtDate } from '../data/mockData';
 import { ORDER_STATUS_COLORS } from '../data/orderStatus';
+import { useOrders } from '../store/orderStore';
+import { usePayments, getOrderPaymentSummary } from '../store/paymentStore';
+import { useOrderServices } from '../store/orderServiceStore';
 import { usePtds } from '../store/ptdStore';
 import { useAssignments } from '../store/assignmentStore';
 import { useCustomers } from '../store/customerStore';
@@ -24,7 +27,10 @@ const ASSIGNMENT_STATUS_COLORS = {
 
 const PAYMENT_STATUS_COLORS = {
   Paid: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  Received: 'border-emerald-200 bg-emerald-50 text-emerald-700',
   'Partially Paid': 'border-amber-200 bg-amber-50 text-amber-700',
+  Overpaid: 'border-indigo-200 bg-indigo-50 text-indigo-700',
+  Pending: 'border-slate-200 bg-slate-100 text-slate-500',
   Unpaid: 'border-slate-200 bg-slate-100 text-slate-500',
   Overdue: 'border-red-200 bg-red-50 text-red-700',
   Refunded: 'border-slate-200 bg-slate-100 text-slate-500',
@@ -61,34 +67,39 @@ function CustomerDetail() {
   const { customerId } = useParams();
   const navigate = useNavigate();
   const [tab, setTab] = useState('Overview');
+  const orderRecords = useOrders();
+  const payments = usePayments();
+  const orderServices = useOrderServices();
   const ptds = usePtds();
   const assignments = useAssignments();
   const liveCustomers = useCustomers();
 
   const customer = useMemo(
-    () => liveCustomers.find((c) => c.customerId === customerId) ?? CUSTOMERS.find((c) => c.customerId === customerId),
+    () => liveCustomers.find((c) => c.customerId === customerId),
     [customerId, liveCustomers]
   );
 
+  const payStatus = (orderId) => getOrderPaymentSummary(orderId).status;
+
   const data = useMemo(() => {
     if (!customer) return null;
-    const orders = ORDERS.filter((o) => o.customer === customer.name);
-    const payments = PAYMENTS.filter((p) => p.customer === customer.name);
-    const received = payments.reduce((s, p) => s + p.amount, 0);
+    const orders = orderRecords.filter((o) => o.customer === customer.name);
+    const paymentRows = payments.filter((p) => p.customer === customer.name);
+    const received = paymentRows.reduce((s, p) => s + p.amount, 0);
     const totalValue = orders.reduce((s, o) => s + o.value, 0);
     const completed = orders.filter((o) => o.orderStatus === 'Delivered').length;
     const customerPtds = ptds.filter((p) => p.customer === customer.name);
     const donePtds = customerPtds.filter((p) => p.status === 'Completed');
     const existingKeys = new Set();
     orders.forEach((o) =>
-      (ORDER_SERVICES[o.orderId] ?? []).forEach((s) => existingKeys.add(`${o.orderId}|${s.name}`))
+      orderServices.filter((s) => s.orderId === o.orderId).forEach((s) => existingKeys.add(`${o.orderId}|${s.serviceName}`))
     );
     const serviceRows = [
       ...orders.flatMap((o) =>
-        (ORDER_SERVICES[o.orderId] ?? []).map((s) => {
-          const ptd = customerPtds.find((p) => p.orderId === o.orderId && p.serviceName === s.name);
-          const asn = assignments.find((a) => a.orderId === o.orderId && a.serviceName === s.name);
-          return { ...s, order: o, ptd, asn };
+        orderServices.filter((s) => s.orderId === o.orderId).map((s) => {
+          const ptd = customerPtds.find((p) => p.orderId === o.orderId && p.serviceName === s.serviceName);
+          const asn = assignments.find((a) => a.orderId === o.orderId && a.serviceName === s.serviceName);
+          return { ...s, name: s.serviceName, amount: s.unitPrice, order: o, ptd, asn };
         })
       ),
       ...customerPtds
@@ -105,8 +116,8 @@ function CustomerDetail() {
         .filter((a) => a.customer === customer.name && a.status === 'Completed')
         .map((a) => ({ kind: 'Assignment', id: a.id, service: a.serviceName, order: a.orderId, date: a.assignedOn, template: a.assignedTo, billable: null, price: 0 })),
     ].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
-    return { orders, payments, received, totalValue, pending: Math.max(0, totalValue - received), completed, activeServices: donePtds.length, donePtds, serviceRows, worksDone };
-  }, [customer, ptds, assignments]);
+    return { orders, paymentRows, received, totalValue, pending: Math.max(0, totalValue - received), completed, activeServices: donePtds.length, donePtds, serviceRows, worksDone };
+  }, [customer, orderRecords, payments, ptds, assignments, orderServices]);
 
   // Activity timeline
   const activity = useMemo(() => {
@@ -121,7 +132,7 @@ function CustomerDetail() {
     for (const a of assignments.filter((a) => a.customer === customer.name)) {
       events.push({ date: a.assignedOn, kind: 'assignment', text: `${a.id} assigned to ${a.assignedTo}`, sub: `${a.serviceName} · Due ${a.expectedDelivery ? fmtDate(a.expectedDelivery) : '—'}` });
     }
-    for (const p of data.payments) {
+    for (const p of data.paymentRows) {
       events.push({ date: p.date, kind: 'payment', text: `${fmtINR(p.amount)} payment received`, sub: `${p.paymentId} · ${p.method} · ${p.orderId}` });
     }
     return events.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
@@ -298,7 +309,7 @@ function CustomerDetail() {
                         <td className="px-4 py-3 text-slate-500">{fmtDate(o.deliveryDate)}</td>
                         <td className="px-4 py-3 text-right font-semibold text-slate-700">{fmtINR(o.value)}</td>
                         <td className="px-4 py-3"><Badge cls={ORDER_STATUS_COLORS[o.orderStatus] ?? ORDER_STATUS_COLORS.Pending}>{o.orderStatus}</Badge></td>
-                        <td className="px-4 py-3"><Badge cls={PAYMENT_STATUS_COLORS[o.paymentStatus] ?? PAYMENT_STATUS_COLORS.Unpaid}>{o.paymentStatus}</Badge></td>
+                        <td className="px-4 py-3"><Badge cls={PAYMENT_STATUS_COLORS[payStatus(o.orderId)] ?? PAYMENT_STATUS_COLORS.Unpaid}>{payStatus(o.orderId)}</Badge></td>
                         <td className="px-4 py-3 text-slate-600">{o.salesPerson}</td>
                         <td className="px-4 py-3 text-right">
                           <button type="button" onClick={(e) => { e.stopPropagation(); navigate(`/orders/${o.orderId}`); }} className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-[12px] font-medium text-slate-600 transition-colors hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700">View</button>
@@ -433,17 +444,17 @@ function CustomerDetail() {
                       </tr>
                     </thead>
                     <tbody>
-                      {data.payments.map((p) => (
-                        <tr key={p.paymentId} className="border-b border-slate-100 last:border-0">
+                      {data.paymentRows.map((p) => (
+                        <tr key={`${p.paymentId}-${p.date}-${p.amount}`} className="border-b border-slate-100 last:border-0">
                           <td className="px-4 py-3 font-medium text-slate-600">{p.paymentId}</td>
                           <td className="px-4 py-3 text-slate-700">{p.orderId}</td>
                           <td className="px-4 py-3 text-slate-500">{fmtDate(p.date)}</td>
                           <td className="px-4 py-3 text-slate-600">{p.method}</td>
                           <td className="px-4 py-3 text-right font-semibold text-emerald-700">{fmtINR(p.amount)}</td>
-                          <td className="px-4 py-3"><Badge cls="border-emerald-200 bg-emerald-50 text-emerald-700">{p.status}</Badge></td>
+                          <td className="px-4 py-3"><Badge cls={PAYMENT_STATUS_COLORS[p.status] ?? PAYMENT_STATUS_COLORS.Pending}>{p.status}</Badge></td>
                         </tr>
                       ))}
-                      {data.payments.length === 0 && (
+                      {data.paymentRows.length === 0 && (
                         <tr><td colSpan={6} className="px-4 py-10 text-center text-slate-400">No payments recorded for this customer yet.</td></tr>
                       )}
                     </tbody>

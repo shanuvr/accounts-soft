@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from .models import Customer, CustomerType, Product, ProductCategory, Employee, Department, UOM
 from .serializers import CustomerSerializer, CustomerTypeSerializer, ProductSerializer, ProductCategorySerializer, EmployeeSerializer, DepartmentSerializer, UOMSerializer
 from .services import client as systemsoft
+from .services import SystemSoftUnavailable
 
 
 class SystemSoftResourceViewSet(viewsets.GenericViewSet):
@@ -38,27 +39,45 @@ class SystemSoftResourceViewSet(viewsets.GenericViewSet):
         serializer = self.serializer_class(instances, many=True)
         return Response(serializer.data)
 
+    def _unavailable(self):
+        return Response(
+            {'detail': 'Customers service (SystemSoft / Lead Soft) is unreachable. Please try again later.'},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+
     def list(self, request):
-        items = getattr(systemsoft, f'list_{self.resource}')()
+        try:
+            items = getattr(systemsoft, f'list_{self.resource}')()
+        except SystemSoftUnavailable:
+            return self._unavailable()
         items = self._apply_search(request, items)
         return self._paginate(request, self._build_instances(items))
 
     def retrieve(self, request, pk=None):
-        item = getattr(systemsoft, f'get_{self.resource_singular}')(pk)
+        try:
+            item = getattr(systemsoft, f'get_{self.resource_singular}')(pk)
+        except SystemSoftUnavailable:
+            return self._unavailable()
         if not item:
             return Response(status=status.HTTP_404_NOT_FOUND)
         serializer = self.serializer_class(self.model(**item))
         return Response(serializer.data)
 
     def create(self, request):
-        data = getattr(systemsoft, f'create_{self.resource_singular}')(request.data)
+        try:
+            data = getattr(systemsoft, f'create_{self.resource_singular}')(request.data)
+        except SystemSoftUnavailable:
+            return self._unavailable()
         serializer = self.serializer_class(self.model(**data)) if isinstance(data, dict) else None
         if serializer is not None:
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(data, status=status.HTTP_201_CREATED)
 
     def update(self, request, pk=None):
-        data = getattr(systemsoft, f'update_{self.resource_singular}')(pk, request.data)
+        try:
+            data = getattr(systemsoft, f'update_{self.resource_singular}')(pk, request.data)
+        except SystemSoftUnavailable:
+            return self._unavailable()
         serializer = self.serializer_class(self.model(**data)) if isinstance(data, dict) else None
         return Response(serializer.data if serializer is not None else data)
 
@@ -66,7 +85,10 @@ class SystemSoftResourceViewSet(viewsets.GenericViewSet):
         return self.update(request, pk)
 
     def destroy(self, request, pk=None):
-        getattr(systemsoft, f'delete_{self.resource_singular}')(pk)
+        try:
+            getattr(systemsoft, f'delete_{self.resource_singular}')(pk)
+        except SystemSoftUnavailable:
+            return self._unavailable()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
