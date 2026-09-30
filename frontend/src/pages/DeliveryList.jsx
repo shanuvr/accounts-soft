@@ -73,7 +73,7 @@ function DeliveryList() {
 
   return (
     <Layout active="delivery">
-      <div className="p-6">
+      <div className="px-6 pb-6 pt-0">
         <div className="mb-6">
           <h1 className="text-[22px] font-bold text-slate-900">Delivery Tracking</h1>
           <p className="mt-1 text-[13px] text-slate-500">What has been delivered, what is still pending, and when it was delivered.</p>
