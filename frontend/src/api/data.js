@@ -54,6 +54,13 @@ export const createDelivery = (data) => client.post('/deliveries/deliverys/', da
 export const updateDelivery = (id, data) => client.patch(`/deliveries/deliverys/${id}/`, data).then(r => r.data)
 export const deleteDelivery = (id) => client.delete(`/deliveries/deliverys/${id}/`)
 
+// Invoices --------------------------------------------------------------------
+export const getInvoices = () => client.get('/invoices/invoices/', { params: { page_size: 500 } }).then(unwrap)
+export const getInvoice = (id) => client.get(`/invoices/invoices/${id}/`).then(r => r.data)
+export const createInvoice = (data) => client.post('/invoices/invoices/', data).then(r => r.data)
+export const updateInvoice = (id, data) => client.patch(`/invoices/invoices/${id}/`, data).then(r => r.data)
+export const deleteInvoice = (id) => client.delete(`/invoices/invoices/${id}/`)
+
 export const getMasters = (type) => {
   const unwrap = (r) => (r.data?.results ?? r.data);
   const endpoints = {

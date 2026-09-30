@@ -987,7 +987,7 @@ function OrderDetail() {
         ? { ...s, ptdStatus: targetStatus, price: billable ? record.price : 0, ptd: { id: record.id, status: targetStatus, data, billable, price: billable ? record.price : 0 } }
         : s
     );
-    syncAutoDraftInvoice({ orderId: order.orderId, customer: order.customer, services: next });
+    await syncAutoDraftInvoice({ orderId: order.orderId, customer: order.customer, services: next });
     setPtdService(null);
   };
 
@@ -1014,10 +1014,10 @@ function OrderDetail() {
     setScheduleModal(false);
   };
 
-  const generateInvoice = (payload, status) => {
+  const generateInvoice = async (payload, status) => {
     const autoDraft = getAutoDraftFor(order.orderId);
-    if (autoDraft) removeInvoice(autoDraft.invoiceId);
-    saveInvoice({ ...payload, status });
+    if (autoDraft) await removeInvoice(autoDraft.invoiceId);
+    await saveInvoice({ ...payload, status });
     setInvoiceModal(false);
   };
 

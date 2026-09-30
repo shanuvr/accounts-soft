@@ -275,8 +275,8 @@ function InvoiceDetail() {
     downloadInvoicePdf(invoice, user);
   };
 
-  const save = (patch) => {
-    saveInvoice({ ...invoice, ...patch });
+  const save = async (patch) => {
+    await saveInvoice({ ...invoice, ...patch });
     setEditing(false);
   };
 
@@ -285,12 +285,12 @@ function InvoiceDetail() {
     setPaying(false);
   };
 
-  const send = () => {
-    markInvoiceSent(invoice.invoiceId, todayISO());
+  const send = async () => {
+    await markInvoiceSent(invoice.invoiceId, todayISO());
   };
 
-  const issue = () => {
-    setInvoiceStatus(invoice.invoiceId, 'Issued');
+  const issue = async () => {
+    await setInvoiceStatus(invoice.invoiceId, 'Issued');
   };
 
   return (

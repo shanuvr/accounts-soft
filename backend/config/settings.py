@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     'assignments',
     'deliveries',
     'payments',
+    'invoices',
     'documents',
     'activity',
     'reports',
