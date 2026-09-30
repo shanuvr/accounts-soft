@@ -42,7 +42,6 @@ CUSTOMER_MODEL_FIELDS = frozenset({
 
 # Remote (transactions_clientdetail) field names -> Account Soft model names.
 CUSTOMER_FIELD_MAP = {
-    'id': 'customer_id',
     'company': 'name',
     'client_name': 'contact_person',
     'mobile': 'phone',
@@ -110,9 +109,15 @@ class SystemSoftClient:
         The remote endpoint returns a DRF paginated envelope with a page_size
         cap of 500, so the client walks all pages and returns a flat list of
         mapped records for Account Soft's own pagination to work over.
+
+        The feed has one row per order, and several rows can share the same
+        ``customer_id`` (stable, unique per company). Customers are
+        deduplicated by ``customer_id`` — the first-seen (newest) row for each
+        company wins — so each company appears once.
         """
         page = int(params.get('page') or 1)
         page_size = min(int(params.get('page_size') or 500), 500)
+        seen = set()
         items = []
         while True:
             envelope = self._request('GET', 'customers', params={'page': page, 'page_size': page_size})
@@ -120,7 +125,16 @@ class SystemSoftClient:
                 results = envelope.get('results') or []
             else:
                 results = envelope or []
-            batch = [self._map_customer(record) for record in results if isinstance(record, dict)]
+            batch = []
+            for record in results:
+                if not isinstance(record, dict):
+                    continue
+                mapped = self._map_customer(record)
+                key = mapped.get('customer_id')
+                if not key or key in seen:
+                    continue
+                seen.add(key)
+                batch.append(mapped)
             if not batch:
                 break
             items.extend(batch)

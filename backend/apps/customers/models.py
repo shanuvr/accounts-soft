@@ -96,7 +96,7 @@ class Employee(models.Model):
 class Customer(models.Model):
     """Shared master owned by SystemSoft (leadsdb: transactions_clientdetail)."""
 
-    customer_id = models.CharField(max_length=20, primary_key=True, db_column='id')
+    customer_id = models.CharField(max_length=100, primary_key=True, db_column='id')
     lead_id = models.CharField(max_length=30, blank=True, default='')
     order_no = models.CharField(max_length=30, blank=True, default='')
     name = models.CharField(max_length=200, db_column='company')
