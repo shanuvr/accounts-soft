@@ -5,16 +5,19 @@ import { fmtDate } from '../data/mockData';
 import { useDeliveries } from '../store/deliveryStore';
 
 const STATUS_COLORS = {
+  'Not Started': 'border-slate-200 bg-slate-50 text-slate-500',
   'Pending': 'border-slate-200 bg-slate-100 text-slate-600',
   'In Progress': 'border-blue-200 bg-blue-50 text-blue-700',
   'Ready for Delivery': 'border-amber-200 bg-amber-50 text-amber-700',
   'Delivered': 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  'Partially Delivered': 'border-violet-200 bg-violet-50 text-violet-700',
+  'Overdue': 'border-red-200 bg-red-50 text-red-700',
   'Cancelled': 'border-red-200 bg-red-50 text-red-700',
 };
 
 export const DELIVERY_STATUS_COLORS = STATUS_COLORS;
 
-const STATUSES = ['Pending', 'In Progress', 'Ready for Delivery', 'Delivered', 'Cancelled'];
+const STATUSES = ['Not Started', 'Pending', 'In Progress', 'Ready for Delivery', 'Delivered', 'Partially Delivered', 'Overdue', 'Cancelled'];
 
 export const todayStr = (() => {
   const d = new Date();
