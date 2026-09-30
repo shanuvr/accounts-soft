@@ -148,7 +148,7 @@ const MAIN_NAV = [
   // { id: 'assignments', label: 'Assignments', icon: 'assignments' },
   { id: 'delivery', label: 'Delivery Tracking', icon: 'delivery' },
   { id: 'invoices', label: 'Invoices', icon: 'invoices' },
-  { id: 'payments', label: 'Receipts', icon: 'payments' },
+  { id: 'payments', label: 'Payments', icon: 'payments' },
   { id: 'ledger', label: 'Ledger', icon: 'ledger' },
   { id: 'renewals', label: 'Renewals', icon: 'renewals' },
 ];
