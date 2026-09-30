@@ -148,7 +148,9 @@ function Customers() {
                     className="cursor-pointer border-b border-slate-100 transition-colors last:border-0 hover:bg-emerald-50/40"
                   >
                     <td className="px-2 py-2 font-medium text-slate-500">{c.customerId}</td>
-                    <td className="px-2 py-2 font-semibold text-slate-800">{c.name}</td>
+                    <td className="px-2 py-2">
+                      <span className="line-clamp-2 font-semibold text-slate-800">{c.name}</span>
+                    </td>
                     <td className="px-2 py-2 text-slate-600">{c.contactPerson}</td>
                     <td className="px-2 py-2 text-slate-500">{c.phone}</td>
                     <td className="px-2 py-2 text-slate-500">{c.email}</td>
