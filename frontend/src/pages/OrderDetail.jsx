@@ -6,7 +6,6 @@ import { ORDER_STATUS_COLORS } from '../data/orderStatus';
 import { useOrders, useOrdersLoaded, ensureLocalOrder } from '../store/orderStore';
 import { useOrderServices, addOrderService, removeOrderService } from '../store/orderServiceStore';
 import { useServices, getServiceByName } from '../store/serviceStore';
-import { useEmployees } from '../store/employeeStore';
 import { useDepartments } from '../store/departmentStore';
 import { usePtds, createOrUpdatePtd, deletePtdFor } from '../store/ptdStore';
 import { useAssignments, createAssignment, deleteAssignmentFor } from '../store/assignmentStore';
@@ -232,30 +231,22 @@ function PtdModal({ order, service, onClose, onSave }) {
 }
 
 function AssignModal({ order, service, assigner, hoursSummary, onClose, onAssign }) {
-  const employees = useEmployees();
   const departments = useDepartments();
   const defaultHours = getServiceByName(service.name)?.hours ?? 0;
-  const [employee, setEmployee] = useState('');
-  const [team, setTeam] = useState('');
+  const [department, setDepartment] = useState('');
   const [assignedOn, setAssignedOn] = useState(new Date().toISOString().slice(0, 10));
   const [expectedDelivery, setExpectedDelivery] = useState(service.deliveryDate || order.deliveryDate || '');
   const [allocatedHours, setAllocatedHours] = useState(defaultHours);
   const [priority, setPriority] = useState('Normal');
   const [instructions, setInstructions] = useState('');
 
-  const valid = employee && team && assignedOn && expectedDelivery;
+  const valid = department && assignedOn && expectedDelivery;
   const newUsed = hoursSummary.used + (Number(allocatedHours) || 0);
   const wouldExceed = hoursSummary.total > 0 && newUsed > hoursSummary.total;
 
-  const onPickEmployee = (name) => {
-    setEmployee(name);
-    const emp = employees.find((e) => e.name === name);
-    if (emp) setTeam(`${emp.department} Team`);
-  };
-
   const submit = () => {
     if (!valid) return;
-    onAssign(service.id, { assignedTo: employee, assignedTeam: team, assignedOn, expectedDelivery, allocatedHours: Number(allocatedHours) || 0, priority, instructions });
+    onAssign(service.id, { assignedTo: department, assignedTeam: `${department} Team`, assignedOn, expectedDelivery, allocatedHours: Number(allocatedHours) || 0, priority, instructions });
   };
 
   const fieldCls = 'h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[13px] text-slate-700 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100';
@@ -290,17 +281,10 @@ function AssignModal({ order, service, assigner, hoursSummary, onClose, onAssign
         <div className="max-h-[55vh] overflow-y-auto px-6 py-5">
           <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
             <div>
-              <label htmlFor="asn-employee" className="mb-1 block text-[12px] font-medium text-slate-600">Assign To <span className="text-red-400">*</span></label>
-              <select id="asn-employee" value={employee} onChange={(e) => onPickEmployee(e.target.value)} className={fieldCls}>
-                <option value="">Select Employee</option>
-                {employees.map((e) => <option key={e.name} value={e.name}>{e.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="asn-team" className="mb-1 block text-[12px] font-medium text-slate-600">Assigned Team <span className="text-red-400">*</span></label>
-              <select id="asn-team" value={team} onChange={(e) => setTeam(e.target.value)} className={fieldCls}>
-                <option value="">Select Team</option>
-                {departments.map((d) => <option key={d} value={`${d} Team`}>{d} Team</option>)}
+              <label htmlFor="asn-department" className="mb-1 block text-[12px] font-medium text-slate-600">Assign To <span className="text-red-400">*</span></label>
+              <select id="asn-department" value={department} onChange={(e) => setDepartment(e.target.value)} className={fieldCls}>
+                <option value="">Select Department</option>
+                {departments.map((d) => <option key={d} value={d}>{d}</option>)}
               </select>
             </div>
             <div>
