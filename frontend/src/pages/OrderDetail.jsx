@@ -911,6 +911,7 @@ function OrderDetail() {
       });
   }, [orderServices, ptds, assignments, catalog, orderId]);
   const [showForm, setShowForm] = useState(false);
+  const [addingService, setAddingService] = useState(false);
   const [form, setForm] = useState({ name: '', deliveryDate: '' });
   const [ptdService, setPtdService] = useState(null);
   const [assignService, setAssignService] = useState(null);
@@ -940,10 +941,11 @@ function OrderDetail() {
 
   const addService = async (e) => {
     e.preventDefault();
-    if (!form.name) return;
+    if (!form.name || addingService) return;
+    setAddingService(true);
     const cat = catalog.find((c) => c.name === form.name);
     const orderPk = await ensureLocalOrder(order.orderId);
-    if (!orderPk) return;
+    if (!orderPk) { setAddingService(false); return; }
     const res = await addOrderService({
       serviceName: form.name,
       quantity: 1,
@@ -955,6 +957,7 @@ function OrderDetail() {
     if (res?.ok) {
       createOrSyncDelivery({ orderId: order.orderId, customer: order.customer, serviceName: form.name, expectedDeliveryDate: form.deliveryDate });
     }
+    setAddingService(false);
     setShowForm(false);
     const next = catalog[0];
     if (next) {
@@ -1216,8 +1219,16 @@ function OrderDetail() {
                   <button type="button" onClick={() => setShowForm(false)} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[13px] font-medium text-slate-600 transition-colors hover:bg-slate-50">
                     Cancel
                   </button>
-                  <button type="submit" className="rounded-lg bg-emerald-600 px-3 py-1.5 text-[13px] font-semibold text-white transition-colors hover:bg-emerald-500">
-                    Add Service
+                  <button type="submit" disabled={addingService} className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-1.5 text-[13px] font-semibold text-white transition-colors hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60">
+                    {addingService ? (
+                      <>
+                        <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4z" />
+                        </svg>
+                        Adding..
+                      </>
+                    ) : 'Add Service'}
                   </button>
                 </div>
               </div>
