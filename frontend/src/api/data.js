@@ -60,6 +60,7 @@ export const getInvoice = (id) => client.get(`/invoices/invoices/${id}/`).then(r
 export const createInvoice = (data) => client.post('/invoices/invoices/', data).then(r => r.data)
 export const updateInvoice = (id, data) => client.patch(`/invoices/invoices/${id}/`, data).then(r => r.data)
 export const deleteInvoice = (id) => client.delete(`/invoices/invoices/${id}/`)
+export const sendInvoice = (id, data) => client.post(`/invoices/invoices/${id}/send/`, data).then(r => r.data)
 
 export const getMasters = (type) => {
   const unwrap = (r) => (r.data?.results ?? r.data);

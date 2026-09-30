@@ -6,9 +6,12 @@ if pymysql.version_info < (2, 2, 1):
 from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+env = os.getenv("ENV", "prod")
+print(f"Loading settings for environment: {env}")
+load_dotenv(BASE_DIR.parent / f".env.{env}")
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-apseb*=qkk(ui0)y)g#l$q4dh3nq_cs#pzv(1(03o9g66!l^)!')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
@@ -167,6 +170,29 @@ EXTERNAL_ORDERS_API_URL = os.getenv('EXTERNAL_ORDERS_API_URL', '')
 EXTERNAL_ORDERS_API_KEY = os.getenv('EXTERNAL_ORDERS_API_KEY', '')
 EXTERNAL_ORDERS_API_TIMEOUT = int(os.getenv('EXTERNAL_ORDERS_API_TIMEOUT', '15'))
 
+# --- Email (invoice sending) ---
+# Django's MAILERS setting. When EMAIL_HOST is empty the console backend is
+# used (dev prints emails to the server console instead of delivering).
+# Configure EMAIL_HOST et al. in .env to deliver real mail via SMTP.
+_EMAIL_HOST = os.getenv('EMAIL_HOST', '')
+if _EMAIL_HOST:
+    _MAILER_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    _MAILER_OPTIONS = {
+        'host': _EMAIL_HOST,
+        'port': int(os.getenv('EMAIL_PORT', '587')),
+        'username': os.getenv('EMAIL_HOST_USER', ''),
+        'password': os.getenv('EMAIL_HOST_PASSWORD', ''),
+        'use_tls': os.getenv('EMAIL_USE_TLS', 'True') == 'True',
+        'use_ssl': os.getenv('EMAIL_USE_SSL', 'False') == 'True',
+    }
+else:
+    _MAILER_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+    _MAILER_OPTIONS = {}
+
 MAILERS = {
-    'default': {'BACKEND': 'django.core.mail.backends.console.EmailBackend'},
+    'default': {
+        'BACKEND': _MAILER_BACKEND,
+        'OPTIONS': _MAILER_OPTIONS,
+    },
 }
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'info@programers.in')

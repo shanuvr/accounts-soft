@@ -16,7 +16,7 @@ class Invoice(models.Model):
     tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     status = models.CharField(max_length=20, default='Draft')
-    sent_at = models.DateField(null=True, blank=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
     notes = models.TextField(blank=True)
     auto = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

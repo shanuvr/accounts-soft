@@ -143,6 +143,19 @@ export async function markInvoiceSent(id, date) {
   return res.ok ? res.record : null;
 }
 
+export async function sendInvoiceEmail(invoiceId, { recipient }) {
+  const target = store.all().find((i) => i.invoiceId === invoiceId);
+  if (!target) return { ok: false, message: 'Invoice not found' };
+  try {
+    const record = await api.sendInvoice(target.id, { recipient });
+    await store.load();
+    return { ok: true, record };
+  } catch (err) {
+    const message = err?.response?.data?.detail || err?.message || 'Could not send the invoice';
+    return { ok: false, message };
+  }
+}
+
 export async function removeInvoice(id) {
   const target = store.all().find((i) => i.invoiceId === id);
   if (!target) return;
