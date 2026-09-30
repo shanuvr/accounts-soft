@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../store/authStore';
+import { useAuth, logout } from '../store/authStore';
 import { useUi, setMastersOpen } from '../store/uiStore';
 
 const stroke = { stroke: 'currentColor', strokeWidth: 1.7, fill: 'none', strokeLinecap: 'round', strokeLinejoin: 'round' };
@@ -509,7 +509,15 @@ function Sidebar({ active = 'dashboard', mobileOpen = false, onClose }) {
             <div className="min-w-0 flex-1">
               <p className="truncate text-[13px] font-medium text-slate-800">{user.name}</p>
             </div>
-            <button type="button" className="text-slate-400 transition-colors hover:text-slate-600" aria-label="Sign out">
+            <button
+              type="button"
+              onClick={() => {
+                logout();
+                navigate('/');
+              }}
+              className="text-slate-400 transition-colors hover:text-slate-600"
+              aria-label="Sign out"
+            >
               {I.logout}
             </button>
           </div>
