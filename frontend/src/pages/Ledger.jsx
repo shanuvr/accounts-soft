@@ -3,7 +3,8 @@ import { useSearchParams } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
 import Layout from '../layouts/Layout';
 import { useLedger, withRunningBalance } from '../store/ledgerStore';
-import { CUSTOMERS, fmtINR, fmtDate } from '../data/mockData';
+import { useCustomers } from '../store/customerStore';
+import { fmtINR, fmtDate } from '../data/mockData';
 
 const BOOK_BADGE = {
   Bank: 'border-sky-200 bg-sky-50 text-sky-700',
@@ -151,6 +152,7 @@ function CustomerFilter({ value, options, onChange }) {
 
 function Ledger() {
   const { entries, register } = useLedger();
+  const customers = useCustomers();
   const [searchParams, setSearchParams] = useSearchParams();
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -192,7 +194,7 @@ function Ledger() {
   );
 
   const customerSummary = isCustomerScoped ? register.find((r) => r.customer === customer) : null;
-  const customerInfo = isCustomerScoped ? CUSTOMERS.find((c) => c.name === customer) : null;
+  const customerInfo = isCustomerScoped ? customers.find((c) => c.name === customer) : null;
 
   const totals = useMemo(
     () => ({
