@@ -7,8 +7,8 @@ import Customers from './pages/Customers'
 import CustomerDetail from './pages/CustomerDetail'
 import PtdList from './pages/PtdList'
 import PtdDetail from './pages/PtdDetail'
-import AssignmentList from './pages/AssignmentList'
-import AssignmentDetail from './pages/AssignmentDetail'
+{/* import AssignmentList from './pages/AssignmentList'
+import AssignmentDetail from './pages/AssignmentDetail' */}
 import DeliveryList from './pages/DeliveryList'
 import DeliveryDetail from './pages/DeliveryDetail'
 import ProductsServices from './pages/ProductsServices'
@@ -72,8 +72,8 @@ function App() {
       <Route path="/department-master" element={<DepartmentMaster />} />
       <Route path="/ptd" element={<PtdList />} />
       <Route path="/ptd/:ptdId" element={<PtdDetail />} />
-      <Route path="/assignments" element={<AssignmentList />} />
-      <Route path="/assignments/:assignmentId" element={<AssignmentDetail />} />
+      {/* <Route path="/assignments" element={<AssignmentList />} />
+      <Route path="/assignments/:assignmentId" element={<AssignmentDetail />} /> */}
       <Route path="/delivery" element={<DeliveryList />} />
       <Route path="/delivery/:deliveryId" element={<DeliveryDetail />} />
       <Route path="/payments" element={<Payments />} />

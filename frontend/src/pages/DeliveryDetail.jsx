@@ -159,11 +159,11 @@ function DeliveryDetail() {
                 No assignment yet for this service.
               </div>
             )}
-            {assignment && (
+            {/* {assignment && (
               <button type="button" onClick={() => navigate(`/assignments/${assignment.id}`)} className="mt-4 text-[12px] font-medium text-emerald-600 hover:underline">
                 Open Assignment →
               </button>
-            )}
+            )} */}
           </Card>
         </div>
       </div>

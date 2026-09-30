@@ -39,12 +39,12 @@ const I = {
       <path d="M14 2v6h6M9 13h6M9 17h6" />
     </svg>
   ),
-  assignments: (
+  /* assignments: (
     <svg viewBox="0 0 24 24" {...stroke} className="h-[18px] w-[18px]">
       <rect x="3" y="4" width="18" height="16" rx="2.5" />
       <path d="M9 4V3h6v1M8 12l2.5 2.5L16 9" />
     </svg>
-  ),
+  ), */
   delivery: (
     <svg viewBox="0 0 24 24" {...stroke} className="h-[18px] w-[18px]">
       <path d="M3 6h11v10H3z" />
@@ -145,7 +145,7 @@ const MAIN_NAV = [
   { id: 'orders', label: 'Orders', icon: 'orders' },
   { id: 'ptd', label: 'PTD', icon: 'ptd' },
   { id: 'customers', label: 'Customers', icon: 'customers' },
-  { id: 'assignments', label: 'Assignments', icon: 'assignments' },
+  // { id: 'assignments', label: 'Assignments', icon: 'assignments' },
   { id: 'delivery', label: 'Delivery Tracking', icon: 'delivery' },
   { id: 'invoices', label: 'Invoices', icon: 'invoices' },
   { id: 'payments', label: 'Receipts', icon: 'payments' },
@@ -158,7 +158,7 @@ const PATHS = {
   orders: '/orders',
   customers: '/customers',
   ptd: '/ptd',
-  assignments: '/assignments',
+  // assignments: '/assignments',
   delivery: '/delivery',
   payments: '/payments',
   ledger: '/ledger',

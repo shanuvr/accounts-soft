@@ -1280,7 +1280,7 @@ function OrderDetail() {
                       )}
                     </div>
 
-                    {s.assignment ? (
+                    {/* {s.assignment ? (
                       <button
                         type="button"
                         onClick={() => navigate(`/assignments/${s.assignment.id}`)}
@@ -1292,7 +1292,9 @@ function OrderDetail() {
                         </svg>
                         View Assignment
                       </button>
-                    ) : ((!s.ptdRequired || s.ptdStatus === 'Completed') && (
+                    ) : ( */}
+
+                    {!s.assignment && (!s.ptdRequired || s.ptdStatus === 'Completed') && (
                       <button
                         type="button"
                         onClick={() => setAssignService(s)}
@@ -1300,7 +1302,7 @@ function OrderDetail() {
                       >
                         Assign
                       </button>
-                    ))}
+                    )}
                   </div>
 
                   {s.assignment && (
