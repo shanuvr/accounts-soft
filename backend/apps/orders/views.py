@@ -1,10 +1,10 @@
-from rest_framework import viewsets
+from rest_framework import status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from .models import Order, OrderService
 from .serializers import OrderSerializer, OrderServiceSerializer
-from .services import client as external_orders
+from .services import ExternalOrdersUnavailable, client as external_orders
 
 import time
 
@@ -38,7 +38,15 @@ class ExternalOrdersView(APIView):
         page = request.query_params.get('page', 1)
         page_size = request.query_params.get('page_size', 500)
         company = request.query_params.get('company', '')
-        envelope = external_orders.list_orders(page=page, page_size=page_size, company=company)
+        try:
+            envelope = external_orders.list_orders(page=page, page_size=page_size, company=company)
+        except ExternalOrdersUnavailable:
+            _external_cache['at'] = 0.0
+            _external_cache['data'] = None
+            return Response(
+                {'detail': 'External orders feed (Lead Soft) is unreachable. Please try again later.', 'count': 0, 'page': 1, 'page_size': 500, 'results': []},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
         _external_cache['at'] = now
         _external_cache['data'] = envelope
         return Response(envelope)

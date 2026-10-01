@@ -13,6 +13,7 @@ function classifyError(err) {
 export function createApiStore({ fetchList, mapRecord = (r) => r }) {
   let raw = [];
   let records = [];
+  let status = {};
   let loaded = false;
   let loadError = false;
   let loadingPromise = null;
@@ -26,15 +27,18 @@ export function createApiStore({ fetchList, mapRecord = (r) => r }) {
     if (!loadingPromise) {
       loadingPromise = Promise.resolve()
         .then(() => fetchList())
-        .then((list) => {
+        .then((result) => {
+          const list = result && !Array.isArray(result) && Array.isArray(result.list) ? result.list : result;
           raw = Array.isArray(list) ? list : [];
           records = raw.map(mapRecord);
           loadError = false;
+          status = result && !Array.isArray(result) && result.status ? result.status : { failed: false };
         })
-        .catch(() => {
+        .catch((err) => {
           raw = [];
           records = [];
           loadError = true;
+          status = err?.status ?? { failed: true };
         })
         .then(() => {
           loaded = true;
@@ -57,6 +61,10 @@ export function createApiStore({ fetchList, mapRecord = (r) => r }) {
 
   function getLoadErrorSnapshot() {
     return loadError;
+  }
+
+  function getStatusSnapshot() {
+    return status;
   }
 
   function subscribe(cb) {
@@ -83,6 +91,13 @@ export function createApiStore({ fetchList, mapRecord = (r) => r }) {
       load();
     }, []);
     return useSyncExternalStore(subscribe, getLoadErrorSnapshot);
+  }
+
+  function useStatus() {
+    useEffect(() => {
+      load();
+    }, []);
+    return useSyncExternalStore(subscribe, getStatusSnapshot);
   }
 
   function findAll(predicate) {
@@ -113,6 +128,7 @@ export function createApiStore({ fetchList, mapRecord = (r) => r }) {
     useItems,
     useIsLoaded,
     useLoadError,
+    useStatus,
     load,
     getSnapshot,
     subscribe,

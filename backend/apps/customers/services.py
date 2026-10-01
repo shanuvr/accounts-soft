@@ -65,7 +65,7 @@ class SystemSoftClient:
             logger.warning(
                 'LEAD_SOFT_API_URL is not set; skipping %s %s request.', method, resource
             )
-            return [] if pk is None else None
+            raise SystemSoftUnavailable('SystemSoft / Lead Soft API is not configured (LEAD_SOFT_API_URL).')
 
         path = RESOURCE_ENDPOINTS[resource]
         if pk is not None:

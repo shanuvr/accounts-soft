@@ -8,7 +8,7 @@ import { usePayments, getOrderPaymentSummary } from '../store/paymentStore';
 import { useOrderServices } from '../store/orderServiceStore';
 import { usePtds } from '../store/ptdStore';
 import { useAssignments } from '../store/assignmentStore';
-import { useCustomers } from '../store/customerStore';
+import { useCustomers, useCustomersError } from '../store/customerStore';
 
 const STATUS_COLORS = {
   Active: 'border-emerald-200 bg-emerald-50 text-emerald-700',
@@ -73,6 +73,7 @@ function CustomerDetail() {
   const ptds = usePtds();
   const assignments = useAssignments();
   const liveCustomers = useCustomers();
+  const customersError = useCustomersError();
 
   const customer = useMemo(
     () => liveCustomers.find((c) => c.customerId === customerId),
@@ -144,6 +145,16 @@ function CustomerDetail() {
   };
 
   if (!customer || !data) {
+    if (customersError) {
+      return (
+        <Layout active="customers">
+          <div className="p-6 text-[13px] font-medium text-red-700">
+            Error fetching data — couldn&apos;t load customers from the shared system. Please try again later.
+            <button type="button" onClick={() => navigate('/customers')} className="ml-2 text-emerald-600 hover:underline">Back to customers</button>
+          </div>
+        </Layout>
+      );
+    }
     return (
       <Layout active="customers">
         <div className="p-6 text-[13px] text-slate-500">Customer not found. <button type="button" onClick={() => navigate('/customers')} className="text-emerald-600 hover:underline">Back to customers</button></div>

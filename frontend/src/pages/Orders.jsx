@@ -4,7 +4,7 @@ import Layout from '../layouts/Layout';
 import { fmtINR, fmtDate } from '../data/mockData';
 import { ORDER_STATUSES, ORDER_STATUS_COLORS, isActiveOrder } from '../data/orderStatus';
 import { usePtds } from '../store/ptdStore';
-import { useOrders, addOrder } from '../store/orderStore';
+import { useOrders, addOrder, useOrdersError, useOrdersStatus } from '../store/orderStore';
 import { usePayments, getOrderPaymentSummary } from '../store/paymentStore';
 import { useEmployees } from '../store/employeeStore';
 
@@ -155,6 +155,8 @@ function Orders() {
   const navigate = useNavigate();
   const ptds = usePtds();
   const orders = useOrders();
+  const ordersError = useOrdersError();
+  const ordersStatus = useOrdersStatus();
   usePayments();
   const paymentStatusFor = (o) => getOrderPaymentSummary(o.orderId).status;
   const [search, setSearch] = useState('');
@@ -252,6 +254,22 @@ function Orders() {
           New Order
         </button>
       </div>
+
+      {ordersError && (
+        <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-[13px] font-medium text-red-700">
+          Error fetching data — couldn&apos;t load orders. Please try again later.
+        </div>
+      )}
+      {!ordersError && ordersStatus.external === false && (
+        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-[13px] font-medium text-amber-700">
+          Couldn&apos;t fetch some orders from the Leads system — showing only this system&apos;s orders.
+        </div>
+      )}
+      {!ordersError && ordersStatus.local === false && (
+        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-[13px] font-medium text-amber-700">
+          Couldn&apos;t fetch some local orders — showing only the Leads system&apos;s orders.
+        </div>
+      )}
 
       {/* Summary cards */}
       <div className="mt-4 grid grid-cols-3 gap-2 lg:grid-cols-5">
@@ -366,7 +384,11 @@ function Orders() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan="12" className="px-4 py-12 text-center text-sm text-slate-400">No orders match your filters.</td>
+                  <td colSpan="12" className="px-4 py-12 text-center text-sm text-slate-400">
+                    {ordersError
+                      ? "Couldn't fetch orders — please try again later."
+                      : 'No orders match your filters.'}
+                  </td>
                 </tr>
               )}
             </tbody>

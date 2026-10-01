@@ -75,6 +75,12 @@ function Customers() {
           </div>
         </div>
 
+        {customersError && (
+          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-[13px] font-medium text-red-700">
+            Error fetching data — couldn&apos;t load customers from the shared system. Please try again later.
+          </div>
+        )}
+
         {/* Summary strip */}
         <div className="mb-4 grid grid-cols-3 gap-2">
           <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5">

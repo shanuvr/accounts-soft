@@ -22,21 +22,26 @@ function mapRecord(r) {
 }
 
 async function fetchAllOrders() {
-  const safe = (p) => Promise.resolve(p).catch(() => []);
-  const [local, external] = await Promise.all([
-    safe(api.getLocalOrders()),
-    safe(api.getExternalOrders()),
+  const [local, external] = await Promise.allSettled([
+    api.getLocalOrders(),
+    api.getExternalOrders(),
   ]);
+  const localOk = local.status === 'fulfilled';
+  const externalOk = external.status === 'fulfilled';
+  const batchOf = (r) => (r.status === 'fulfilled' ? r.value : []);
   const seen = new Set();
   const merged = [];
-  for (const batch of [local, external]) {
+  for (const batch of [batchOf(local), batchOf(external)]) {
     for (const r of batch) {
       if (!r || seen.has(r.order_id)) continue;
       seen.add(r.order_id);
       merged.push(r);
     }
   }
-  return merged;
+  if (!localOk && !externalOk) {
+    throw Object.assign(new Error('Could not fetch orders.'), { status: { failed: true } });
+  }
+  return { list: merged, status: { failed: false, local: localOk, external: externalOk } };
 }
 
 const store = createApiStore({
@@ -50,6 +55,14 @@ export function useOrders() {
 
 export function useOrdersLoaded() {
   return store.useIsLoaded();
+}
+
+export function useOrdersError() {
+  return store.useLoadError();
+}
+
+export function useOrdersStatus() {
+  return store.useStatus();
 }
 
 export function getAllOrders() {

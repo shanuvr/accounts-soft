@@ -4,8 +4,9 @@ Account Soft does not own the confirmed orders — they live in the Lead Soft
 suite and are consumed through its external API (GET /api/external/orders/).
 This mirrors the SystemSoft client in ``customers.services``: the base URL and
 shared API key come from ``EXTERNAL_ORDERS_API_URL`` and
-``EXTERNAL_ORDERS_API_KEY`` in .env, and when either is unset the feed returns
-empty results.
+``EXTERNAL_ORDERS_API_KEY`` in .env. When the feed cannot be fetched the client
+raises ``ExternalOrdersUnavailable`` so views can surface a clear error instead
+of silently returning an empty result that looks like a genuine no-orders case.
 """
 import json
 import logging
@@ -17,7 +18,13 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-EMPTY_ENVELOPE = {'count': 0, 'page': 1, 'page_size': 500, 'results': []}
+
+class ExternalOrdersUnavailable(Exception):
+    """Raised when the Lead Soft external orders feed cannot be fetched.
+
+    Lets views report a clear 5xx to the frontend instead of silently returning
+    an empty envelope that looks like a genuine no-orders case.
+    """
 
 
 class ExternalOrdersClient:
@@ -34,9 +41,9 @@ class ExternalOrdersClient:
     def list_orders(self, page=1, page_size=500, company=''):
         if not self.is_configured():
             logger.warning(
-                'EXTERNAL_ORDERS_API_URL / EXTERNAL_ORDERS_API_KEY are not set; returning empty orders feed.'
+                'EXTERNAL_ORDERS_API_URL / EXTERNAL_ORDERS_API_KEY are not set; skipping external orders feed.'
             )
-            return dict(EMPTY_ENVELOPE)
+            raise ExternalOrdersUnavailable('External orders feed is not configured.')
 
         params = {'page': page, 'page_size': page_size}
         if company:
@@ -53,21 +60,21 @@ class ExternalOrdersClient:
                 raw = response.read()
         except urllib.error.URLError as exc:
             logger.error('External orders feed %s failed: %s', url, exc)
-            return dict(EMPTY_ENVELOPE)
-        except Exception as exc:  # noqa: BLE001 - keep the feed resilient
+            raise ExternalOrdersUnavailable from exc
+        except Exception as exc:  # noqa: BLE001 - raise a surfaced error instead of acting like no orders exist
             logger.error('External orders feed %s errored: %s', url, exc)
-            return dict(EMPTY_ENVELOPE)
+            raise ExternalOrdersUnavailable from exc
 
         if not raw:
-            return dict(EMPTY_ENVELOPE)
+            raise ExternalOrdersUnavailable('External orders feed returned an empty body.')
         try:
             envelope = json.loads(raw.decode('utf-8'))
         except ValueError:
             logger.error('External orders feed %s returned invalid JSON.', url)
-            return dict(EMPTY_ENVELOPE)
+            raise ExternalOrdersUnavailable
         if isinstance(envelope, dict) and isinstance(envelope.get('results'), list):
             return envelope
-        return dict(EMPTY_ENVELOPE)
+        raise ExternalOrdersUnavailable('External orders feed returned an unexpected payload.')
 
 
 client = ExternalOrdersClient()
