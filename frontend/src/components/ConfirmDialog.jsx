@@ -1,4 +1,18 @@
+import { useEffect } from 'react';
+
 function ConfirmDialog({ open, title, message, confirmLabel = 'Confirm', destructive = false, onConfirm, onCancel }) {
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        onConfirm();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [open, onConfirm]);
+
   if (!open) return null;
 
   return (
