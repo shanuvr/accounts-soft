@@ -9,7 +9,8 @@ import {
   deleteRenewable,
   getRenewalStatus,
 } from '../store/renewableStore';
-import { CUSTOMERS, fmtINR, fmtDate } from '../data/mockData';
+import { fmtINR, fmtDate } from '../data/mockData';
+import { useCustomers } from '../store/customerStore';
 import ConfirmDialog from '../components/ConfirmDialog';
 
 const STATUS_COLORS = {
@@ -35,7 +36,7 @@ function Badge({ status, map }) {
   );
 }
 
-function AddRenewalModal({ onClose, onSave }) {
+function AddRenewalModal({ onClose, onSave, customers }) {
   const [type, setType] = useState('Domain');
   const [name, setName] = useState('');
   const [customer, setCustomer] = useState('');
@@ -77,7 +78,7 @@ function AddRenewalModal({ onClose, onSave }) {
               <label htmlFor="rnw-customer" className="mb-1 block text-[12px] font-medium text-slate-600">Customer</label>
               <select id="rnw-customer" value={customer} onChange={(e) => setCustomer(e.target.value)} className={fieldCls}>
                 <option value="">—</option>
-                {CUSTOMERS.map((c) => <option key={c.customerId} value={c.name}>{c.name}</option>)}
+                {customers.map((c) => <option key={c.customerId} value={c.name}>{c.name}</option>)}
               </select>
             </div>
             <div className="sm:col-span-2">
@@ -173,6 +174,7 @@ function RenewModal({ record, onClose, onSave }) {
 
 function Renewals() {
   const records = useRenewables();
+  const customers = useCustomers();
   const [filter, setFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [calledFilter, setCalledFilter] = useState('');
@@ -196,13 +198,13 @@ function Renewals() {
   const expiringSoon = withStatus.filter((r) => r.status.key === 'Expiring Soon').length;
   const overdue = withStatus.filter((r) => r.status.key === 'Overdue').length;
 
-  const save = (payload) => {
-    const res = addRenewable(payload);
+  const save = async (payload) => {
+    const res = await addRenewable(payload);
     if (res.ok) setModalOpen(false);
   };
 
-  const handleRenew = (payload) => {
-    const res = renewRenewable(renewing.id, payload);
+  const handleRenew = async (payload) => {
+    const res = await renewRenewable(renewing.id, payload);
     if (res.ok) setRenewing(null);
   };
 
@@ -212,8 +214,8 @@ function Renewals() {
       message: `You have contacted the customer about "${r.name}". Mark it as called so the renewal is recorded as notified?`,
       confirmLabel: 'Mark as Called',
       destructive: false,
-      onConfirm: () => {
-        markRenewableNotified(r.id);
+      onConfirm: async () => {
+        await markRenewableNotified(r.id);
         setConfirm(null);
       },
     });
@@ -225,8 +227,8 @@ function Renewals() {
       message: `This will permanently remove "${r.name}" from the renewals list. This action cannot be undone.`,
       confirmLabel: 'Delete',
       destructive: true,
-      onConfirm: () => {
-        deleteRenewable(r.id);
+      onConfirm: async () => {
+        await deleteRenewable(r.id);
         setConfirm(null);
       },
     });
@@ -411,7 +413,7 @@ function Renewals() {
         </div>
       </div>
 
-      {modalOpen && <AddRenewalModal onClose={() => setModalOpen(false)} onSave={save} />}
+      {modalOpen && <AddRenewalModal onClose={() => setModalOpen(false)} onSave={save} customers={customers} />}
       {renewing && <RenewModal record={renewing} onClose={() => setRenewing(null)} onSave={handleRenew} />}
       <ConfirmDialog open={Boolean(confirm)} title={confirm?.title} message={confirm?.message} confirmLabel={confirm?.confirmLabel} destructive={confirm?.destructive} onConfirm={confirm?.onConfirm} onCancel={() => setConfirm(null)} />
     </Layout>

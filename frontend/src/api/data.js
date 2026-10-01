@@ -62,6 +62,12 @@ export const updateInvoice = (id, data) => client.patch(`/invoices/invoices/${id
 export const deleteInvoice = (id) => client.delete(`/invoices/invoices/${id}/`)
 export const sendInvoice = (id, data) => client.post(`/invoices/invoices/${id}/send/`, data).then(r => r.data)
 
+// Renewals -------------------------------------------------------------------
+export const getRenewals = () => client.get('/renewals/renewals/', { params: { page_size: 500 } }).then(unwrap)
+export const createRenewal = (data) => client.post('/renewals/renewals/', data).then(r => r.data)
+export const updateRenewal = (id, data) => client.patch(`/renewals/renewals/${id}/`, data).then(r => r.data)
+export const deleteRenewal = (id) => client.delete(`/renewals/renewals/${id}/`)
+
 export const getMasters = (type) => {
   const unwrap = (r) => (r.data?.results ?? r.data);
   const endpoints = {

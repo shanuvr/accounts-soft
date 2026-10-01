@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'deliveries',
     'payments',
     'invoices',
+    'renewals',
     'documents',
     'activity',
     'reports',
