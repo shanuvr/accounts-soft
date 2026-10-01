@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Layout from '../layouts/Layout';
+import Toast from '../components/Toast';
 import { useInvoices, getInvoiceById, saveInvoice, setInvoiceStatus, getInvoicePaymentSummary, getInvoiceStatus, sendInvoiceEmail } from '../store/invoiceStore';
 import { usePayments, createPayment } from '../store/paymentStore';
 import { usePaymentMethods } from '../store/paymentMethodStore';
@@ -272,6 +273,7 @@ function InvoiceDetail() {
   const [paying, setPaying] = useState(false);
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState('');
+  const [toast, setToast] = useState(null);
 
   const invoice = getInvoiceById(invoiceId);
 
@@ -295,12 +297,22 @@ function InvoiceDetail() {
   };
 
   const save = async (patch) => {
-    await saveInvoice({ ...invoice, ...patch });
+    const res = await saveInvoice({ ...invoice, ...patch });
+    setToast(
+      res && res.ok === false
+        ? { type: 'error', message: 'Could not save the invoice.' }
+        : { type: 'success', message: 'Invoice updated.' }
+    );
     setEditing(false);
   };
 
-  const recordPayment = (payload) => {
-    createPayment({ orderId: invoice.orderId, customer: invoice.customer, ...payload, invoiceId: invoice.invoiceId });
+  const recordPayment = async (payload) => {
+    const res = await createPayment({ orderId: invoice.orderId, customer: invoice.customer, ...payload, invoiceId: invoice.invoiceId });
+    setToast(
+      res && res.ok === false
+        ? { type: 'error', message: 'Could not record the payment.' }
+        : { type: 'success', message: `Payment of ${fmtINR(payload.amount)} recorded.` }
+    );
     setPaying(false);
   };
 
@@ -315,15 +327,23 @@ function InvoiceDetail() {
       const res = await sendInvoiceEmail(invoice.invoiceId, { recipient });
       if (!res.ok) throw new Error(res.message);
     } catch (err) {
-      setSendError(err.message || 'Could not email the invoice. Check the SMTP settings.');
+      const msg = err.message || 'Could not email the invoice. Check the SMTP settings.';
+      setSendError(msg);
+      setToast({ type: 'error', message: msg });
       setSending(false);
       return;
     }
+    setToast({ type: 'success', message: `Invoice emailed to ${recipient}.` });
     setSending(false);
   };
 
   const issue = async () => {
-    await setInvoiceStatus(invoice.invoiceId, 'Issued');
+    const rec = await setInvoiceStatus(invoice.invoiceId, 'Issued');
+    setToast(
+      rec
+        ? { type: 'success', message: `${invoice.invoiceId} marked as issued.` }
+        : { type: 'error', message: 'Could not issue the invoice.' }
+    );
   };
 
   return (
@@ -559,6 +579,7 @@ function InvoiceDetail() {
 
       {editing && <EditModal invoice={invoice} onClose={() => setEditing(false)} onSave={save} />}
       {paying && <RecordPayment invoice={invoice} user={user} onClose={() => setPaying(false)} onRecord={recordPayment} />}
+      <Toast toast={toast} onClose={() => setToast(null)} />
     </Layout>
   );
 }

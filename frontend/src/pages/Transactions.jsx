@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { jsPDF } from 'jspdf';
 import Layout from '../layouts/Layout';
+import Toast from '../components/Toast';
 import { useTransactions, addTransaction, deleteTransaction } from '../store/transactionStore';
 import { useCategories, useSubcategories } from '../store/categorySubcategoryStore';
 import { useIncomeHeads, useExpenseHeads } from '../store/transactionHeadStore';
@@ -52,6 +53,7 @@ function Transactions() {
   const [search, setSearch] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [toast, setToast] = useState(null);
 
   const filtered = useMemo(() => {
     return transactions.filter((t) => {
@@ -109,13 +111,13 @@ function Transactions() {
     if (paymentMethod === 'Both') {
       finalAmount = (Number(cashAmount) || 0) + (Number(bankAmount) || 0);
       if (finalAmount <= 0) {
-        alert('Please enter a valid Cash Amount or Bank Amount.');
+        setToast({ type: 'error', message: 'Please enter a valid Cash Amount or Bank Amount.' });
         return;
       }
     } else {
       finalAmount = Number(amount);
       if (!amount || finalAmount <= 0) {
-        alert('Please enter a valid transaction amount.');
+        setToast({ type: 'error', message: 'Please enter a valid transaction amount.' });
         return;
       }
     }
@@ -135,10 +137,20 @@ function Transactions() {
       description,
     });
     if (!res.ok) {
-      alert('Failed to save the transaction. Please try again.');
+      setToast({ type: 'error', message: 'Failed to save the transaction. Please try again.' });
       return;
     }
+    setToast({ type: 'success', message: `${txType} transaction of ${fmtINR(finalAmount)} saved.` });
     handleResetForm();
+  };
+
+  const remove = async (t) => {
+    const res = await deleteTransaction(t.id);
+    if (res && res.ok === false) {
+      setToast({ type: 'error', message: 'Could not delete the transaction.' });
+    } else {
+      setToast({ type: 'success', message: 'Transaction deleted.' });
+    }
   };
 
   const downloadPdf = async () => {
@@ -784,7 +796,7 @@ function Transactions() {
                         <td className="whitespace-nowrap px-4 py-3 text-center">
                           <button
                             type="button"
-                            onClick={() => deleteTransaction(t.id)}
+                            onClick={() => remove(t)}
                             className="rounded p-1 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
                             title="Delete entry"
                           >
@@ -831,6 +843,7 @@ function Transactions() {
           </div>
         </div>
       </div>
+      <Toast toast={toast} onClose={() => setToast(null)} />
     </Layout>
   );
 }

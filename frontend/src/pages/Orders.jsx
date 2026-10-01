@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../layouts/Layout';
+import Toast from '../components/Toast';
 import { fmtINR, fmtDate } from '../data/mockData';
 import { ORDER_STATUSES, ORDER_STATUS_COLORS, isActiveOrder } from '../data/orderStatus';
 import { usePtds } from '../store/ptdStore';
@@ -42,7 +43,7 @@ function todayISO(offsetDays = 0) {
   return d.toISOString().slice(0, 10);
 }
 
-function NewOrderModal({ onClose }) {
+function NewOrderModal({ onClose, onNotify }) {
   const employees = useEmployees();
   const [form, setForm] = useState({
     customer: '',
@@ -57,9 +58,15 @@ function NewOrderModal({ onClose }) {
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const valid = form.customer && Number(form.value) > 0 && form.orderDate && form.deliveryDate && form.salesPerson;
 
-  const submit = () => {
+  const submit = async () => {
     if (!valid) return;
-    addOrder(form).then(() => onClose());
+    const res = await addOrder(form);
+    if (res && res.ok === false) {
+      onNotify({ type: 'error', message: 'Could not create the order. Please try again.' });
+      return;
+    }
+    onNotify({ type: 'success', message: `Order for ${form.customer} created.` });
+    onClose();
   };
 
   const fieldCls = 'h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-[13px] text-slate-700 placeholder:text-slate-400 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100';
@@ -167,6 +174,7 @@ function Orders() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
+  const [toast, setToast] = useState(null);
 
   const overduedOrders = orders.filter((o) => isActiveOrder(o.orderStatus) && new Date(o.deliveryDate) < new Date());
   const summary = [
@@ -404,7 +412,8 @@ function Orders() {
         </div>
       </div>
 
-      {modalOpen && <NewOrderModal onClose={() => setModalOpen(false)} />}
+      {modalOpen && <NewOrderModal onClose={() => setModalOpen(false)} onNotify={setToast} />}
+      <Toast toast={toast} onClose={() => setToast(null)} />
     </Layout>
   );
 }

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Layout from '../layouts/Layout';
+import Toast from '../components/Toast';
 import { fmtDate } from '../data/mockData';
 import { useDeliveries, getDeliveryById, markDelivered, updateDelivery } from '../store/deliveryStore';
 import { useDeliveryTypes } from '../store/deliveryTypeStore';
@@ -38,6 +39,7 @@ function DeliveryDetail() {
   const user = useAuth();
   const [marking, setMarking] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [toast, setToast] = useState(null);
 
   useDeliveries();
   const deliveryTypes = useDeliveryTypes();
@@ -81,8 +83,8 @@ function DeliveryDetail() {
     setEditing(true);
   };
 
-  const submitMark = () => {
-    markDelivered(delivery.id, {
+  const submitMark = async () => {
+    const res = await markDelivered(delivery.id, {
       actualDeliveryDate: form.actualDeliveryDate,
       deliveredBy: user?.name ?? 'Anita Desai',
       deliveredOn: todayStr,
@@ -90,11 +92,21 @@ function DeliveryDetail() {
       trackingNumber: form.trackingNumber,
       notes: form.notes,
     });
+    setToast(
+      res && res.ok === false
+        ? { type: 'error', message: 'Could not mark the delivery as delivered.' }
+        : { type: 'success', message: 'Delivery marked as delivered.' }
+    );
     setMarking(false);
   };
 
-  const submitEdit = () => {
-    updateDelivery(delivery.id, editForm);
+  const submitEdit = async () => {
+    const res = await updateDelivery(delivery.id, editForm);
+    setToast(
+      res && res.ok === false
+        ? { type: 'error', message: 'Could not update the delivery.' }
+        : { type: 'success', message: 'Delivery updated.' }
+    );
     setEditing(false);
   };
 
@@ -269,6 +281,7 @@ function DeliveryDetail() {
           </div>
         </div>
       )}
+      <Toast toast={toast} onClose={() => setToast(null)} />
     </Layout>
   );
 }

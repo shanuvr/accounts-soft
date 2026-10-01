@@ -19,6 +19,7 @@ import { useAuth } from '../store/authStore';
 import { useOrderHours, setOrderHours } from '../store/orderHoursStore';
 import PtdFields from '../components/PtdFields';
 import ConfirmDialog from '../components/ConfirmDialog';
+import Toast from '../components/Toast';
 
 const SERVICE_STATUS = {
   'Not Started': 'border-slate-200 bg-slate-100 text-slate-600',
@@ -928,6 +929,7 @@ function OrderDetail() {
   const [hoursInput, setHoursInput] = useState(String(hoursSummary.total || ''));
   const [invoiceModal, setInvoiceModal] = useState(false);
   const [confirm, setConfirm] = useState(null);
+  const [toast, setToast] = useState(null);
 
   const openForm = () => {
     const first = catalog[0];
@@ -946,7 +948,11 @@ function OrderDetail() {
     setAddingService(true);
     const cat = catalog.find((c) => c.name === form.name);
     const orderPk = await ensureLocalOrder(order.orderId);
-    if (!orderPk) { setAddingService(false); return; }
+    if (!orderPk) {
+      setAddingService(false);
+      setToast({ type: 'error', message: 'Could not create the service on this order.' });
+      return;
+    }
     const res = await addOrderService({
       serviceName: form.name,
       quantity: 1,
@@ -957,6 +963,9 @@ function OrderDetail() {
     }, orderPk);
     if (res?.ok) {
       createOrSyncDelivery({ orderId: order.orderId, customer: order.customer, serviceName: form.name, expectedDeliveryDate: form.deliveryDate });
+      setToast({ type: 'success', message: `${form.name} added to the order.` });
+    } else {
+      setToast({ type: 'error', message: 'Could not add the service to this order.' });
     }
     setAddingService(false);
     setShowForm(false);
@@ -982,7 +991,11 @@ function OrderDetail() {
       billable,
       price: billable ? Math.max(0, Number(price) || 0) : 0,
     });
-    if (!record) return;
+    if (!record) {
+      setToast({ type: 'error', message: 'Could not save the PTD. Please try again.' });
+      return;
+    }
+    setToast({ type: 'success', message: targetStatus === 'Completed' ? 'PTD saved.' : 'PTD draft saved.' });
     const next = services.map((s) =>
       s.id === serviceId
         ? { ...s, ptdStatus: targetStatus, price: billable ? record.price : 0, ptd: { id: record.id, status: targetStatus, data, billable, price: billable ? record.price : 0 } }
@@ -992,33 +1005,53 @@ function OrderDetail() {
     setPtdService(null);
   };
 
-  const assignServiceHandler = (serviceId, payload) => {
+  const assignServiceHandler = async (serviceId, payload) => {
     const svc = services.find((s) => s.id === serviceId);
     if (!svc) return;
-    createAssignment({
+    const res = await createAssignment({
       orderId: order.orderId,
       customer: order.customer,
       serviceName: svc.name,
       ...payload,
       assignedBy: user.name,
     });
+    setToast(
+      res && res.ok === false
+        ? { type: 'error', message: 'Could not assign the service.' }
+        : { type: 'success', message: `${svc.name} assigned.` }
+    );
     setAssignService(null);
   };
 
-  const recordPayment = (payload) => {
-    createPayment({ orderId: order.orderId, customer: order.customer, ...payload });
+  const recordPayment = async (payload) => {
+    const res = await createPayment({ orderId: order.orderId, customer: order.customer, ...payload });
+    setToast(
+      res && res.ok === false
+        ? { type: 'error', message: 'Could not record the payment.' }
+        : { type: 'success', message: `Payment of ${fmtINR(payload.amount)} recorded.` }
+    );
     setPayModal(false);
   };
 
-  const saveSchedule = (payload) => {
-    createPaymentPlan({ orderId: order.orderId, customer: order.customer, ...payload });
+  const saveSchedule = async (payload) => {
+    const plan = await createPaymentPlan({ orderId: order.orderId, customer: order.customer, ...payload });
+    setToast(
+      plan
+        ? { type: 'success', message: 'Payment schedule saved.' }
+        : { type: 'error', message: 'Could not save the payment schedule.' }
+    );
     setScheduleModal(false);
   };
 
   const generateInvoice = async (payload, status) => {
     const autoDraft = getAutoDraftFor(order.orderId);
     if (autoDraft) await removeInvoice(autoDraft.invoiceId);
-    await saveInvoice({ ...payload, status });
+    const res = await saveInvoice({ ...payload, status });
+    setToast(
+      res && res.ok === false
+        ? { type: 'error', message: 'Could not generate the invoice.' }
+        : { type: 'success', message: 'Invoice generated.' }
+    );
     setInvoiceModal(false);
   };
 
@@ -1081,10 +1114,15 @@ function OrderDetail() {
       confirmLabel: 'Delete',
       destructive: true,
       onConfirm: async () => {
-        deletePtdFor(order.orderId, s.name);
-        deleteAssignmentFor(order.orderId, s.name);
-        deleteDeliveryFor(order.orderId, s.name);
-        await removeOrderService(s.id);
+        await deletePtdFor(order.orderId, s.name);
+        await deleteAssignmentFor(order.orderId, s.name);
+        await deleteDeliveryFor(order.orderId, s.name);
+        const res = await removeOrderService(s.id);
+        setToast(
+          res && res.ok === false
+            ? { type: 'error', message: 'Could not delete the service.' }
+            : { type: 'success', message: `${s.name} removed from the order.` }
+        );
         setConfirm(null);
       },
     });
@@ -1146,7 +1184,7 @@ function OrderDetail() {
                     <input type="number" step="0.5" min="0" value={hoursInput} onChange={(e) => setHoursInput(e.target.value)} autoFocus className="h-9 w-28 rounded-lg border border-emerald-400 bg-white px-2.5 pr-9 text-[15px] font-semibold text-slate-800 outline-none ring-2 ring-emerald-100" />
                     <span className="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-[12px] text-slate-400">hrs</span>
                   </div>
-                  <button type="button" onClick={() => { setOrderHours(order.orderId, Number(hoursInput) || 0); setEditingHours(false); }} className="rounded-lg bg-emerald-600 px-3 py-2 text-[12.5px] font-semibold text-white hover:bg-emerald-500">Save</button>
+                  <button type="button" onClick={async () => { const res = await setOrderHours(order.orderId, Number(hoursInput) || 0); setToast(res && res.ok === false ? { type: 'error', message: 'Could not save project hours.' } : { type: 'success', message: 'Project hours saved.' }); setEditingHours(false); }} className="rounded-lg bg-emerald-600 px-3 py-2 text-[12.5px] font-semibold text-white hover:bg-emerald-500">Save</button>
                   <button type="button" onClick={() => { setHoursInput(String(hoursSummary.total || '')); setEditingHours(false); }} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-[12.5px] font-medium text-slate-500 hover:bg-slate-50">Cancel</button>
                 </div>
               ) : (
@@ -1654,6 +1692,7 @@ function OrderDetail() {
         onConfirm={confirm?.onConfirm}
         onCancel={() => setConfirm(null)}
       />
+      <Toast toast={toast} onClose={() => setToast(null)} />
     </Layout>
   );
 }

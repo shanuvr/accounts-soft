@@ -12,6 +12,7 @@ import {
 import { fmtINR, fmtDate } from '../data/mockData';
 import { useCustomers } from '../store/customerStore';
 import ConfirmDialog from '../components/ConfirmDialog';
+import Toast from '../components/Toast';
 
 const STATUS_COLORS = {
   Overdue: 'border-red-200 bg-red-50 text-red-700',
@@ -183,6 +184,7 @@ function Renewals() {
   const [modalOpen, setModalOpen] = useState(false);
   const [renewing, setRenewing] = useState(null);
   const [confirm, setConfirm] = useState(null);
+  const [toast, setToast] = useState(null);
 
   const withStatus = records.map((r) => ({ ...r, status: getRenewalStatus(r) }));
   const filtered = withStatus.filter((r) => {
@@ -200,12 +202,22 @@ function Renewals() {
 
   const save = async (payload) => {
     const res = await addRenewable(payload);
-    if (res.ok) setModalOpen(false);
+    if (res.ok) {
+      setToast({ type: 'success', message: `${payload.name} registered for renewal.` });
+      setModalOpen(false);
+    } else {
+      setToast({ type: 'error', message: 'Could not register the renewal. Please check the details.' });
+    }
   };
 
   const handleRenew = async (payload) => {
     const res = await renewRenewable(renewing.id, payload);
-    if (res.ok) setRenewing(null);
+    if (res.ok) {
+      setToast({ type: 'success', message: `${renewing.name} renewed.` });
+      setRenewing(null);
+    } else {
+      setToast({ type: 'error', message: 'Could not renew the item. Please try again.' });
+    }
   };
 
   const markCalled = (r) => {
@@ -215,7 +227,12 @@ function Renewals() {
       confirmLabel: 'Mark as Called',
       destructive: false,
       onConfirm: async () => {
-        await markRenewableNotified(r.id);
+        const res = await markRenewableNotified(r.id);
+        setToast(
+          res && res.ok === false
+            ? { type: 'error', message: 'Could not mark as called.' }
+            : { type: 'success', message: `${r.name} marked as called.` }
+        );
         setConfirm(null);
       },
     });
@@ -228,7 +245,12 @@ function Renewals() {
       confirmLabel: 'Delete',
       destructive: true,
       onConfirm: async () => {
-        await deleteRenewable(r.id);
+        const res = await deleteRenewable(r.id);
+        setToast(
+          res && res.ok === false
+            ? { type: 'error', message: 'Could not delete the renewal.' }
+            : { type: 'success', message: `${r.name} deleted.` }
+        );
         setConfirm(null);
       },
     });
@@ -416,6 +438,7 @@ function Renewals() {
       {modalOpen && <AddRenewalModal onClose={() => setModalOpen(false)} onSave={save} customers={customers} />}
       {renewing && <RenewModal record={renewing} onClose={() => setRenewing(null)} onSave={handleRenew} />}
       <ConfirmDialog open={Boolean(confirm)} title={confirm?.title} message={confirm?.message} confirmLabel={confirm?.confirmLabel} destructive={confirm?.destructive} onConfirm={confirm?.onConfirm} onCancel={() => setConfirm(null)} />
+      <Toast toast={toast} onClose={() => setToast(null)} />
     </Layout>
   );
 }

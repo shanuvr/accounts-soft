@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
 import Layout from '../layouts/Layout';
+import Toast from '../components/Toast';
 import { usePtds, getPtdById, createOrUpdatePtd } from '../store/ptdStore';
 import { useAssignments } from '../store/assignmentStore';
 import PtdFields from '../components/PtdFields';
@@ -44,6 +45,7 @@ function PtdDetail() {
   const [draft, setDraft] = useState(() => (record ? { ...record.data } : {}));
   const [billable, setBillable] = useState(record?.billable ?? true);
   const [price, setPrice] = useState(record?.price ?? 0);
+  const [toast, setToast] = useState(null);
 
   if (!record) {
     return (
@@ -82,8 +84,8 @@ function PtdDetail() {
     setEditing(true);
   };
 
-  const save = (targetStatus) => {
-    createOrUpdatePtd({
+  const save = async (targetStatus) => {
+    const saved = await createOrUpdatePtd({
       orderId: record.orderId,
       customer: record.customer,
       serviceName: record.serviceName,
@@ -93,6 +95,11 @@ function PtdDetail() {
       billable,
       price: billable ? Math.max(0, Number(price) || 0) : 0,
     });
+    setToast(
+      saved
+        ? { type: 'success', message: targetStatus === 'Completed' ? 'PTD saved.' : 'PTD draft saved.' }
+        : { type: 'error', message: 'Could not save the PTD. Please try again.' }
+    );
     setEditing(false);
   };
 
@@ -377,6 +384,7 @@ function PtdDetail() {
         </div>,
         document.body
       )}
+      <Toast toast={toast} onClose={() => setToast(null)} />
     </Layout>
   );
 }

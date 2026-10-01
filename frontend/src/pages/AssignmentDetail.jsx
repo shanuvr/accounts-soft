@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Layout from '../layouts/Layout';
+import Toast from '../components/Toast';
 import { useAssignments, createAssignment, reassignAssignment, ASSIGNMENT_STATUSES } from '../store/assignmentStore';
 import { getPtdFor } from '../store/ptdStore';
 import { useAuth } from '../store/authStore';
@@ -137,6 +138,7 @@ function AssignmentDetail() {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(null);
   const [reassigning, setReassigning] = useState(false);
+  const [toast, setToast] = useState(null);
 
   if (!assignment) {
     return (
@@ -174,14 +176,24 @@ function AssignmentDetail() {
     setDraft((d) => ({ ...d, assignedTo: name, assignedTeam: `${employees.find((e) => e.name === name)?.department ?? ''} Team`.trim() }));
   };
 
-  const save = () => {
+  const save = async () => {
     if (!draft.assignedTo || !draft.assignedTeam || !draft.assignedOn || !draft.expectedDelivery) return;
-    createAssignment({ orderId: assignment.orderId, customer: assignment.customer, serviceName: assignment.serviceName, ...draft });
+    const res = await createAssignment({ orderId: assignment.orderId, customer: assignment.customer, serviceName: assignment.serviceName, ...draft });
+    setToast(
+      res && res.ok === false
+        ? { type: 'error', message: 'Could not update the assignment. Please try again.' }
+        : { type: 'success', message: 'Assignment saved.' }
+    );
     setEditing(false);
   };
 
-  const reassign = (payload) => {
-    reassignAssignment(assignment.id, { ...payload, by: user.name });
+  const reassign = async (payload) => {
+    const res = await reassignAssignment(assignment.id, { ...payload, by: user.name });
+    setToast(
+      res && res.ok === false
+        ? { type: 'error', message: 'Could not reassign the assignment.' }
+        : { type: 'success', message: `Reassigned to ${payload.assignedTo}.` }
+    );
     setReassigning(false);
   };
 
@@ -376,6 +388,7 @@ function AssignmentDetail() {
           onReassign={reassign}
         />
       )}
+      <Toast toast={toast} onClose={() => setToast(null)} />
     </Layout>
   );
 }

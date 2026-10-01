@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Layout from '../layouts/Layout';
+import Toast from '../components/Toast';
 import { usePayments, getPaymentById, getOrderPaymentSummary, updatePayment } from '../store/paymentStore';
 import { usePaymentMethods } from '../store/paymentMethodStore';
 import { fmtINR, fmtDate } from '../data/mockData';
@@ -138,6 +139,7 @@ function PaymentDetail() {
   const { paymentId } = useParams();
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
+  const [toast, setToast] = useState(null);
   usePayments();
 
   const payment = getPaymentById(paymentId);
@@ -158,8 +160,13 @@ function PaymentDetail() {
   const balance = summary.pending;
   const overpaid = summary.overpaid;
 
-  const save = (patch) => {
-    updatePayment(payment.paymentId, patch);
+  const save = async (patch) => {
+    const res = await updatePayment(payment.paymentId, patch);
+    setToast(
+      res && res.ok === false
+        ? { type: 'error', message: 'Could not update the payment.' }
+        : { type: 'success', message: 'Payment updated.' }
+    );
     setEditing(false);
   };
 
@@ -259,6 +266,7 @@ function PaymentDetail() {
           onSave={save}
         />
       )}
+      <Toast toast={toast} onClose={() => setToast(null)} />
     </Layout>
   );
 }

@@ -12,6 +12,7 @@ import {
 } from '../store/reportStore';
 import { fmtDate } from '../data/mockData';
 import ConfirmDialog from '../components/ConfirmDialog';
+import Toast from '../components/Toast';
 
 const TYPE_COLORS = {
   orders: 'border-sky-200 bg-sky-50 text-sky-700',
@@ -141,6 +142,7 @@ function Reports() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [confirm, setConfirm] = useState(null);
+  const [toast, setToast] = useState(null);
 
   const q = search.trim().toLowerCase();
   const filtered = records.filter((r) => {
@@ -154,13 +156,24 @@ function Reports() {
   const save = async (payload) => {
     const res = editing ? await updateReport(editing.id, payload) : await addReport(payload);
     if (res.ok) {
+      setToast({ type: 'success', message: editing ? 'Report updated.' : 'Report created.' });
       setModalOpen(false);
       setEditing(null);
+    } else {
+      setToast({
+        type: 'error',
+        message: res.reason === 'duplicate' ? 'A report with this name already exists.' : 'Could not save the report.',
+      });
     }
   };
 
   const toggleActive = async (r) => {
-    await updateReport(r.id, { isActive: !r.isActive });
+    const res = await updateReport(r.id, { isActive: !r.isActive });
+    setToast(
+      res && res.ok === false
+        ? { type: 'error', message: 'Could not update the report.' }
+        : { type: 'success', message: `${r.name} ${r.isActive ? 'deactivated' : 'activated'}.` }
+    );
   };
 
   const edit = (r) => {
@@ -175,7 +188,12 @@ function Reports() {
       confirmLabel: 'Delete',
       destructive: true,
       onConfirm: async () => {
-        await deleteReport(r.id);
+        const res = await deleteReport(r.id);
+        setToast(
+          res && res.ok === false
+            ? { type: 'error', message: 'Could not delete the report.' }
+            : { type: 'success', message: `${r.name} deleted.` }
+        );
         setConfirm(null);
       },
     });
@@ -342,6 +360,7 @@ function Reports() {
 
       {modalOpen && <ReportModal record={editing} onClose={() => { setModalOpen(false); setEditing(null); }} onSave={save} />}
       <ConfirmDialog open={Boolean(confirm)} title={confirm?.title} message={confirm?.message} confirmLabel={confirm?.confirmLabel} destructive={confirm?.destructive} onConfirm={confirm?.onConfirm} onCancel={() => setConfirm(null)} />
+      <Toast toast={toast} onClose={() => setToast(null)} />
     </Layout>
   );
 }
