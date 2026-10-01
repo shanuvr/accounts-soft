@@ -3,33 +3,12 @@ import { jsPDF } from 'jspdf';
 import Layout from '../layouts/Layout';
 import { useTransactions, addTransaction, deleteTransaction } from '../store/transactionStore';
 import { useCategories, useSubcategories } from '../store/categorySubcategoryStore';
+import { useIncomeHeads, useExpenseHeads } from '../store/transactionHeadStore';
 import { fmtINR, fmtDate } from '../data/mockData';
 
 const inputCls =
   'h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[13px] text-slate-700 placeholder:text-slate-400 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100';
 const labelCls = 'mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-500';
-
-const INCOME_HEAD_OPTIONS = [
-  'Consulting Fees',
-  'Product Sales',
-  'Interest Income',
-  'Service Charges',
-  'Recurring Retainers',
-  'Investment Returns',
-  'Other Income',
-];
-
-const EXPENSE_HEAD_OPTIONS = [
-  'Office Supplies',
-  'Travel & Conveyance',
-  'Utilities & Internet',
-  'Staff Refreshments',
-  'Equipment Maintenance',
-  'Professional Fees',
-  'Rent & Maintenance',
-  'Sales & Marketing',
-  'Software Subscriptions',
-];
 
 const BANK_LIST = [
   'HDFC BANK',
@@ -44,11 +23,13 @@ function Transactions() {
   const transactions = useTransactions();
   const categories = useCategories();
   const subcategories = useSubcategories();
+  const incomeHeads = useIncomeHeads();
+  const expenseHeads = useExpenseHeads();
 
   // Form State
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [txType, setTxType] = useState('Expense'); // Income, Expense
-  const [head, setHead] = useState('Office Supplies');
+  const [head, setHead] = useState('');
   const [category, setCategory] = useState('Administrative');
   const [subcategory, setSubcategory] = useState('Office Stationery');
   const [amount, setAmount] = useState('');
@@ -59,7 +40,8 @@ function Transactions() {
   const [bankName, setBankName] = useState('HDFC BANK');
   const [description, setDescription] = useState('');
 
-  const headOptions = useMemo(() => (txType === 'Income' ? INCOME_HEAD_OPTIONS : EXPENSE_HEAD_OPTIONS), [txType]);
+  const headOptions = useMemo(() => (txType === 'Income' ? incomeHeads : expenseHeads), [txType, incomeHeads, expenseHeads]);
+  const activeHead = headOptions.includes(head) ? head : headOptions[0] || '';
 
   const categoryOptions = categories.map((c) => c.name);
   const activeCategory = categoryOptions.includes(category) ? category : categoryOptions[0] || '';
@@ -104,12 +86,12 @@ function Transactions() {
 
   const handleTypeChange = (next) => {
     setTxType(next);
-    setHead(next === 'Income' ? INCOME_HEAD_OPTIONS[0] : EXPENSE_HEAD_OPTIONS[0]);
+    setHead(next === 'Income' ? incomeHeads[0] || '' : expenseHeads[0] || '');
   };
 
   const handleResetForm = () => {
     setDate(new Date().toISOString().slice(0, 10));
-    setHead(txType === 'Income' ? INCOME_HEAD_OPTIONS[0] : EXPENSE_HEAD_OPTIONS[0]);
+    setHead(txType === 'Income' ? incomeHeads[0] || '' : expenseHeads[0] || '');
     setCategory(categoryOptions[0] || 'Administrative');
     setSubcategory(subcategories.filter((s) => s.categoryName === (categoryOptions[0] || 'Administrative')).map((s) => s.name)[0] || '');
     setAmount('');
@@ -141,7 +123,7 @@ function Transactions() {
     const res = await addTransaction({
       type: txType,
       date,
-      head,
+      head: activeHead,
       category: activeCategory,
       subcategory: activeSubcategory,
       amount: finalAmount,
@@ -476,10 +458,13 @@ function Transactions() {
                 <label htmlFor="tx-head" className={labelCls}>{txType === 'Income' ? 'Income Head' : 'Expense Head'}</label>
                 <select
                   id="tx-head"
-                  value={headOptions.includes(head) ? head : headOptions[0]}
+                  value={activeHead}
                   onChange={(e) => setHead(e.target.value)}
                   className={inputCls}
                 >
+                  {headOptions.length === 0 && (
+                    <option value="">No {txType === 'Income' ? 'income' : 'expense'} heads configured</option>
+                  )}
                   {headOptions.map((opt) => (
                     <option key={opt} value={opt}>{opt}</option>
                   ))}

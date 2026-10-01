@@ -13,6 +13,7 @@ import DeliveryList from './pages/DeliveryList'
 import DeliveryDetail from './pages/DeliveryDetail'
 import ProductsServices from './pages/ProductsServices'
 import CategorySubcategoryMaster from './pages/CategorySubcategoryMaster'
+import IncomeExpenseHeadMaster from './pages/IncomeExpenseHeadMaster'
 import ServiceCategory from './pages/ServiceCategory'
 import PaymentMethods from './pages/PaymentMethods'
 import PaymentTerms from './pages/PaymentTerms'
@@ -60,6 +61,7 @@ function App() {
       <Route path="/customers" element={<Customers />} />
       <Route path="/customers/:customerId" element={<CustomerDetail />} />
       <Route path="/category-subcategory-master" element={<CategorySubcategoryMaster />} />
+      <Route path="/income-expense-master" element={<IncomeExpenseHeadMaster />} />
       <Route path="/products-services" element={<ProductsServices />} />
       <Route path="/service-categories" element={<ServiceCategory />} />
       <Route path="/payment-methods" element={<PaymentMethods />} />

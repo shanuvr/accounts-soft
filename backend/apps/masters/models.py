@@ -188,3 +188,25 @@ class Subcategory(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class IncomeExpenseHead(models.Model):
+    class EntryType(models.TextChoices):
+        INCOME = 'Income', 'Income'
+        EXPENSE = 'Expense', 'Expense'
+
+    entry_type = models.CharField(max_length=10, choices=EntryType.choices)
+    name = models.CharField(max_length=100)
+    company_id = models.PositiveIntegerField(null=True, blank=True, help_text='Null = global default for all companies')
+    is_active = models.BooleanField(default=True)
+    sort_order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['sort_order', 'name']
+        unique_together = ('company_id', 'entry_type', 'name')
+        db_table = 'income_expense_heads'
+        app_label = 'masters'
+
+    def __str__(self):
+        return f"{self.entry_type} - {self.name}"

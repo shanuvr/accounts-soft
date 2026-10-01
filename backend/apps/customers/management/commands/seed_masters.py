@@ -14,6 +14,7 @@ class Command(BaseCommand):
             Category,
             DeliveryStatus,
             DeliveryType,
+            IncomeExpenseHead,
             OrderStatus,
             PTDAStatus,
             PaymentMethod,
@@ -137,6 +138,35 @@ class Command(BaseCommand):
             cat, _ = Category.objects.get_or_create(name=cat_name, defaults={'description': cat_desc})
             for sub_name, sub_desc in sub_list:
                 Subcategory.objects.get_or_create(category=cat, name=sub_name, defaults={'description': sub_desc})
+
+        income_heads = [
+            'Consulting Fees',
+            'Product Sales',
+            'Interest Income',
+            'Service Charges',
+            'Recurring Retainers',
+            'Investment Returns',
+            'Other Income',
+        ]
+        expense_heads = [
+            'Office Supplies',
+            'Travel & Conveyance',
+            'Utilities & Internet',
+            'Staff Refreshments',
+            'Equipment Maintenance',
+            'Professional Fees',
+            'Rent & Maintenance',
+            'Sales & Marketing',
+            'Software Subscriptions',
+        ]
+        for idx, name in enumerate(income_heads, start=1):
+            IncomeExpenseHead.objects.get_or_create(
+                entry_type='Income', name=name, company_id=None, defaults={'sort_order': idx}
+            )
+        for idx, name in enumerate(expense_heads, start=1):
+            IncomeExpenseHead.objects.get_or_create(
+                entry_type='Expense', name=name, company_id=None, defaults={'sort_order': idx}
+            )
 
         product_data = [
             ('Domain Registration', 'Domain', 1500, True, 'domain', 2),

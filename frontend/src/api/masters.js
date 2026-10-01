@@ -93,3 +93,9 @@ export const getSubcategories = () => get('/masters/subcategories/').then(unwrap
 export const createSubcategory = (data) => post('/masters/subcategories/', data)
 export const updateSubcategory = (id, data) => patch(`/masters/subcategories/${id}/`, data)
 export const deleteSubcategory = (id) => del(`/masters/subcategories/${id}/`)
+
+// Income & Expense Heads
+export const getIncomeExpenseHeads = () => get('/masters/incomeexpenseheads/').then(unwrap)
+export const createIncomeExpenseHead = (data) => post('/masters/incomeexpenseheads/', data)
+export const updateIncomeExpenseHead = (id, data) => patch(`/masters/incomeexpenseheads/${id}/`, data)
+export const deleteIncomeExpenseHead = (id) => del(`/masters/incomeexpenseheads/${id}/`)

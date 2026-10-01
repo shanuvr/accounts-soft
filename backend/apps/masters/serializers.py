@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import PaymentMethod, PaymentTerm, Tax, DeliveryType, OrderStatus, PTDAStatus, AssignmentStatus, DeliveryStatus, PaymentStatus, Category, Subcategory
+from .models import PaymentMethod, PaymentTerm, Tax, DeliveryType, OrderStatus, PTDAStatus, AssignmentStatus, DeliveryStatus, PaymentStatus, Category, Subcategory, IncomeExpenseHead
 
 class PaymentMethodSerializer(serializers.ModelSerializer):
     class Meta:
@@ -62,3 +62,9 @@ class SubcategorySerializer(serializers.ModelSerializer):
 
     def get_category_name(self, obj):
         return obj.category.name if obj.category else ''
+
+
+class IncomeExpenseHeadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = IncomeExpenseHead
+        fields = ['id', 'entry_type', 'name', 'company_id', 'is_active', 'sort_order', 'created_at']

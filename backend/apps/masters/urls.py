@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import PaymentMethodViewSet, PaymentTermViewSet, TaxViewSet, DeliveryTypeViewSet, OrderStatusViewSet, PTDAStatusViewSet, AssignmentStatusViewSet, DeliveryStatusViewSet, PaymentStatusViewSet, CategoryViewSet, SubcategoryViewSet
+from .views import PaymentMethodViewSet, PaymentTermViewSet, TaxViewSet, DeliveryTypeViewSet, OrderStatusViewSet, PTDAStatusViewSet, AssignmentStatusViewSet, DeliveryStatusViewSet, PaymentStatusViewSet, CategoryViewSet, SubcategoryViewSet, IncomeExpenseHeadViewSet
 
 router = DefaultRouter()
 router.register(r'paymentmethods', PaymentMethodViewSet, basename='paymentmethod')
@@ -14,6 +14,7 @@ router.register(r'deliverystatuses', DeliveryStatusViewSet, basename='deliveryst
 router.register(r'paymentstatuses', PaymentStatusViewSet, basename='paymentstatus')
 router.register(r'categories', CategoryViewSet, basename='category')
 router.register(r'subcategories', SubcategoryViewSet, basename='subcategory')
+router.register(r'incomeexpenseheads', IncomeExpenseHeadViewSet, basename='incomeexpensehead')
 
 urlpatterns = [
     path("", include(router.urls)),

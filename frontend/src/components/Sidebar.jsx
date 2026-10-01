@@ -174,6 +174,7 @@ const REPORTS_NAV = [
 
 const MASTER_NAV = [
   { label: 'Category & Subcategory', path: '/category-subcategory-master' },
+  { label: 'Income & Expense Master', path: '/income-expense-master' },
   { label: 'Product / Service Master', path: '/products-services' },
   { label: 'Service Category', path: '/service-categories' },
   { label: 'Payment Methods', path: '/payment-methods' },
