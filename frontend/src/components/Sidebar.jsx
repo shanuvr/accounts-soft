@@ -289,18 +289,11 @@ function Sidebar({ active = 'dashboard', mobileOpen = false, onClose }) {
 
   useEffect(() => {
     if (!mastersOpen) return;
-    function handleOutsideClick(e) {
-      if (mastersRef.current && !mastersRef.current.contains(e.target)) {
-        setMastersOpen(false);
-      }
-    }
     function handleEscape(e) {
       if (e.key === 'Escape') setMastersOpen(false);
     }
-    document.addEventListener('mousedown', handleOutsideClick);
     document.addEventListener('keydown', handleEscape);
     return () => {
-      document.removeEventListener('mousedown', handleOutsideClick);
       document.removeEventListener('keydown', handleEscape);
     };
   }, [mastersOpen]);
