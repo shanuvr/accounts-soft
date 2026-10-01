@@ -60,7 +60,11 @@ function IncomeExpenseHeadMaster() {
     const result = editing ? await updateHead(editing, name) : await addHead({ type, name });
     setSaving(false);
     if (!result.ok) {
-      setError(result.reason === 'duplicate' ? 'This head already exists.' : 'Could not save.');
+      setError(
+        result.reason === 'duplicate' ? 'This head already exists.' :
+        result.reason === 'notfound' ? 'The head could not be found to update.' :
+        'Could not save.'
+      );
       return;
     }
     beginAdd();
@@ -73,7 +77,14 @@ function IncomeExpenseHeadMaster() {
       confirmLabel: 'Delete',
       destructive: true,
       onConfirm: async () => {
-        await deleteHead({ type: h.type, name: h.name });
+        const result = await deleteHead({ type: h.type, name: h.name });
+        if (!result.ok) {
+          setError(
+            result.reason === 'notfound'
+              ? 'This head could not be found to delete.'
+              : 'Could not delete the head.'
+          );
+        }
         if (editing?.name === h.name) beginAdd();
         setConfirm(null);
       },

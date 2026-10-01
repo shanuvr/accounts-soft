@@ -27,7 +27,7 @@ export function useExpenseHeads() {
   return store.useItems().filter((h) => h.type === 'Expense').map((h) => h.name);
 }
 
-const byTypeAndName = (type, name) => (r) => r.type === type && r.name === name;
+const byTypeAndName = (type, name) => (r) => (r.entry_type ?? r.type) === type && r.name === name;
 
 export async function addHead({ type, name }) {
   const n = name?.trim();
