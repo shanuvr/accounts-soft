@@ -441,6 +441,7 @@ function Sidebar({ active = 'dashboard', mobileOpen = false, onClose }) {
             </span>
             <div className="min-w-0 flex-1">
               <p className="truncate text-[13px] font-medium text-slate-800">{user.name}</p>
+              {user.company && <p className="truncate text-[11px] text-slate-400">{user.company.name}</p>}
             </div>
             <button
               type="button"

@@ -1,7 +1,9 @@
 import Layout from '../layouts/Layout';
 import { useRenewables, getRenewalStatus } from '../store/renewableStore';
 import { usePayments } from '../store/paymentStore';
-import { ORDERS, CUSTOMERS, fmtINR, fmtDate } from '../data/mockData';
+import { useOrders } from '../store/orderStore';
+import { useCustomers } from '../store/customerStore';
+import { fmtINR, fmtDate } from '../data/mockData';
 import { ORDER_STATUSES as ORDER_STATUS_ORDER, isActiveOrder } from '../data/orderStatus';
 import {
   ResponsiveContainer,
@@ -65,9 +67,11 @@ function ChartCard({ title, subtitle, children, className }) {
 function Dashboard() {
   const renewals = useRenewables();
   const payments = usePayments();
+  const orders = useOrders();
+  const customers = useCustomers();
   const t = todayISO();
 
-  const revenueOrders = ORDERS.filter((o) => o.orderStatus !== 'Cancelled');
+  const revenueOrders = orders.filter((o) => o.orderStatus !== 'Cancelled');
   const booked = revenueOrders.reduce((s, o) => s + o.value, 0);
 
   const receivedPayments = payments.filter((p) => p.status !== 'Refunded' && p.status !== 'Failed');
@@ -82,9 +86,9 @@ function Dashboard() {
   const overdueOrders = revenueOrders.filter((o) => pendingFor(o) > 0 && o.deliveryDate < t);
   const overdue = overdueOrders.reduce((s, o) => s + pendingFor(o), 0);
 
-  const activeOrders = ORDERS.filter((o) => isActiveOrder(o.orderStatus)).length;
-  const deliveredOrders = ORDERS.filter((o) => o.orderStatus === 'Delivered').length;
-  const activeCustomers = CUSTOMERS.filter((c) => c.status === 'Active').length;
+  const activeOrders = orders.filter((o) => isActiveOrder(o.orderStatus)).length;
+  const deliveredOrders = orders.filter((o) => o.orderStatus === 'Delivered').length;
+  const activeCustomers = customers.filter((c) => c.status === 'Active').length;
   const avgOrderValue = revenueOrders.length ? Math.round(booked / revenueOrders.length) : 0;
 
   const branded = renewals.map((r) => ({ ...r, status: getRenewalStatus(r) }));
@@ -103,7 +107,7 @@ function Dashboard() {
     });
 
   const statusCount = {};
-  ORDERS.forEach((o) => { statusCount[o.orderStatus] = (statusCount[o.orderStatus] || 0) + 1; });
+  orders.forEach((o) => { statusCount[o.orderStatus] = (statusCount[o.orderStatus] || 0) + 1; });
   const statusData = Object.entries(statusCount)
     .sort(([a], [b]) => ORDER_STATUS_ORDER.indexOf(a) - ORDER_STATUS_ORDER.indexOf(b))
     .map(([name, value]) => ({ name, value }));
@@ -113,7 +117,7 @@ function Dashboard() {
   ).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
 
   const payCount = {};
-  ORDERS.forEach((o) => { payCount[o.paymentStatus] = (payCount[o.paymentStatus] || 0) + 1; });
+  orders.forEach((o) => { payCount[o.paymentStatus] = (payCount[o.paymentStatus] || 0) + 1; });
   const payData = Object.entries(payCount)
     .sort(([a], [b]) => PAYMENT_STATUS_ORDER.indexOf(a) - PAYMENT_STATUS_ORDER.indexOf(b))
     .map(([name, value]) => ({ name, value }));
@@ -128,7 +132,7 @@ function Dashboard() {
   branded.forEach((r) => { typeCount[r.type] = (typeCount[r.type] || 0) + 1; });
   const renewData = Object.entries(typeCount).map(([name, count]) => ({ name, count }));
 
-  const upcoming = ORDERS
+  const upcoming = orders
     .filter((o) => isActiveOrder(o.orderStatus) && o.deliveryDate >= t)
     .sort((a, b) => (a.deliveryDate < b.deliveryDate ? -1 : 1))
     .slice(0, 5);
@@ -187,7 +191,7 @@ function Dashboard() {
         />
         <StatCard
           label="Customers"
-          value={CUSTOMERS.length}
+          value={customers.length}
           sub={`${activeCustomers} active`}
           tone="violet"
           icon={<svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 11a3.5 3.5 0 0 0 0-6.5M16 17a6.5 6.5 0 0 1 5.5 3" /></svg>}

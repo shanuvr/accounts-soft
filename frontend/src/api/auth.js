@@ -6,6 +6,12 @@ export const login = async (email, password) => {
   return data
 }
 
+export const register = async (payload) => {
+  const { data } = await client.post('/auth/register/', payload)
+  localStorage.setItem('access_token', data.access)
+  return data
+}
+
 export const logout = () => {
   localStorage.removeItem('access_token')
   localStorage.removeItem('user')

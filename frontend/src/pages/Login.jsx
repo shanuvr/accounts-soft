@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { login } from '../store/authStore';
 
 function Login() {
@@ -233,6 +233,13 @@ function Login() {
 </form>
 
 {errors.submit && <p className="mt-4 text-center text-xs text-red-500">{errors.submit}</p>}
+
+<p className="mt-6 text-center text-[13px] text-slate-500">
+  New to Account Soft?{' '}
+  <Link to="/register" className="font-medium text-emerald-600 hover:text-emerald-700">
+    Register your company
+  </Link>
+</p>
 
 <p className="mt-6 text-center text-[13px] text-slate-500">
   Demo: <span className="font-mono text-slate-600">admin@accountsoft.com</span> / <span className="font-mono text-slate-600">admin123</span>
