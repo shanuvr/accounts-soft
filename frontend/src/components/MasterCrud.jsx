@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import Layout from '../layouts/Layout';
 import ConfirmDialog from './ConfirmDialog';
+import Toast from './Toast';
 
 const inputCls =
   'h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[13px] text-slate-700 placeholder:text-slate-400 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100';
@@ -22,6 +23,7 @@ export default function MasterCrud({
   const [search, setSearch] = useState('');
   const [saving, setSaving] = useState(false);
   const [confirm, setConfirm] = useState(null);
+  const [toast, setToast] = useState(null);
 
   const filteredItems = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -52,9 +54,12 @@ export default function MasterCrud({
     const result = editingName ? await updateItem(editingName, name) : await addItem(name);
     setSaving(false);
     if (!result.ok) {
-      setError(result.reason === 'duplicate' ? 'This item already exists.' : 'Could not save.');
+      const msg = result.reason === 'duplicate' ? 'This item already exists.' : 'Could not save.';
+      setError(msg);
+      setToast({ type: 'error', message: msg });
       return;
     }
+    setToast({ type: 'success', message: `${name.trim()} saved.` });
     beginAdd();
   };
 
@@ -235,6 +240,7 @@ export default function MasterCrud({
         onConfirm={confirm?.onConfirm}
         onCancel={() => setConfirm(null)}
       />
+      <Toast toast={toast} onClose={() => setToast(null)} />
     </Layout>
   );
 }
