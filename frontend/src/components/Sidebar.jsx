@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth, logout } from '../store/authStore';
 import { useUi, setMastersOpen } from '../store/uiStore';
 
@@ -216,6 +216,7 @@ try {
 function Sidebar({ active = 'dashboard', mobileOpen = false, onClose }) {
   const { mastersOpen } = useUi();
   const navigate = useNavigate();
+  const location = useLocation();
   const user = useAuth();
   const mastersRef = useRef(null);
   const navRef = useRef(null);
@@ -420,7 +421,9 @@ function Sidebar({ active = 'dashboard', mobileOpen = false, onClose }) {
                     type="button"
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => handleNavigate(m.path)}
-                    className="block w-full truncate rounded-md px-2 py-1.5 text-left text-[12.5px] text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-800"
+                    className={`block w-full truncate rounded-md px-2 py-1.5 text-left text-[12.5px] transition-colors hover:bg-slate-50 hover:text-slate-800 ${
+                      location.pathname === m.path ? 'font-semibold text-emerald-700' : 'text-slate-500'
+                    }`}
                   >
                     {m.label}
                   </button>
