@@ -68,6 +68,17 @@ export const createRenewal = (data) => client.post('/renewals/renewals/', data).
 export const updateRenewal = (id, data) => client.patch(`/renewals/renewals/${id}/`, data).then(r => r.data)
 export const deleteRenewal = (id) => client.delete(`/renewals/renewals/${id}/`)
 
+// Transactions ----------------------------------------------------------------
+export const getTransactions = () => client.get('/transactions/transactions/', { params: { page_size: 500 } }).then(unwrap)
+export const createTransaction = (data) => client.post('/transactions/transactions/', data).then(r => r.data)
+export const deleteTransaction = (id) => client.delete(`/transactions/transactions/${id}/`)
+
+// Reports ----------------------------------------------------------------------
+export const getReportConfigs = () => client.get('/reports/reportconfigs/', { params: { page_size: 500 } }).then(unwrap)
+export const createReportConfig = (data) => client.post('/reports/reportconfigs/', data).then(r => r.data)
+export const updateReportConfig = (id, data) => client.patch(`/reports/reportconfigs/${id}/`, data).then(r => r.data)
+export const deleteReportConfig = (id) => client.delete(`/reports/reportconfigs/${id}/`)
+
 export const getMasters = (type) => {
   const unwrap = (r) => (r.data?.results ?? r.data);
   const endpoints = {

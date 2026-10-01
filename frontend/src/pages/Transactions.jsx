@@ -1,13 +1,23 @@
 import { useMemo, useState } from 'react';
 import { jsPDF } from 'jspdf';
 import Layout from '../layouts/Layout';
-import { useExpenseHeads, addExpenseHead, deleteExpenseHead } from '../store/expenseHeadStore';
+import { useTransactions, addTransaction, deleteTransaction } from '../store/transactionStore';
 import { useCategories, useSubcategories } from '../store/categorySubcategoryStore';
 import { fmtINR, fmtDate } from '../data/mockData';
 
 const inputCls =
   'h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[13px] text-slate-700 placeholder:text-slate-400 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100';
 const labelCls = 'mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-500';
+
+const INCOME_HEAD_OPTIONS = [
+  'Consulting Fees',
+  'Product Sales',
+  'Interest Income',
+  'Service Charges',
+  'Recurring Retainers',
+  'Investment Returns',
+  'Other Income',
+];
 
 const EXPENSE_HEAD_OPTIONS = [
   'Office Supplies',
@@ -30,14 +40,15 @@ const BANK_LIST = [
   'BANK OF BARODA',
 ];
 
-function ExpenseHead() {
-  const expenses = useExpenseHeads();
+function Transactions() {
+  const transactions = useTransactions();
   const categories = useCategories();
   const subcategories = useSubcategories();
 
   // Form State
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [expenseHead, setExpenseHead] = useState('Office Supplies');
+  const [txType, setTxType] = useState('Expense'); // Income, Expense
+  const [head, setHead] = useState('Office Supplies');
   const [category, setCategory] = useState('Administrative');
   const [subcategory, setSubcategory] = useState('Office Stationery');
   const [amount, setAmount] = useState('');
@@ -47,6 +58,8 @@ function ExpenseHead() {
   const [bankPaymentType, setBankPaymentType] = useState('UPI'); // UPI, Card
   const [bankName, setBankName] = useState('HDFC BANK');
   const [description, setDescription] = useState('');
+
+  const headOptions = useMemo(() => (txType === 'Income' ? INCOME_HEAD_OPTIONS : EXPENSE_HEAD_OPTIONS), [txType]);
 
   const categoryOptions = categories.map((c) => c.name);
   const activeCategory = categoryOptions.includes(category) ? category : categoryOptions[0] || '';
@@ -59,21 +72,29 @@ function ExpenseHead() {
   const [dateTo, setDateTo] = useState('');
 
   const filtered = useMemo(() => {
-    return expenses.filter((e) => {
+    return transactions.filter((t) => {
       const q = search.trim().toLowerCase();
       if (
         q &&
-        !`${e.id} ${e.expenseHead} ${e.category} ${e.subcategory} ${e.bankName} ${e.description}`
+        !`${t.id} ${t.type} ${t.head} ${t.category} ${t.subcategory} ${t.bankName} ${t.description}`
           .toLowerCase()
           .includes(q)
       ) {
         return false;
       }
-      if (dateFrom && e.date < dateFrom) return false;
-      if (dateTo && e.date > dateTo) return false;
+      if (dateFrom && t.date < dateFrom) return false;
+      if (dateTo && t.date > dateTo) return false;
       return true;
     });
-  }, [expenses, search, dateFrom, dateTo]);
+  }, [transactions, search, dateFrom, dateTo]);
+
+  const totalIncomeAmount = useMemo(() => {
+    return filtered.reduce((sum, t) => (t.type === 'Income' ? sum + (Number(t.amount) || 0) : sum), 0);
+  }, [filtered]);
+
+  const totalExpenseAmount = useMemo(() => {
+    return filtered.reduce((sum, t) => (t.type === 'Expense' ? sum + (Number(t.amount) || 0) : sum), 0);
+  }, [filtered]);
 
   const handleCategoryChange = (e) => {
     const next = e.target.value;
@@ -81,13 +102,14 @@ function ExpenseHead() {
     setSubcategory(subcategories.filter((s) => s.categoryName === next).map((s) => s.name)[0] || '');
   };
 
-  const totalExpenseAmount = useMemo(() => {
-    return filtered.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
-  }, [filtered]);
+  const handleTypeChange = (next) => {
+    setTxType(next);
+    setHead(next === 'Income' ? INCOME_HEAD_OPTIONS[0] : EXPENSE_HEAD_OPTIONS[0]);
+  };
 
   const handleResetForm = () => {
     setDate(new Date().toISOString().slice(0, 10));
-    setExpenseHead('Office Supplies');
+    setHead(txType === 'Income' ? INCOME_HEAD_OPTIONS[0] : EXPENSE_HEAD_OPTIONS[0]);
     setCategory(categoryOptions[0] || 'Administrative');
     setSubcategory(subcategories.filter((s) => s.categoryName === (categoryOptions[0] || 'Administrative')).map((s) => s.name)[0] || '');
     setAmount('');
@@ -99,7 +121,7 @@ function ExpenseHead() {
     setDescription('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     let finalAmount;
     if (paymentMethod === 'Both') {
@@ -111,14 +133,15 @@ function ExpenseHead() {
     } else {
       finalAmount = Number(amount);
       if (!amount || finalAmount <= 0) {
-        alert('Please enter a valid expense amount.');
+        alert('Please enter a valid transaction amount.');
         return;
       }
     }
 
-    addExpenseHead({
+    const res = await addTransaction({
+      type: txType,
       date,
-      expenseHead,
+      head,
       category: activeCategory,
       subcategory: activeSubcategory,
       amount: finalAmount,
@@ -129,6 +152,10 @@ function ExpenseHead() {
       bankName: paymentMethod !== 'Cash' ? bankName : '',
       description,
     });
+    if (!res.ok) {
+      alert('Failed to save the transaction. Please try again.');
+      return;
+    }
     handleResetForm();
   };
 
@@ -144,12 +171,13 @@ function ExpenseHead() {
     };
 
     const cols = [
-      { label: 'Date', w: 85, align: 'left' },
-      { label: 'Expense Head', w: 140, align: 'left' },
-      { label: 'Category & Subcategory', w: 160, align: 'left' },
-      { label: 'Payment Method', w: 140, align: 'left' },
-      { label: 'Amount', w: 95, align: 'right' },
-      { label: 'Description', w: 150, align: 'left' },
+      { label: 'Date', w: 75, align: 'left' },
+      { label: 'Type', w: 70, align: 'left' },
+      { label: 'Head', w: 120, align: 'left' },
+      { label: 'Category & Subcategory', w: 145, align: 'left' },
+      { label: 'Payment Method', w: 120, align: 'left' },
+      { label: 'Amount', w: 85, align: 'right' },
+      { label: 'Description', w: 155, align: 'left' },
     ];
 
     let curX = M;
@@ -212,7 +240,7 @@ function ExpenseHead() {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
     doc.setTextColor(15, 23, 42);
-    doc.text('EXPENSE HEAD TRANSACTIONS REPORT', rightX, 30, { align: 'right' });
+    doc.text('TRANSACTIONS REPORT', rightX, 30, { align: 'right' });
 
     const period = `${dateFrom ? fmtDate(dateFrom) : 'All'} — ${dateTo ? fmtDate(dateTo) : 'All'}`;
     doc.setFont('helvetica', 'normal');
@@ -245,11 +273,11 @@ function ExpenseHead() {
     y = drawTableHeader(y);
 
     // 5. Data Rows
-    filtered.forEach((e, idx) => {
+    filtered.forEach((t, idx) => {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7.2);
-      const descLines = e.description
-        ? doc.splitTextToSize(String(e.description), colMeta[5].w - 12)
+      const descLines = t.description
+        ? doc.splitTextToSize(String(t.description), colMeta[6].w - 12)
         : [];
       const numLines = Math.max(1, descLines.length);
       const currentRowH = Math.max(28, 16 + numLines * 9.5);
@@ -273,53 +301,60 @@ function ExpenseHead() {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(8.5);
       doc.setTextColor(15, 23, 42);
-      doc.text(fmtDate(e.date), colMeta[0].leftX, y + (currentRowH / 2) + 2.5);
+      doc.text(fmtDate(t.date), colMeta[0].leftX, y + (currentRowH / 2) + 2.5);
 
-      // Col 1: Expense Head
+      // Col 1: Type
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8.5);
+      const typeColor = t.type === 'Income' ? [16, 185, 129] : [225, 29, 72];
+      doc.setTextColor(...typeColor);
+      doc.text(t.type.toUpperCase(), colMeta[1].leftX, y + (currentRowH / 2) + 2.5);
+
+      // Col 2: Head
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(8.5);
       doc.setTextColor(15, 23, 42);
-      doc.text(fitText(e.expenseHead, colMeta[1].w - 8), colMeta[1].leftX, y + (currentRowH / 2) + 2.5);
+      doc.text(fitText(t.head, colMeta[2].w - 8), colMeta[2].leftX, y + (currentRowH / 2) + 2.5);
 
-      // Col 2: Category & Subcategory
+      // Col 3: Category & Subcategory
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(8.2);
       doc.setTextColor(51, 65, 85);
-      doc.text(fitText(e.category, colMeta[2].w - 8), colMeta[2].leftX, y + 11);
+      doc.text(fitText(t.category, colMeta[3].w - 8), colMeta[3].leftX, y + 11);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7.2);
       doc.setTextColor(100, 116, 139);
-      doc.text(fitText(e.subcategory, colMeta[2].w - 8), colMeta[2].leftX, y + 21);
+      doc.text(fitText(t.subcategory, colMeta[3].w - 8), colMeta[3].leftX, y + 21);
 
-      // Col 3: Payment Method
+      // Col 4: Payment Method
       const methodText =
-        e.paymentMethod !== 'Cash'
-          ? `${e.paymentMethod} (${e.bankPaymentType || 'Bank'}) · ${e.bankName || 'HDFC BANK'}`
+        t.paymentMethod !== 'Cash'
+          ? `${t.paymentMethod} (${t.bankPaymentType || 'Bank'}) · ${t.bankName || 'HDFC BANK'}`
           : 'Cash';
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7.5);
       doc.setTextColor(30, 41, 59);
-      doc.text(fitText(methodText, colMeta[3].w - 8), colMeta[3].leftX, y + (currentRowH / 2) + 2.5);
+      doc.text(fitText(methodText, colMeta[4].w - 8), colMeta[4].leftX, y + (currentRowH / 2) + 2.5);
 
-      // Col 4: Amount
+      // Col 5: Amount
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(8.5);
-      doc.setTextColor(225, 29, 72);
-      doc.text(fmtPdfAmt(e.amount), colMeta[4].rightX, y + (currentRowH / 2) + 2.5, { align: 'right' });
+      doc.setTextColor(...typeColor);
+      doc.text(fmtPdfAmt(t.amount), colMeta[5].rightX, y + (currentRowH / 2) + 2.5, { align: 'right' });
 
-      // Col 5: Description
+      // Col 6: Description
       if (descLines.length > 0) {
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(7.2);
         doc.setTextColor(71, 85, 105);
         descLines.forEach((line, lIdx) => {
-          doc.text(line, colMeta[5].leftX, y + 11 + lIdx * 9.5);
+          doc.text(line, colMeta[6].leftX, y + 11 + lIdx * 9.5);
         });
       } else {
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(7.5);
         doc.setTextColor(148, 163, 184);
-        doc.text('—', colMeta[5].leftX, y + (currentRowH / 2) + 2.5);
+        doc.text('—', colMeta[6].leftX, y + (currentRowH / 2) + 2.5);
       }
 
       y += currentRowH;
@@ -331,7 +366,7 @@ function ExpenseHead() {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
       doc.setTextColor(148, 163, 184);
-      doc.text('No expense transactions found matching filter criteria.', M + totalTableW / 2, y + 22, { align: 'center' });
+      doc.text('No transactions found matching filter criteria.', M + totalTableW / 2, y + 22, { align: 'center' });
       y += 35;
     }
 
@@ -354,10 +389,16 @@ function ExpenseHead() {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(8.5);
       doc.setTextColor(15, 23, 42);
-      doc.text('TOTAL EXPENSES', M + 8, y + 15.5);
+      doc.text('TOTAL INCOME', M + 8, y + 15.5);
+      doc.setTextColor(16, 185, 129);
+      doc.text(fmtPdfAmt(totalIncomeAmount), colMeta[5].rightX, y + 15.5, { align: 'right' });
 
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8.5);
+      doc.setTextColor(15, 23, 42);
+      doc.text('TOTAL EXPENSE', colMeta[2].leftX, y + 15.5);
       doc.setTextColor(225, 29, 72);
-      doc.text(fmtPdfAmt(totalExpenseAmount), colMeta[4].rightX, y + 15.5, { align: 'right' });
+      doc.text(fmtPdfAmt(totalExpenseAmount), colMeta[3].rightX, y + 15.5, { align: 'right' });
     }
 
     // 7. Page Footer
@@ -370,19 +411,19 @@ function ExpenseHead() {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7.5);
       doc.setTextColor(148, 163, 184);
-      doc.text('Account Soft — Confidential Expense Head Report', M, H - 12);
+      doc.text('Account Soft — Confidential Transactions Report', M, H - 12);
       doc.text(`Page ${p} of ${totalPages}`, rightX, H - 12, { align: 'right' });
     }
 
-    doc.save(`ExpenseHead_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
+    doc.save(`Transactions_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
   return (
-    <Layout active="expense-head">
+    <Layout active="transactions">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Expense Head Transactions</h1>
-          <p className="mt-1 text-sm text-slate-500">Record and manage expense transactions by head, category, subcategory and payment method.</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Transactions</h1>
+          <p className="mt-1 text-sm text-slate-500">Record and manage income and expense transactions by head, category, subcategory and payment method.</p>
         </div>
       </div>
 
@@ -390,15 +431,38 @@ function ExpenseHead() {
         {/* Left Side Form (5 cols) */}
         <div className="lg:col-span-5 xl:col-span-4">
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="text-base font-semibold text-slate-900">New Expense Entry</h2>
-            <p className="mt-0.5 text-xs text-slate-400">Fill in transaction details to log an expense head.</p>
+            <h2 className="text-base font-semibold text-slate-900">New Transaction Entry</h2>
+            <p className="mt-0.5 text-xs text-slate-400">Fill in transaction details to log an income or expense.</p>
 
             <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+              {/* Transaction Type */}
+              <div>
+                <label className={labelCls}>Transaction Type</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {['Income', 'Expense'].map((tp) => (
+                    <button
+                      key={tp}
+                      type="button"
+                      onClick={() => handleTypeChange(tp)}
+                      className={`h-9 rounded-lg border text-[13px] font-medium transition ${
+                        txType === tp
+                          ? tp === 'Income'
+                            ? 'border-emerald-600 bg-emerald-600 text-white font-semibold shadow-sm'
+                            : 'border-rose-500 bg-rose-500 text-white font-semibold shadow-sm'
+                          : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      {tp}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Date */}
               <div>
-                <label htmlFor="exp-date" className={labelCls}>Date</label>
+                <label htmlFor="tx-date" className={labelCls}>Date</label>
                 <input
-                  id="exp-date"
+                  id="tx-date"
                   type="date"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
@@ -407,16 +471,16 @@ function ExpenseHead() {
                 />
               </div>
 
-              {/* Expense Head */}
+              {/* Head */}
               <div>
-                <label htmlFor="exp-head" className={labelCls}>Expense Head</label>
+                <label htmlFor="tx-head" className={labelCls}>{txType === 'Income' ? 'Income Head' : 'Expense Head'}</label>
                 <select
-                  id="exp-head"
-                  value={expenseHead}
-                  onChange={(e) => setExpenseHead(e.target.value)}
+                  id="tx-head"
+                  value={headOptions.includes(head) ? head : headOptions[0]}
+                  onChange={(e) => setHead(e.target.value)}
                   className={inputCls}
                 >
-                  {EXPENSE_HEAD_OPTIONS.map((opt) => (
+                  {headOptions.map((opt) => (
                     <option key={opt} value={opt}>{opt}</option>
                   ))}
                 </select>
@@ -424,9 +488,9 @@ function ExpenseHead() {
 
               {/* Category */}
               <div>
-                <label htmlFor="exp-category" className={labelCls}>Category</label>
+                <label htmlFor="tx-category" className={labelCls}>Category</label>
                 <select
-                  id="exp-category"
+                  id="tx-category"
                   value={activeCategory}
                   onChange={handleCategoryChange}
                   className={inputCls}
@@ -440,9 +504,9 @@ function ExpenseHead() {
 
               {/* Subcategory */}
               <div>
-                <label htmlFor="exp-subcat" className={labelCls}>Subcategory</label>
+                <label htmlFor="tx-subcat" className={labelCls}>Subcategory</label>
                 <select
-                  id="exp-subcat"
+                  id="tx-subcat"
                   value={activeSubcategory}
                   onChange={(e) => setSubcategory(e.target.value)}
                   className={inputCls}
@@ -480,9 +544,9 @@ function ExpenseHead() {
                 <div className="space-y-3.5 rounded-lg border border-slate-200 bg-slate-50/60 p-3.5">
                   {/* SELECT BANK */}
                   <div>
-                    <label htmlFor="exp-bankname-both" className={labelCls}>Select Bank</label>
+                    <label htmlFor="tx-bankname-both" className={labelCls}>Select Bank</label>
                     <select
-                      id="exp-bankname-both"
+                      id="tx-bankname-both"
                       value={bankName}
                       onChange={(e) => setBankName(e.target.value)}
                       className={inputCls}
@@ -495,9 +559,9 @@ function ExpenseHead() {
 
                   {/* CASH AMOUNT (₹) */}
                   <div>
-                    <label htmlFor="exp-cash-amt" className={labelCls}>Cash Amount (₹)</label>
+                    <label htmlFor="tx-cash-amt" className={labelCls}>Cash Amount (₹)</label>
                     <input
-                      id="exp-cash-amt"
+                      id="tx-cash-amt"
                       type="number"
                       step="0.01"
                       placeholder="0.00"
@@ -509,9 +573,9 @@ function ExpenseHead() {
 
                   {/* BANK AMOUNT (₹) */}
                   <div>
-                    <label htmlFor="exp-bank-amt" className={labelCls}>Bank Amount (₹)</label>
+                    <label htmlFor="tx-bank-amt" className={labelCls}>Bank Amount (₹)</label>
                     <input
-                      id="exp-bank-amt"
+                      id="tx-bank-amt"
                       type="number"
                       step="0.01"
                       placeholder="0.00"
@@ -527,17 +591,17 @@ function ExpenseHead() {
                   <div>
                     <label className={labelCls}>Bank Payment Type</label>
                     <div className="mt-1.5 flex items-center gap-5 text-[13px] text-slate-700">
-                      {['UPI', 'Card'].map((t) => (
-                        <label key={t} className="flex items-center gap-1.5 cursor-pointer">
+                      {['UPI', 'Card'].map((tpge) => (
+                        <label key={tpge} className="flex items-center gap-1.5 cursor-pointer">
                           <input
                             type="radio"
                             name="bankPaymentType"
-                            value={t}
-                            checked={bankPaymentType === t}
+                            value={tpge}
+                            checked={bankPaymentType === tpge}
                             onChange={(e) => setBankPaymentType(e.target.value)}
                             className="h-4 w-4 text-sky-600 focus:ring-sky-500"
                           />
-                          <span>{t}</span>
+                          <span>{tpge}</span>
                         </label>
                       ))}
                     </div>
@@ -545,9 +609,9 @@ function ExpenseHead() {
 
                   {/* SELECT BANK */}
                   <div>
-                    <label htmlFor="exp-bankname" className={labelCls}>Select Bank</label>
+                    <label htmlFor="tx-bankname" className={labelCls}>Select Bank</label>
                     <select
-                      id="exp-bankname"
+                      id="tx-bankname"
                       value={bankName}
                       onChange={(e) => setBankName(e.target.value)}
                       className={inputCls}
@@ -560,11 +624,11 @@ function ExpenseHead() {
 
                   {/* Single Amount */}
                   <div>
-                    <label htmlFor="exp-amount" className={labelCls}>Amount (₹)</label>
+                    <label htmlFor="tx-amount" className={labelCls}>Amount (₹)</label>
                     <div className="relative">
                       <span className="absolute left-3 top-2.5 text-xs font-semibold text-slate-400">₹</span>
                       <input
-                        id="exp-amount"
+                        id="tx-amount"
                         type="number"
                         min="1"
                         placeholder="e.g. 5000"
@@ -579,11 +643,11 @@ function ExpenseHead() {
               ) : (
                 /* Cash Only */
                 <div>
-                  <label htmlFor="exp-amount" className={labelCls}>Amount (₹)</label>
+                  <label htmlFor="tx-amount" className={labelCls}>Amount (₹)</label>
                   <div className="relative">
                     <span className="absolute left-3 top-2.5 text-xs font-semibold text-slate-400">₹</span>
                     <input
-                      id="exp-amount"
+                      id="tx-amount"
                       type="number"
                       min="1"
                       placeholder="e.g. 5000"
@@ -598,9 +662,9 @@ function ExpenseHead() {
 
               {/* Description */}
               <div>
-                <label htmlFor="exp-desc" className={labelCls}>Description</label>
+                <label htmlFor="tx-desc" className={labelCls}>Description</label>
                 <textarea
-                  id="exp-desc"
+                  id="tx-desc"
                   rows="2.5"
                   placeholder="Enter detailed description or remarks..."
                   value={description}
@@ -615,7 +679,7 @@ function ExpenseHead() {
                   type="submit"
                   className="flex-1 h-9 rounded-lg bg-slate-900 text-[13px] font-medium text-white transition hover:bg-slate-800 shadow-sm active:scale-[0.99]"
                 >
-                  Save Expense Head
+                  Save Transaction
                 </button>
                 <button
                   type="button"
@@ -636,23 +700,23 @@ function ExpenseHead() {
             <div className="border-b border-slate-200 px-5 py-4">
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-[1.5fr_1fr_1fr_auto]">
                 <div>
-                  <label htmlFor="ex-search" className={labelCls}>Search</label>
+                  <label htmlFor="tx-search" className={labelCls}>Search</label>
                   <input
-                    id="ex-search"
+                    id="tx-search"
                     type="text"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search head, category, bank or notes..."
+                    placeholder="Search type, head, category, bank or notes..."
                     className={inputCls}
                   />
                 </div>
                 <div>
-                  <label htmlFor="ex-from" className={labelCls}>From Date</label>
-                  <input id="ex-from" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className={inputCls} />
+                  <label htmlFor="tx-from" className={labelCls}>From Date</label>
+                  <input id="tx-from" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className={inputCls} />
                 </div>
                 <div>
-                  <label htmlFor="ex-to" className={labelCls}>To Date</label>
-                  <input id="ex-to" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className={inputCls} />
+                  <label htmlFor="tx-to" className={labelCls}>To Date</label>
+                  <input id="tx-to" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className={inputCls} />
                 </div>
                 <div className="flex items-end gap-2">
                   <button
@@ -671,10 +735,11 @@ function ExpenseHead() {
 
             {/* Table */}
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[620px] text-left text-[13px]">
+              <table className="w-full min-w-[680px] text-left text-[13px]">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500">
-                    <th className="px-4 py-2.5 font-semibold">Expense Head</th>
+                    <th className="px-4 py-2.5 font-semibold">Type</th>
+                    <th className="px-4 py-2.5 font-semibold">Head</th>
                     <th className="px-4 py-2.5 font-semibold">Category / Sub</th>
                     <th className="px-4 py-2.5 font-semibold">Payment Method</th>
                     <th className="px-4 py-2.5 text-right font-semibold">Amount</th>
@@ -682,62 +747,74 @@ function ExpenseHead() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((e) => (
-                    <tr key={e.id} className="border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50/60">
-                      <td className="px-4 py-3 text-slate-800">
-                        <div className="flex flex-col">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-semibold text-slate-900">{e.expenseHead}</span>
-                          </div>
-                          <span className="mt-0.5 text-[11.5px] text-slate-400">{fmtDate(e.date)}</span>
-                          {e.description && (
-                            <span className="mt-0.5 text-[11.5px] leading-tight text-slate-500">{e.description}</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-col">
-                          <span className="font-medium text-slate-700">{e.category}</span>
-                          <span className="text-[11.5px] text-slate-400">{e.subcategory}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-col">
-                          <span className="inline-flex w-fit items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-medium text-slate-700">
-                            {e.paymentMethod}
+                  {filtered.map((t) => {
+                    const isIncome = t.type === 'Income';
+                    return (
+                      <tr key={t.id} className="border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50/60">
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${
+                            isIncome
+                              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                              : 'border-rose-200 bg-rose-50 text-rose-600'
+                          }`}>
+                            {t.type}
                           </span>
-                          {e.paymentMethod === 'Both' ? (
-                            <span className="mt-1 text-[11px] text-slate-500">
-                              Cash: {fmtINR(e.cashAmount || 0)} · Bank: {fmtINR(e.bankAmount || 0)} ({e.bankName || 'Bank'})
+                        </td>
+                        <td className="px-4 py-3 text-slate-800">
+                          <div className="flex flex-col">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-semibold text-slate-900">{t.head}</span>
+                            </div>
+                            <span className="mt-0.5 text-[11.5px] text-slate-400">{fmtDate(t.date)}</span>
+                            {t.description && (
+                              <span className="mt-0.5 text-[11.5px] leading-tight text-slate-500">{t.description}</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-col">
+                            <span className="font-medium text-slate-700">{t.category}</span>
+                            <span className="text-[11.5px] text-slate-400">{t.subcategory}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-col">
+                            <span className="inline-flex w-fit items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-medium text-slate-700">
+                              {t.paymentMethod}
                             </span>
-                          ) : e.paymentMethod !== 'Cash' ? (
-                            <span className="mt-1 text-[11px] text-slate-500">
-                              {e.bankPaymentType && `${e.bankPaymentType} · `}{e.bankName}
-                            </span>
-                          ) : null}
-                        </div>
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-right font-semibold text-rose-600">
-                        {fmtINR(e.amount)}
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-center">
-                        <button
-                          type="button"
-                          onClick={() => deleteExpenseHead(e.id)}
-                          className="rounded p-1 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
-                          title="Delete entry"
-                        >
-                          <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                          </svg>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                            {t.paymentMethod === 'Both' ? (
+                              <span className="mt-1 text-[11px] text-slate-500">
+                                Cash: {fmtINR(t.cashAmount || 0)} · Bank: {fmtINR(t.bankAmount || 0)} ({t.bankName || 'Bank'})
+                              </span>
+                            ) : t.paymentMethod !== 'Cash' ? (
+                              <span className="mt-1 text-[11px] text-slate-500">
+                                {t.bankPaymentType && `${t.bankPaymentType} · `}{t.bankName}
+                              </span>
+                            ) : null}
+                          </div>
+                        </td>
+                        <td className={`whitespace-nowrap px-4 py-3 text-right font-semibold ${isIncome ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          {fmtINR(t.amount)}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-center">
+                          <button
+                            type="button"
+                            onClick={() => deleteTransaction(t.id)}
+                            className="rounded p-1 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
+                            title="Delete entry"
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                            </svg>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                   {filtered.length === 0 && (
                     <tr>
-                      <td colSpan="5" className="px-4 py-12 text-center">
-                        <p className="text-sm text-slate-400">No expense head transactions found.</p>
+                      <td colSpan="6" className="px-4 py-12 text-center">
+                        <p className="text-sm text-slate-400">No transactions found.</p>
                         <p className="mt-1 text-[12.5px] text-slate-400">Add a new entry using the form on the left.</p>
                       </td>
                     </tr>
@@ -746,9 +823,9 @@ function ExpenseHead() {
                 {filtered.length > 0 && (
                   <tfoot>
                     <tr className="border-t border-slate-200 bg-slate-50/60">
-                      <td colSpan="3" className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Total Expense</td>
+                      <td colSpan="4" className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Totals</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-right font-semibold text-emerald-600">{fmtINR(totalIncomeAmount)}</td>
                       <td className="whitespace-nowrap px-4 py-3 text-right font-semibold text-rose-600">{fmtINR(totalExpenseAmount)}</td>
-                      <td />
                     </tr>
                   </tfoot>
                 )}
@@ -756,7 +833,15 @@ function ExpenseHead() {
             </div>
 
             <div className="flex items-center justify-between border-t border-slate-200 px-5 py-3 text-[12px] text-slate-400">
-              <span>Showing {filtered.length} of {expenses.length} entries</span>
+              <span>Showing {filtered.length} of {transactions.length} entries</span>
+              {filtered.length > 0 && (
+                <span className="text-[11.5px] text-slate-400">
+                  <span className="font-medium text-emerald-600">Income {fmtINR(totalIncomeAmount)}</span>
+                  <span> · </span>
+                  <span className="font-medium text-rose-600">Expense {fmtINR(totalExpenseAmount)}</span>
+                  <span> · Net {fmtINR(totalIncomeAmount - totalExpenseAmount)}</span>
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -765,4 +850,4 @@ function ExpenseHead() {
   );
 }
 
-export default ExpenseHead;
+export default Transactions;

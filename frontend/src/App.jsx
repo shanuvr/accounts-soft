@@ -29,10 +29,11 @@ import Ledger from './pages/Ledger'
 import Journal from './pages/Journal'
 import Cashbook from './pages/Cashbook'
 import BankBook from './pages/BankBook'
-import ExpenseHead from './pages/ExpenseHead'
+import Transactions from './pages/Transactions'
 import InvoiceList from './pages/InvoiceList'
 import InvoiceDetail from './pages/InvoiceDetail'
 import Renewals from './pages/Renewals'
+import Reports from './pages/Reports'
 import Layout from './layouts/Layout'
 import { useEffect } from 'react'
 
@@ -82,12 +83,11 @@ function App() {
       <Route path="/journal" element={<Journal />} />
       <Route path="/cashbook" element={<Cashbook />} />
       <Route path="/bankbook" element={<BankBook />} />
-      <Route path="/expense-head" element={<ExpenseHead />} />
-      <Route path="/reports/transactions/expense-head" element={<ExpenseHead />} />
+      <Route path="/transactions" element={<Transactions />} />
       <Route path="/invoices" element={<InvoiceList />} />
       <Route path="/invoices/:invoiceId" element={<InvoiceDetail />} />
       <Route path="/renewals" element={<Renewals />} />
-      <Route path="/reports" element={<Placeholder title="Reports" />} />
+      <Route path="/reports" element={<Reports />} />
       <Route path="/masters" element={<Placeholder title="Masters" />} />
       <Route path="/users" element={<Placeholder title="Users & Roles" />} />
       <Route path="/settings" element={<Placeholder title="Settings" />} />
