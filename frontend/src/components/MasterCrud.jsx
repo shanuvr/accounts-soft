@@ -69,8 +69,13 @@ export default function MasterCrud({
       message: `Delete "${n}"? This cannot be undone.`,
       confirmLabel: 'Delete',
       destructive: true,
-      onConfirm: () => {
-        deleteItem(n);
+      onConfirm: async () => {
+        const result = await deleteItem(n);
+        if (result && result.ok === false) {
+          setToast({ type: 'error', message: 'Could not delete item.' });
+        } else {
+          setToast({ type: 'success', message: `${n} deleted.` });
+        }
         if (editingName === n) beginAdd();
         setConfirm(null);
       },

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import Layout from '../layouts/Layout';
 import ConfirmDialog from '../components/ConfirmDialog';
+import Toast from '../components/Toast';
 import {
   useIncomeExpenseHeads,
   addHead,
@@ -23,6 +24,7 @@ function IncomeExpenseHeadMaster() {
   const [typeFilter, setTypeFilter] = useState('');
   const [saving, setSaving] = useState(false);
   const [confirm, setConfirm] = useState(null);
+  const [toast, setToast] = useState(null);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -60,13 +62,15 @@ function IncomeExpenseHeadMaster() {
     const result = editing ? await updateHead(editing, name) : await addHead({ type, name });
     setSaving(false);
     if (!result.ok) {
-      setError(
+      const msg =
         result.reason === 'duplicate' ? 'This head already exists.' :
         result.reason === 'notfound' ? 'The head could not be found to update.' :
-        'Could not save.'
-      );
+        'Could not save.';
+      setError(msg);
+      setToast({ type: 'error', message: msg });
       return;
     }
+    setToast({ type: 'success', message: editing ? 'Head updated.' : `${name.trim()} saved.` });
     beginAdd();
   };
 
@@ -79,11 +83,14 @@ function IncomeExpenseHeadMaster() {
       onConfirm: async () => {
         const result = await deleteHead({ type: h.type, name: h.name });
         if (!result.ok) {
-          setError(
+          const msg =
             result.reason === 'notfound'
               ? 'This head could not be found to delete.'
-              : 'Could not delete the head.'
-          );
+              : 'Could not delete the head.';
+          setError(msg);
+          setToast({ type: 'error', message: msg });
+        } else {
+          setToast({ type: 'success', message: `${h.name} deleted.` });
         }
         if (editing?.name === h.name) beginAdd();
         setConfirm(null);
@@ -284,6 +291,7 @@ function IncomeExpenseHeadMaster() {
         onConfirm={confirm?.onConfirm}
         onCancel={() => setConfirm(null)}
       />
+      <Toast toast={toast} onClose={() => setToast(null)} />
     </Layout>
   );
 }

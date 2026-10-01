@@ -4,6 +4,7 @@ import { useServiceCategories } from '../store/serviceCategoryStore';
 import { PTD_TEMPLATES } from '../data/ptdTemplates';
 import Layout from '../layouts/Layout';
 import ConfirmDialog from '../components/ConfirmDialog';
+import Toast from '../components/Toast';
 
 const inputCls =
   'h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[13px] text-slate-700 placeholder:text-slate-400 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100';
@@ -27,6 +28,7 @@ export default function ProductsServices() {
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [confirm, setConfirm] = useState(null);
+  const [toast, setToast] = useState(null);
 
   const categories = Array.from(new Set([...services.map((s) => s.category), ...serviceCategories])).filter(Boolean);
 
@@ -73,9 +75,13 @@ export default function ProductsServices() {
       ? await updateService(editingName, payload)
       : await addService({ ...payload, name: form.name });
     if (!result.ok) {
-      setError(result.reason === 'duplicate' ? 'A service with this name already exists.' : 'Could not save service.');
+      const msg =
+        result.reason === 'duplicate' ? 'A service with this name already exists.' : 'Could not save service.';
+      setError(msg);
+      setToast({ type: 'error', message: msg });
       return;
     }
+    setToast({ type: 'success', message: editingName ? 'Service updated.' : `${form.name.trim()} saved.` });
     beginAdd();
   };
 
@@ -85,8 +91,14 @@ export default function ProductsServices() {
       message: `Delete "${service.name}" from the service catalogue? This cannot be undone.`,
       confirmLabel: 'Delete',
       destructive: true,
-      onConfirm: () => {
-        deleteService(service.name);
+      onConfirm: async () => {
+        const result = await deleteService(service.name);
+        if (result && result.ok === false) {
+          const msg = 'Could not delete service.';
+          setToast({ type: 'error', message: msg });
+        } else {
+          setToast({ type: 'success', message: `${service.name} deleted.` });
+        }
         if (editingName === service.name) beginAdd();
         setConfirm(null);
       },
@@ -317,6 +329,7 @@ export default function ProductsServices() {
         onConfirm={confirm?.onConfirm}
         onCancel={() => setConfirm(null)}
       />
+      <Toast toast={toast} onClose={() => setToast(null)} />
     </Layout>
   );
 }

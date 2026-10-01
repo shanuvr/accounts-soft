@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import Layout from '../layouts/Layout';
 import { useStatuses, STATUS_GROUPS, addStatus, updateStatus, deleteStatus } from '../store/statusStore';
 import ConfirmDialog from '../components/ConfirmDialog';
+import Toast from '../components/Toast';
 
 const inputCls =
   'h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[13px] text-slate-700 placeholder:text-slate-400 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100';
@@ -25,6 +26,7 @@ export default function StatusMasters() {
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
   const [confirm, setConfirm] = useState(null);
+  const [toast, setToast] = useState(null);
 
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -65,9 +67,12 @@ export default function StatusMasters() {
       : await addStatus(group, { name: name.trim(), label: label.trim() || name.trim(), isTerminal: terminal });
     setSaving(false);
     if (!result.ok) {
-      setError(result.reason === 'duplicate' ? 'A status with this name already exists.' : 'Could not save status.');
+      const msg = result.reason === 'duplicate' ? 'A status with this name already exists.' : 'Could not save status.';
+      setError(msg);
+      setToast({ type: 'error', message: msg });
       return;
     }
+    setToast({ type: 'success', message: editingName ? 'Status updated.' : `${name.trim()} saved.` });
     beginAdd();
   };
 
@@ -78,7 +83,12 @@ export default function StatusMasters() {
       confirmLabel: 'Delete',
       destructive: true,
       onConfirm: async () => {
-        await deleteStatus(group, s.name);
+        const result = await deleteStatus(group, s.name);
+        if (result && result.ok === false) {
+          setToast({ type: 'error', message: 'Could not delete status.' });
+        } else {
+          setToast({ type: 'success', message: `${s.name} deleted.` });
+        }
         if (editingName === s.name) beginAdd();
         setConfirm(null);
       },
@@ -291,6 +301,7 @@ export default function StatusMasters() {
         onConfirm={confirm?.onConfirm}
         onCancel={() => setConfirm(null)}
       />
+      <Toast toast={toast} onClose={() => setToast(null)} />
     </Layout>
   );
 }

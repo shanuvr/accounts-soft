@@ -80,7 +80,12 @@ export default function SimpleMaster({
       confirmLabel: 'Delete',
       destructive: true,
       onConfirm: async () => {
-        await deleteItem(name);
+        const result = await deleteItem(name);
+        if (result && result.ok === false) {
+          setToast({ type: 'error', message: 'Could not delete item.' });
+        } else {
+          setToast({ type: 'success', message: `${name} deleted.` });
+        }
         if (editingName === name) beginAdd();
         setConfirm(null);
       },

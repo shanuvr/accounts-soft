@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useTaxMaster, addTax, updateTax, deleteTax } from '../store/taxStore';
 import Layout from '../layouts/Layout';
 import ConfirmDialog from '../components/ConfirmDialog';
+import Toast from '../components/Toast';
 
 const inputCls =
   'h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[13px] text-slate-700 placeholder:text-slate-400 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100';
@@ -31,6 +32,7 @@ export default function TaxMaster() {
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [confirm, setConfirm] = useState(null);
+  const [toast, setToast] = useState(null);
 
   const filteredTaxes = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -68,9 +70,12 @@ export default function TaxMaster() {
     const payload = { rate: form.rate, type: form.type };
     const result = editingName ? await updateTax(editingName, payload) : await addTax({ ...payload, name: form.name });
     if (!result.ok) {
-      setError(result.reason === 'duplicate' ? 'A tax with this name already exists.' : 'Could not save tax.');
+      const msg = result.reason === 'duplicate' ? 'A tax with this name already exists.' : 'Could not save tax.';
+      setError(msg);
+      setToast({ type: 'error', message: msg });
       return;
     }
+    setToast({ type: 'success', message: editingName ? 'Tax updated.' : `${form.name.trim()} saved.` });
     beginAdd();
   };
 
@@ -80,8 +85,13 @@ export default function TaxMaster() {
       message: `Delete "${t.name}"? This cannot be undone.`,
       confirmLabel: 'Delete',
       destructive: true,
-      onConfirm: () => {
-        deleteTax(t.name);
+      onConfirm: async () => {
+        const result = await deleteTax(t.name);
+        if (result && result.ok === false) {
+          setToast({ type: 'error', message: 'Could not delete tax.' });
+        } else {
+          setToast({ type: 'success', message: `${t.name} deleted.` });
+        }
         if (editingName === t.name) beginAdd();
         setConfirm(null);
       },
@@ -284,6 +294,7 @@ export default function TaxMaster() {
         onConfirm={confirm?.onConfirm}
         onCancel={() => setConfirm(null)}
       />
+      <Toast toast={toast} onClose={() => setToast(null)} />
     </Layout>
   );
 }

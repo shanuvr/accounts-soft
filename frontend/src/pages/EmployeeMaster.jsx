@@ -3,6 +3,7 @@ import { useEmployees, addEmployee, updateEmployee, deleteEmployee } from '../st
 import { useDepartments } from '../store/departmentStore';
 import Layout from '../layouts/Layout';
 import ConfirmDialog from '../components/ConfirmDialog';
+import Toast from '../components/Toast';
 
 const inputCls =
   'h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[13px] text-slate-700 placeholder:text-slate-400 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100';
@@ -25,6 +26,7 @@ export default function EmployeeMaster() {
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [confirm, setConfirm] = useState(null);
+  const [toast, setToast] = useState(null);
 
   const filteredEmployees = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -59,9 +61,13 @@ export default function EmployeeMaster() {
       ? await updateEmployee(editingName, { department: form.department })
       : await addEmployee({ name: form.name, department: form.department });
     if (!result.ok) {
-      setError(result.reason === 'duplicate' ? 'An employee with this name already exists.' : 'Could not save employee.');
+      const msg =
+        result.reason === 'duplicate' ? 'An employee with this name already exists.' : 'Could not save employee.';
+      setError(msg);
+      setToast({ type: 'error', message: msg });
       return;
     }
+    setToast({ type: 'success', message: editingName ? 'Employee updated.' : `${form.name.trim()} saved.` });
     beginAdd();
   };
 
@@ -71,8 +77,13 @@ export default function EmployeeMaster() {
       message: `Delete "${emp.name}" from the employee master? This cannot be undone.`,
       confirmLabel: 'Delete',
       destructive: true,
-      onConfirm: () => {
-        deleteEmployee(emp.name);
+      onConfirm: async () => {
+        const result = await deleteEmployee(emp.name);
+        if (result && result.ok === false) {
+          setToast({ type: 'error', message: 'Could not delete employee.' });
+        } else {
+          setToast({ type: 'success', message: `${emp.name} deleted.` });
+        }
         if (editingName === emp.name) beginAdd();
         setConfirm(null);
       },
@@ -255,6 +266,7 @@ export default function EmployeeMaster() {
         onConfirm={confirm?.onConfirm}
         onCancel={() => setConfirm(null)}
       />
+      <Toast toast={toast} onClose={() => setToast(null)} />
     </Layout>
   );
 }

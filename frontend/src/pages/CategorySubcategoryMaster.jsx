@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import Layout from '../layouts/Layout';
 import ConfirmDialog from '../components/ConfirmDialog';
+import Toast from '../components/Toast';
 import {
   useCategories,
   useSubcategories,
@@ -10,12 +11,9 @@ import {
   deleteSubcategory,
 } from '../store/categorySubcategoryStore';
 
-const storeFailure = (res) => {
-  if (!res?.ok) {
-    alert('Could not save: ' + (res?.reason || 'unexpected error'));
-    return true;
-  }
-  return false;
+const failureMessage = (res) => {
+  if (!res?.ok) return 'Could not save: ' + (res?.reason || 'unexpected error');
+  return null;
 };
 
 const inputCls =
@@ -45,6 +43,9 @@ function CategorySubcategoryMaster() {
   // Confirmation Dialog
   const [confirm, setConfirm] = useState(null);
 
+  // Toast
+  const [toast, setToast] = useState(null);
+
   // Active Category Name fallback
   const activeCategory = selectedCategoryName || (categories[0]?.name || 'Administrative');
 
@@ -67,7 +68,7 @@ function CategorySubcategoryMaster() {
   const handleSubcategorySubmit = async (e) => {
     e.preventDefault();
     if (!subName.trim()) {
-      alert('Please enter a subcategory name.');
+      setToast({ type: 'error', message: 'Please enter a subcategory name.' });
       return;
     }
     const res = await addSubcategory({
@@ -75,7 +76,12 @@ function CategorySubcategoryMaster() {
       name: subName,
       description: subDesc,
     });
-    if (storeFailure(res)) return;
+    const err = failureMessage(res);
+    if (err) {
+      setToast({ type: 'error', message: err });
+      return;
+    }
+    setToast({ type: 'success', message: `${subName.trim()} subcategory saved.` });
     setSubName('');
     setSubDesc('');
   };
@@ -83,14 +89,19 @@ function CategorySubcategoryMaster() {
   const handleCategorySubmit = async (e) => {
     e.preventDefault();
     if (!catName.trim()) {
-      alert('Please enter a category name.');
+      setToast({ type: 'error', message: 'Please enter a category name.' });
       return;
     }
     const res = await addCategory({
       name: catName,
       description: catDesc,
     });
-    if (storeFailure(res)) return;
+    const err = failureMessage(res);
+    if (err) {
+      setToast({ type: 'error', message: err });
+      return;
+    }
+    setToast({ type: 'success', message: `${catName.trim()} category saved.` });
     setSelectedCategoryName(res.record.name);
     setCatName('');
     setCatDesc('');
@@ -339,7 +350,12 @@ function CategorySubcategoryMaster() {
                                 destructive: true,
                                 onConfirm: async () => {
                                   const res = await deleteSubcategory(s.id);
-                                  if (storeFailure(res)) return;
+                                  const err = failureMessage(res);
+                                  setToast(
+                                    err
+                                      ? { type: 'error', message: err }
+                                      : { type: 'success', message: `${s.name} subcategory deleted.` }
+                                  );
                                   setConfirm(null);
                                 },
                               })
@@ -403,7 +419,12 @@ function CategorySubcategoryMaster() {
                                   destructive: true,
                                   onConfirm: async () => {
                                     const res = await deleteCategory(c.id);
-                                    if (storeFailure(res)) return;
+                                    const err = failureMessage(res);
+                                    setToast(
+                                      err
+                                        ? { type: 'error', message: err }
+                                        : { type: 'success', message: `${c.name} category deleted.` }
+                                    );
                                     setConfirm(null);
                                   },
                                 })
@@ -448,6 +469,7 @@ function CategorySubcategoryMaster() {
         onConfirm={confirm?.onConfirm}
         onCancel={() => setConfirm(null)}
       />
+      <Toast toast={toast} onClose={() => setToast(null)} />
     </Layout>
   );
 }
