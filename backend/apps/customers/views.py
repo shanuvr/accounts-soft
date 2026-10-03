@@ -1,11 +1,19 @@
 from rest_framework import status, viewsets
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from .models import Customer, CustomerType, Product, ProductCategory, Employee, Department, UOM
-from .serializers import CustomerSerializer, CustomerTypeSerializer, ProductSerializer, ProductCategorySerializer, EmployeeSerializer, DepartmentSerializer, UOMSerializer
+from .models import Customer, CustomerType, Product, ProductCategory, Department, UOM
+from .serializers import CustomerSerializer, CustomerTypeSerializer, ProductSerializer, ProductCategorySerializer, CoreEmployeeSerializer, DepartmentSerializer, UOMSerializer
 from .services import client as systemsoft
 from .services import SystemSoftUnavailable
+from users.services import (
+    CoreApiError,
+    CoreUnavailable,
+    bearer_token_from_request,
+    default_organization_for,
+    client as core,
+)
 
 
 class SystemSoftResourceViewSet(viewsets.GenericViewSet):
@@ -41,7 +49,7 @@ class SystemSoftResourceViewSet(viewsets.GenericViewSet):
 
     def _unavailable(self):
         return Response(
-            {'detail': 'Customers service (SystemSoft / Lead Soft) is unreachable. Please try again later.'},
+            {'detail': 'SystemSoft identity service is unreachable. Please try again later.'},
             status=status.HTTP_502_BAD_GATEWAY,
         )
 
@@ -100,11 +108,112 @@ class CustomerViewSet(SystemSoftResourceViewSet):
     search_fields = ['name', 'contact_person', 'phone', 'email', 'customer_id']
 
 
-class EmployeeViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
-    queryset = Employee.objects.all()
-    serializer_class = EmployeeSerializer
-    search_fields = ['name', 'employee_code', 'email', 'designation']
+class EmployeeViewSet(SystemSoftResourceViewSet):
+    """Employees are owned by Systemsoft core; this view proxies to its API.
+
+    All reads/writes carry the user's bearer token (core applies membership
+    authorization server-side) and are scoped to the user's default
+    organization. The local ``employees`` table is no longer used.
+    """
+
+    resource = 'employees'
+    resource_singular = 'employee'
+    serializer_class = CoreEmployeeSerializer
+    search_fields = ['employee_code', 'name', 'email', 'designation', 'department']
+
+    def _build_instances(self, items):
+        return items
+
+    def _org(self):
+        org = default_organization_for(self.request)
+        if org is None:
+            raise PermissionDenied(
+                'You are not a member of any organization. Join one in the Systemsoft identity service first.'
+            )
+        return org
+
+    def _handle(self, exc):
+        if isinstance(exc, CoreApiError):
+            detail = exc.detail
+            if isinstance(detail, dict):
+                detail = detail.get('detail')
+            return Response({'detail': detail or 'Identity service rejected the request.'},
+                            status=exc.status or status.HTTP_502_BAD_GATEWAY)
+        if isinstance(exc, CoreUnavailable):
+            return self._unavailable()
+        return None
+
+    def _token(self):
+        return bearer_token_from_request(self.request)
+
+    def _prepare(self, data):
+        data = dict(data or {})
+        department_name = data.pop('department_name', None)
+        if department_name and not data.get('department'):
+            data['department'] = department_name
+        return data
+
+    def list(self, request):
+        try:
+            items = core.list_employees(self._org()['id'], self._token())
+        except (CoreApiError, CoreUnavailable) as exc:
+            response = self._handle(exc)
+            if response is not None:
+                return response
+            raise
+        items = self._apply_search(request, items)
+        return self._paginate(request, self._build_instances(items))
+
+    def retrieve(self, request, pk=None):
+        try:
+            item = core.get_employee(self._org()['id'], pk, self._token())
+        except (CoreApiError, CoreUnavailable) as exc:
+            response = self._handle(exc)
+            if response is not None:
+                return response
+            raise
+        if not item:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        serializer = self.serializer_class(item)
+        return Response(serializer.data)
+
+    def create(self, request):
+        data = self._prepare(request.data)
+        data['organization'] = self._org()['id']
+        try:
+            item = core.create_employee(data, self._token())
+        except (CoreApiError, CoreUnavailable) as exc:
+            response = self._handle(exc)
+            if response is not None:
+                return response
+            raise
+        serializer = self.serializer_class(item) if isinstance(item, dict) else None
+        return Response(serializer.data if serializer is not None else item, status=status.HTTP_201_CREATED)
+
+    def update(self, request, pk=None):
+        data = self._prepare(request.data)
+        try:
+            item = core.update_employee(pk, data, self._token())
+        except (CoreApiError, CoreUnavailable) as exc:
+            response = self._handle(exc)
+            if response is not None:
+                return response
+            raise
+        serializer = self.serializer_class(item) if isinstance(item, dict) else None
+        return Response(serializer.data if serializer is not None else item)
+
+    def partial_update(self, request, pk=None):
+        return self.update(request, pk)
+
+    def destroy(self, request, pk=None):
+        try:
+            core.delete_employee(pk, self._token())
+        except (CoreApiError, CoreUnavailable) as exc:
+            response = self._handle(exc)
+            if response is not None:
+                return response
+            raise
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class DepartmentViewSet(viewsets.ModelViewSet):

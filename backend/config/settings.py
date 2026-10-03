@@ -108,6 +108,17 @@ else:
         },
     }
 
+# --- Shared Identity (Systemsoft core) ---
+# system_core is the central identity/tenant service. accounts-soft proxies
+# login/registration to it, validates core-issued JWTs with
+# CORE_JWT_SIGNING_KEY, and reads employees/organization context from it.
+# When CORE_API_URL is unset the auth and employee endpoints report a clear 5xx
+# instead of returning empty results.
+CORE_API_URL = os.getenv('CORE_API_URL', '')
+CORE_SERVICE_TOKEN = os.getenv('CORE_SERVICE_TOKEN', '')
+CORE_JWT_SIGNING_KEY = os.getenv('CORE_JWT_SIGNING_KEY', '')
+CORE_API_TIMEOUT = int(os.getenv('CORE_API_TIMEOUT', '15'))
+
 # --- Auth & API ---
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
@@ -124,7 +135,7 @@ STATIC_URL = 'static/'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'users.authentication.CoreJWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
@@ -146,6 +157,8 @@ SIMPLE_JWT = {
     'ROTATE_REFRESH_TOKENS': False,
     'BLACKLIST_AFTER_ROTATION': True,
     'AUTH_HEADER_TYPES': ('Bearer',),
+    # core-issued tokens are validated with core's signing key.
+    'SIGNING_KEY': CORE_JWT_SIGNING_KEY or SECRET_KEY,
 }
 
 CORS_ALLOWED_ORIGINS = [

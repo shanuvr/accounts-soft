@@ -17,7 +17,7 @@ function Login() {
     if (!email.trim()) newErrors.email = 'Email is required';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) newErrors.email = 'Enter a valid email address';
     if (!password) newErrors.password = 'Password is required';
-    else if (password.length < 6) newErrors.password = 'Password must be at least 6 characters';
+    else if (password.length < 8) newErrors.password = 'Password must be at least 8 characters';
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length === 0) {

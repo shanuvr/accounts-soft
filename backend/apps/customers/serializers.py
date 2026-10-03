@@ -84,6 +84,25 @@ class EmployeeSerializer(serializers.ModelSerializer):
             instance.save(update_fields=['department'])
 
 
+class CoreEmployeeSerializer(serializers.Serializer):
+    """Employees are owned by Systemsoft core and read/written through its API.
+
+    This is a plain (non-model) serializer: it maps core's employee payload onto
+    the fields the Account Soft UI has always consumed so the frontend is
+    unchanged. It never touches the local ``employees`` table.
+    """
+
+    id = serializers.IntegerField(read_only=True)
+    employee_code = serializers.CharField(read_only=True, required=False, allow_blank=True)
+    name = serializers.CharField()
+    department = serializers.CharField(required=False, allow_blank=True)
+    designation = serializers.CharField(required=False, allow_blank=True, default='')
+    phone = serializers.CharField(required=False, allow_blank=True, default='')
+    email = serializers.EmailField(required=False, allow_blank=True, default='')
+    status = serializers.CharField(required=False, allow_blank=True, default='active')
+    department_name = serializers.CharField(required=False, allow_blank=True)
+
+
 class DepartmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Department

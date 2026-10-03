@@ -47,7 +47,7 @@ function Register() {
     if (!form.email.trim()) newErrors.email = 'Email is required';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) newErrors.email = 'Enter a valid email address';
     if (!form.password) newErrors.password = 'Password is required';
-    else if (form.password.length < 6) newErrors.password = 'Password must be at least 6 characters';
+    else if (form.password.length < 8) newErrors.password = 'Password must be at least 8 characters';
     if (form.confirmPassword !== form.password) newErrors.confirmPassword = 'Passwords do not match';
     if (!form.companyName.trim()) newErrors.companyName = 'Company name is required';
     if (!form.contactNo.trim()) newErrors.contactNo = 'Contact number is required';
