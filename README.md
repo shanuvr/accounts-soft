@@ -131,7 +131,8 @@ Add to `.env.dev` / `.env.prod`:
 
 - `CORE_API_URL` — core base URL (e.g. `http://127.0.0.1:8001`)
 - `CORE_SERVICE_TOKEN` — from `create_service_app --application accounts-soft`
-- `CORE_JWT_SIGNING_KEY` — core's `SECRET_KEY` (its JWT signing key)
+- `CORE_JWT_SIGNING_KEY` — core's `AUTH_SIGNING_KEY` (the value core signs JWTs
+  with, i.e. its `SIMPLE_JWT.SIGNING_KEY`)
 
 When `CORE_API_URL` is unset, auth and employee endpoints return a clear `5xx`
 instead of empty results. Run core on its own port (both default to 8000).
