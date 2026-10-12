@@ -38,7 +38,7 @@ class ExternalOrdersClient:
     def is_configured(self):
         return bool(self.base_url and self.key)
 
-    def list_orders(self, page=1, page_size=500, company=''):
+    def list_orders(self, page=1, page_size=500, company='', core_org_id=None, tenant_name=''):
         if not self.is_configured():
             logger.warning(
                 'EXTERNAL_ORDERS_API_URL / EXTERNAL_ORDERS_API_KEY are not set; skipping external orders feed.'
@@ -48,6 +48,10 @@ class ExternalOrdersClient:
         params = {'page': page, 'page_size': page_size}
         if company:
             params['company'] = company
+        if core_org_id:
+            params['core_org_id'] = core_org_id
+        if tenant_name:
+            params['tenant_name'] = tenant_name
         url = f"{self.base_url}?{urllib.parse.urlencode(params)}"
 
         request = urllib.request.Request(url, method='GET')

@@ -13,7 +13,9 @@ def create_departments_table(apps, schema_editor):
     connection = schema_editor.connection
     existing = connection.introspection.table_names()
     if 'departments' in existing:
+        schema_editor.execute('SET FOREIGN_KEY_CHECKS=0')
         schema_editor.execute('DROP TABLE departments')
+        schema_editor.execute('SET FOREIGN_KEY_CHECKS=1')
     if 'master_branch' in existing:
         schema_editor.execute('DROP TABLE master_branch')
     Department = apps.get_model('customers', 'Department')

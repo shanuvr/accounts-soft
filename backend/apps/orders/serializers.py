@@ -5,6 +5,7 @@ class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = "__all__"
+        extra_kwargs = {'company': {'required': False, 'allow_null': True}}
 
 class OrderServiceSerializer(serializers.ModelSerializer):
     order_id = serializers.CharField(source='order.order_id', read_only=True)
