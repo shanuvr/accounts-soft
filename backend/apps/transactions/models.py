@@ -11,6 +11,14 @@ class Transaction(models.Model):
         choices=EntryType.choices,
         default=EntryType.EXPENSE,
     )
+    company = models.ForeignKey(
+        'users.Company',
+        on_delete=models.CASCADE,
+        related_name='transactions',
+        null=True,
+        blank=True,
+        db_index=True,
+    )
     date = models.DateField()
     head = models.CharField(max_length=100, default='General Expense')
     category = models.CharField(max_length=100, blank=True, default='')

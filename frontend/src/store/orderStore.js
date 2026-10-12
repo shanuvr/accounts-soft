@@ -1,23 +1,31 @@
 import { createApiStore } from './createApiStore';
 import * as api from '../api/data';
 
+function parseAmount(val) {
+  if (val == null) return 0;
+  if (typeof val === 'number') return Number.isFinite(val) ? val : 0;
+  const cleaned = String(val).replace(/,/g, '').trim();
+  const n = parseFloat(cleaned);
+  return Number.isFinite(n) ? n : 0;
+}
+
 function mapRecord(r) {
-  const isExternal = Object.prototype.hasOwnProperty.call(r, 'company');
-  const rawValue = isExternal ? r.order_value : (r.final_amount ?? r.subtotal ?? 0);
-  const value = Number(rawValue);
+  const isExternal = !r.id && Boolean(r.order_value !== undefined || r.order_created_at !== undefined);
+  const rawValue = r.final_amount ?? r.order_value ?? r.subtotal ?? 0;
+  const value = parseAmount(rawValue);
   return {
     id: r.id ?? null,
     source: isExternal ? 'external' : 'local',
     orderId: r.order_id,
-    customer: r.company || r.customer || '',
-    value: Number.isFinite(value) ? value : 0,
+    customer: (isExternal ? r.company : r.customer) || r.customer || (typeof r.company === 'string' ? r.company : '') || '',
+    value,
     orderDate: r.order_date || '',
     deliveryDate: r.delivery_date || '',
     createdAt: isExternal ? r.order_created_at || '' : r.created_at || '',
     orderStatus: isExternal ? 'Pending' : r.order_status || 'Pending',
     paymentStatus: isExternal ? 'Unpaid' : r.payment_status || 'Unpaid',
     salesPerson: r.sales_person || '',
-    projectHours: Number(r.project_hours) || 0,
+    projectHours: parseAmount(r.project_hours),
   };
 }
 
@@ -28,16 +36,46 @@ async function fetchAllOrders() {
   ]);
   const localOk = local.status === 'fulfilled';
   const externalOk = external.status === 'fulfilled';
-  const batchOf = (r) => (r.status === 'fulfilled' ? r.value : []);
-  const seen = new Set();
-  const merged = [];
-  for (const batch of [batchOf(local), batchOf(external)]) {
-    for (const r of batch) {
-      if (!r || seen.has(r.order_id)) continue;
-      seen.add(r.order_id);
-      merged.push(r);
+  const batchOf = (r) => (r.status === 'fulfilled' ? (Array.isArray(r.value) ? r.value : r.value?.results || []) : []);
+  const localList = batchOf(local);
+  const externalList = batchOf(external);
+
+  const externalMap = new Map();
+  for (const ext of externalList) {
+    if (ext && ext.order_id) {
+      externalMap.set(String(ext.order_id).trim().toLowerCase(), ext);
     }
   }
+
+  const seen = new Set();
+  const merged = [];
+
+  for (const loc of localList) {
+    if (!loc || !loc.order_id) continue;
+    const key = String(loc.order_id).trim().toLowerCase();
+    seen.add(key);
+    const ext = externalMap.get(key);
+    if (ext) {
+      merged.push({
+        ...loc,
+        customer: loc.customer || ext.company || '',
+        final_amount: parseAmount(loc.final_amount) || parseAmount(ext.order_value),
+        sales_person: loc.sales_person || ext.sales_person || '',
+      });
+    } else {
+      merged.push(loc);
+    }
+  }
+
+  for (const ext of externalList) {
+    if (!ext || !ext.order_id) continue;
+    const key = String(ext.order_id).trim().toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      merged.push(ext);
+    }
+  }
+
   if (!localOk && !externalOk) {
     throw Object.assign(new Error('Could not fetch orders.'), { status: { failed: true } });
   }
@@ -70,7 +108,9 @@ export function getAllOrders() {
 }
 
 export function getOrderById(orderId) {
-  return store.all().find((o) => o.orderId === orderId);
+  if (!orderId) return null;
+  const target = String(orderId).trim().toLowerCase();
+  return store.all().find((o) => String(o.orderId || '').trim().toLowerCase() === target);
 }
 
 function nextOrderId() {

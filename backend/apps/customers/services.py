@@ -103,7 +103,7 @@ class SystemSoftClient:
         mapped = {CUSTOMER_FIELD_MAP.get(key, key): value for key, value in data.items()}
         return {key: value for key, value in mapped.items() if key in CUSTOMER_MODEL_FIELDS}
 
-    def list_customers(self, **params):
+    def list_customers(self, core_org_id=None, tenant_name='', **params):
         """Fetch every page of the read-only customers feed, newest-first.
 
         The remote endpoint returns a DRF paginated envelope with a page_size
@@ -119,8 +119,14 @@ class SystemSoftClient:
         page_size = min(int(params.get('page_size') or 500), 500)
         seen = set()
         items = []
+        req_params = {'page_size': page_size}
+        if core_org_id:
+            req_params['core_org_id'] = core_org_id
+        if tenant_name:
+            req_params['tenant_name'] = tenant_name
+
         while True:
-            envelope = self._request('GET', 'customers', params={'page': page, 'page_size': page_size})
+            envelope = self._request('GET', 'customers', params={'page': page, **req_params})
             if isinstance(envelope, dict):
                 results = envelope.get('results') or []
             else:

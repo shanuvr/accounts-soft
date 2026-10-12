@@ -2,6 +2,14 @@ from django.db import models
 
 
 class Renewal(models.Model):
+    company = models.ForeignKey(
+        'users.Company',
+        on_delete=models.CASCADE,
+        related_name='renewals',
+        null=True,
+        blank=True,
+        db_index=True,
+    )
     type = models.CharField(max_length=50, default='Other')
     name = models.CharField(max_length=255)
     customer = models.CharField(max_length=255, blank=True, default='—')

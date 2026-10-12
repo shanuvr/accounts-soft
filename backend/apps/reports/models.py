@@ -2,6 +2,14 @@ from django.db import models
 
 
 class ReportConfig(models.Model):
+    company = models.ForeignKey(
+        'users.Company',
+        on_delete=models.CASCADE,
+        related_name='report_configs',
+        null=True,
+        blank=True,
+        db_index=True,
+    )
     name = models.CharField(max_length=200)
     report_type = models.CharField(max_length=50, choices=[
         ('orders', 'Orders'),

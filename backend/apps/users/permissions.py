@@ -14,16 +14,15 @@ def user_permissions(user):
 def has_permission(user, *keys):
     """Return True if the user holds at least one of ``keys``.
 
-    Superusers and users with no permission data attached (e.g. tokens minted
-    before the central catalog existed) are allowed, so the app keeps working
-    for legacy identities.
+    Superusers are always allowed. Users with explicit permissions are checked
+    against ``keys``. For legacy users with no permissions field, access is allowed.
     """
     if getattr(user, 'is_superuser', False):
         return True
-    perms = user_permissions(user)
-    if not perms:
-        return True
-    return any(key in perms for key in keys)
+    if hasattr(user, 'permissions') and user.permissions is not None:
+        perms = user_permissions(user)
+        return any(key in perms for key in keys)
+    return True
 
 
 def require_permission(*keys):

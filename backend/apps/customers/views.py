@@ -107,6 +107,16 @@ class CustomerViewSet(SystemSoftResourceViewSet):
     serializer_class = CustomerSerializer
     search_fields = ['name', 'contact_person', 'phone', 'email', 'customer_id']
 
+    def list(self, request):
+        core_org_id = getattr(request.user, 'core_org_id', None)
+        tenant_name = request.user.company.name if getattr(request.user, 'company', None) else ''
+        try:
+            items = systemsoft.list_customers(core_org_id=core_org_id, tenant_name=tenant_name)
+        except SystemSoftUnavailable:
+            return self._unavailable()
+        items = self._apply_search(request, items)
+        return self._paginate(request, self._build_instances(items))
+
 
 class EmployeeViewSet(SystemSoftResourceViewSet):
     """Employees are owned by Systemsoft core; this view proxies to its API.
