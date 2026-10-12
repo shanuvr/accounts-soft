@@ -172,7 +172,7 @@ core. Imported orders retain their original Lead Soft reference.
 $ENV:ENV = "dev"
 cd ~\Desktop\Codebase\Systemsoft_suite\accounts-soft\backend
 venv\Scripts\activate
-python manage.py runserver
+python manage.py runserver 8001
 ```
 
 ### Frontend
