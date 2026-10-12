@@ -110,11 +110,22 @@ def sync_external_payment(data):
         if not method_obj and method_name:
             method_obj = PaymentMethod.objects.create(name=method_name)
 
-        status_obj = (
-            PaymentStatus.objects.filter(name__iexact='Received').first()
-            or PaymentStatus.objects.filter(label__iexact='Received').first()
-            or PaymentStatus.objects.first()
-        )
+        status_input = (data.get('status') or '').strip()
+        status_obj = None
+        if status_input:
+            mapped_name = {'Received': 'Paid', 'Pending': 'Unpaid', 'Refunded': 'Refunded'}.get(status_input, status_input)
+            status_obj = (
+                PaymentStatus.objects.filter(name__iexact=mapped_name).first()
+                or PaymentStatus.objects.filter(label__iexact=mapped_name).first()
+                or PaymentStatus.objects.filter(name__iexact=status_input).first()
+            )
+        if not status_obj:
+            status_obj = (
+                PaymentStatus.objects.filter(name__iexact='Paid').first()
+                or PaymentStatus.objects.filter(label__iexact='Paid').first()
+                or PaymentStatus.objects.filter(name__iexact='Received').first()
+                or PaymentStatus.objects.first()
+            )
 
         payment = Payment.objects.filter(
             order=order,
@@ -135,6 +146,11 @@ def sync_external_payment(data):
                 received_by=received_by,
             )
             created = True
+        else:
+            # If payment already exists with mismatched status (e.g. from previous fallback), update it
+            if payment.status != status_obj and getattr(payment.status, 'name', None) == 'Partially Refunded':
+                payment.status = status_obj
+                payment.save(update_fields=['status'])
 
         total_rec = sum((p.amount for p in order.payments.all()), Decimal('0'))
         order.total_received = total_rec
