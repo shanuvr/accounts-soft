@@ -25,6 +25,10 @@ export function usePtds() {
   return store.useItems();
 }
 
+export function reloadPtds() {
+  return store.load();
+}
+
 export function getAllPtds() {
   return store.all();
 }
