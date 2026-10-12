@@ -118,6 +118,8 @@ CORE_API_URL = os.getenv('CORE_API_URL', '')
 CORE_SERVICE_TOKEN = os.getenv('CORE_SERVICE_TOKEN', '')
 CORE_JWT_SIGNING_KEY = os.getenv('CORE_JWT_SIGNING_KEY', '')
 CORE_API_TIMEOUT = int(os.getenv('CORE_API_TIMEOUT', '15'))
+# Registry code this app authenticates against; must match core's Application.code.
+CORE_APP_CODE = os.getenv('CORE_APP_CODE', 'accounts-soft')
 
 # --- Auth & API ---
 AUTH_PASSWORD_VALIDATORS = [

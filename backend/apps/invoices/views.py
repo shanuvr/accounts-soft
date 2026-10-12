@@ -5,13 +5,14 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from users.permissions import write_permission
 from .models import Invoice
 from .serializers import InvoiceSerializer
 from .services import build_invoice_email
 
 
 class InvoiceViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, write_permission('accounts.invoices.generate', 'accounts.invoices.edit')]
     queryset = Invoice.objects.all()
     serializer_class = InvoiceSerializer
 

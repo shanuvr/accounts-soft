@@ -2,6 +2,7 @@ from rest_framework import status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from users.permissions import require_permission
 from .models import Order, OrderService
 from .serializers import OrderSerializer, OrderServiceSerializer
 from .services import ExternalOrdersUnavailable, client as external_orders
@@ -12,12 +13,12 @@ EXTERNAL_FEED_TTL = 15
 _external_cache = {'at': 0.0, 'data': None}
 
 class OrderViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, require_permission('accounts.orders.view')]
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
 
 class OrderServiceViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, require_permission('accounts.orders.view')]
     queryset = OrderService.objects.all()
     serializer_class = OrderServiceSerializer
 

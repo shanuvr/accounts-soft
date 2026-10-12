@@ -1,3 +1,4 @@
+from django.conf import settings
 from rest_framework import status, viewsets
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -9,6 +10,8 @@ from .serializers import ProfileSerializer
 from .services import (
     CoreApiError,
     CoreUnavailable,
+    app_enabled,
+    app_permissions,
     bearer_token_from_request,
     client as core,
     fallback_user_payload,
@@ -62,10 +65,21 @@ class LoginTokenObtainPairView(APIView):
         except CoreUnavailable:
             return _unreachable()
 
+        app_code = getattr(settings, 'CORE_APP_CODE', 'accounts-soft')
+        core_user = data.get('user') or {}
+        if not app_enabled(core_user, app_code):
+            return Response(
+                {'detail': f'Your account does not have access to {app_code}. '
+                           f'Contact your administrator.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         try:
-            user = user_payload(data.get('user') or {}, data.get('access'))
+            user = user_payload(core_user, data.get('access'))
         except (CoreApiError, CoreUnavailable):
-            user = fallback_user_payload(data.get('user'))
+            user = fallback_user_payload(core_user)
+        user['enabled_apps'] = core_user.get('enabled_apps') or []
+        user['permissions'] = app_permissions(core_user, app_code)
 
         return Response({
             'refresh': data.get('refresh'),

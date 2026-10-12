@@ -1,6 +1,7 @@
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
+from users.permissions import write_permission
 from .models import PaymentMethod, PaymentTerm, Tax, DeliveryType, OrderStatus, PTDAStatus, AssignmentStatus, DeliveryStatus, PaymentStatus, Category, Subcategory, IncomeExpenseHead
 from .serializers import PaymentMethodSerializer, PaymentTermSerializer, TaxSerializer, DeliveryTypeSerializer, OrderStatusSerializer, PTDAStatusSerializer, AssignmentStatusSerializer, DeliveryStatusSerializer, PaymentStatusSerializer, CategorySerializer, SubcategorySerializer, IncomeExpenseHeadSerializer
 
@@ -59,20 +60,20 @@ class PaymentStatusViewSet(viewsets.ModelViewSet):
     search_fields = ['name', 'label']
 
 class CategoryViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, write_permission('accounts.items.manage')]
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     search_fields = ['name', 'code']
 
 class SubcategoryViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, write_permission('accounts.items.manage')]
     queryset = Subcategory.objects.select_related('category').all()
     serializer_class = SubcategorySerializer
     search_fields = ['name', 'category__name']
 
 
 class IncomeExpenseHeadViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, write_permission('accounts.items.manage')]
     queryset = IncomeExpenseHead.objects.all()
     serializer_class = IncomeExpenseHeadSerializer
     search_fields = ['entry_type', 'name']

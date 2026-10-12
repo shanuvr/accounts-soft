@@ -246,6 +246,27 @@ def user_payload(core_user, access_token):
     }
 
 
+def app_enabled(core_user, app_code):
+    """Whether the login payload shows this app granted to the user.
+
+    ``enabled_apps`` is absent on older core responses; treat that as enabled so
+    existing logins keep working.
+    """
+    enabled = (core_user or {}).get('enabled_apps')
+    if enabled is None:
+        return True
+    return app_code in enabled
+
+
+def app_permissions(core_user, app_code):
+    """Flat, de-duplicated permission list for ``app_code`` from the login payload."""
+    permissions = []
+    for entry in (core_user or {}).get('app_access') or []:
+        if entry.get('app') == app_code:
+            permissions.extend(entry.get('permissions') or [])
+    return sorted(set(permissions))
+
+
 def fallback_user_payload(core_user):
     """Minimal user payload used when the organization resolution step fails."""
     core_user = core_user or {}
