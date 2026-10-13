@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Layout from '../layouts/Layout';
 import { fmtINR, fmtDate } from '../data/mockData';
