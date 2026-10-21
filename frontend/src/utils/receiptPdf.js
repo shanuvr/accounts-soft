@@ -5,9 +5,7 @@ const getLogoInfo = () => {
   return new Promise((resolve) => {
     const candidatePaths = [
       '/programers-logo-BLACCK.png',
-      '/programers-logo-black.png',
-      '/programers-logo-BLACCK.PNG',
-      '/programers-logo-black.PNG'
+      '/programers-logo-black.png'
     ];
 
     let current = 0;
@@ -138,7 +136,7 @@ const renderReceiptCopy = (doc, payment, summary, x0, copyLabel, logoInfo, user)
   doc.setTextColor(30, 30, 30);
   doc.text('Order No :', xLeft, 62);
   doc.setFont('helvetica', 'normal');
-  doc.text(String(payment.orderId || '2609-08-200'), xLeft + 48, 62);
+  doc.text(String(payment.orderId || '—'), xLeft + 48, 62);
 
   doc.setFont('helvetica', 'bold');
   doc.text('Date       :', xLeft, 74);
@@ -148,7 +146,7 @@ const renderReceiptCopy = (doc, payment, summary, x0, copyLabel, logoInfo, user)
   doc.setFont('helvetica', 'bold');
   doc.text('To          :', xLeft, 86);
   doc.setFont('helvetica', 'normal');
-  const custName = String(payment.customer || '');
+  const custName = String(payment.customer || '—');
   const custLines = doc.splitTextToSize(custName, 160);
   doc.text(custLines, xLeft + 48, 86);
 
@@ -167,7 +165,7 @@ const renderReceiptCopy = (doc, payment, summary, x0, copyLabel, logoInfo, user)
   doc.text(copyLabel, xRight, 72, { align: 'right' });
 
   // Receipt No (matches Invoice No format)
-  const rcpIdStr = String(payment.paymentId ? `RCP-${payment.paymentId}` : 'RCP-1');
+  const rcpIdStr = payment.paymentId ? `RCP-${payment.paymentId}` : 'RCP-—';
   const rcpLabelStr = 'Receipt No: ';
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
@@ -204,7 +202,7 @@ const renderReceiptCopy = (doc, payment, summary, x0, copyLabel, logoInfo, user)
   // Items: Item 1 is the Payment Receipt Item
   let yItem = 130;
   const stageStr = payment.planStage ? ` (${payment.planStage.toUpperCase()})` : '';
-  const mainDesc = `PAYMENT RECEIVED - ORDER #${payment.orderId}${stageStr}`;
+  const mainDesc = `PAYMENT RECEIVED - ORDER #${payment.orderId || '—'}${stageStr}`;
   const descLines = doc.splitTextToSize(mainDesc, 200);
 
   doc.setFont('helvetica', 'normal');
@@ -251,8 +249,8 @@ const renderReceiptCopy = (doc, payment, summary, x0, copyLabel, logoInfo, user)
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(7.2);
     doc.setTextColor(80, 80, 80);
-    const prevReceived = Math.max(0, (summary.received || payment.amount) - payment.amount);
-    const balPending = summary.pending ?? Math.max(0, summary.orderValue - summary.received);
+    const prevReceived = Math.max(0, (summary.received || 0) - (payment.amount || 0));
+    const balPending = summary.pending ?? Math.max(0, (summary.orderValue || 0) - (summary.received || 0));
     doc.text(`[ Order Value: Rs. ${fmtAmount(summary.orderValue)} | Prev. Paid: Rs. ${fmtAmount(prevReceived)} | Balance: Rs. ${fmtAmount(balPending)} ]`, xCol1 + 8, yItem);
   }
 
@@ -337,7 +335,7 @@ const renderReceiptCopy = (doc, payment, summary, x0, copyLabel, logoInfo, user)
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6.8);
   doc.setTextColor(60, 60, 60);
-  const signer = (user && user.name) ? user.name : 'Husna M S';
+  const signer = (user && user.name) || payment.receivedBy || 'Husna M S';
   doc.text(`Digitally signed by ${signer}`, xSigCenter, yFooterBox + 37, { align: 'center' });
 
   const dateNow = new Date();

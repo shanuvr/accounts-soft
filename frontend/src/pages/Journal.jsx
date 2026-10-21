@@ -13,8 +13,6 @@ const inputCls =
   'h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[13px] text-slate-700 placeholder:text-slate-400 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100';
 const labelCls = 'mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-400';
 
-const fmtNet = (v) => (v < 0 ? `-${fmtINR(Math.abs(v))}` : fmtINR(v));
-
 function Stat({ label, value, sub, tone = 'text-slate-800' }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white px-3.5 py-3">
@@ -62,7 +60,6 @@ function Journal() {
     const W = doc.internal.pageSize.getWidth();
     const H = doc.internal.pageSize.getHeight();
     const M = 36;
-    const rowH = 28;
 
     const fmtPdfAmt = (val) => {
       if (val === null || val === undefined || val === '' || val === 0) return '—';
@@ -74,13 +71,6 @@ function Journal() {
     const fmtPdfTotal = (val) => {
       const num = Number(val) || 0;
       return 'Rs. ' + new Intl.NumberFormat('en-IN').format(num);
-    };
-
-    const fmtPdfNet = (val) => {
-      const num = Number(val) || 0;
-      if (num === 0) return 'Rs. 0';
-      const prefix = num < 0 ? '-Rs. ' : 'Rs. ';
-      return `${prefix}${new Intl.NumberFormat('en-IN').format(Math.abs(num))}`;
     };
 
     const cols = [

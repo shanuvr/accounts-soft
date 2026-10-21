@@ -4,14 +4,14 @@ import { useAuth } from '../store/authStore';
 import { downloadReceiptPdf, numberToWords, fmtReceiptDate, fmtAmount } from '../utils/receiptPdf';
 
 function ReceiptModal({ payment, onClose }) {
-  const { user } = useAuth();
+  const user = useAuth();
   const [downloading, setDownloading] = useState(false);
 
   if (!payment) return null;
 
   const summary = getOrderPaymentSummary(payment.orderId);
-  const previouslyReceived = Math.max(0, (summary.received || payment.amount) - payment.amount);
-  const balance = summary.pending;
+  const previouslyReceived = Math.max(0, (summary?.received || 0) - (payment.amount || 0));
+  const balance = summary?.pending ?? 0;
 
   const handleDownload = async () => {
     try {
@@ -130,7 +130,7 @@ function ReceiptModal({ payment, onClose }) {
                 </div>
                 <p className="mt-2 text-[14px] font-bold text-slate-900">Original</p>
                 <p className="text-[11px] text-slate-700">
-                  Receipt No: <span className="font-bold text-slate-900">RCP-{payment.paymentId}</span>
+                  Receipt No: <span className="font-bold text-slate-900">{payment.paymentId ? `RCP-${payment.paymentId}` : 'RCP-—'}</span>
                 </p>
               </div>
             </div>

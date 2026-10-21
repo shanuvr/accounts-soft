@@ -6,11 +6,6 @@ import { useLedger, withRunningBalance } from '../store/ledgerStore';
 import { useCustomers } from '../store/customerStore';
 import { fmtINR, fmtDate } from '../data/mockData';
 
-const BOOK_BADGE = {
-  Bank: 'border-sky-200 bg-sky-50 text-sky-700',
-  Cash: 'border-amber-200 bg-amber-50 text-amber-700',
-};
-
 const shortCustomer = (name) => (name || '—').replace(/\s*Pvt Ltd\s*$/i, '');
 
 const comboInputCls = 'h-10 w-full min-w-0 rounded-lg border border-slate-200 bg-white pl-3 pr-9 text-[13px] text-slate-700 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100';
@@ -214,7 +209,6 @@ function Ledger() {
     const W = doc.internal.pageSize.getWidth();
     const H = doc.internal.pageSize.getHeight();
     const M = 36;
-    const rowH = 28;
 
     // Currency formatters for PDF using pure ASCII 'Rs. ' to prevent jsPDF Helvetica glyph corruption
     const fmtPdfAmt = (val) => {

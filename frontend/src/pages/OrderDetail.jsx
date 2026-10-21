@@ -942,7 +942,7 @@ function OrderDetail() {
   const openForm = () => {
     const first = catalog[0];
     if (!first) return;
-    setForm({ name: first.name, deliveryDate: '2026-09-20' });
+    setForm({ name: first.name, deliveryDate: order?.deliveryDate || todayISO() });
     setShowForm(true);
   };
 
@@ -978,10 +978,11 @@ function OrderDetail() {
     setAddingService(false);
     setShowForm(false);
     const next = catalog[0];
+    const defaultDate = order?.deliveryDate || todayISO();
     if (next) {
-      setForm({ name: next.name, deliveryDate: '2026-09-20' });
+      setForm({ name: next.name, deliveryDate: defaultDate });
     } else {
-      setForm({ name: '', deliveryDate: '2026-09-20' });
+      setForm({ name: '', deliveryDate: defaultDate });
     }
   };
 

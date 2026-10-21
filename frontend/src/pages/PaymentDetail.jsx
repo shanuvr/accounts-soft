@@ -141,7 +141,7 @@ function EditModal({ payment, onClose, onSave }) {
 function PaymentDetail() {
   const { paymentId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const user = useAuth();
   const [editing, setEditing] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -162,9 +162,9 @@ function PaymentDetail() {
   }
 
   const summary = getOrderPaymentSummary(payment.orderId);
-  const previouslyReceived = summary.received - payment.amount;
-  const balance = summary.pending;
-  const overpaid = summary.overpaid;
+  const previouslyReceived = Math.max(0, (summary?.received || 0) - (payment.amount || 0));
+  const balance = summary?.pending ?? 0;
+  const overpaid = summary?.overpaid ?? 0;
 
   const handleDownloadPdf = async () => {
     try {

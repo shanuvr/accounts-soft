@@ -5,9 +5,7 @@ const getLogoInfo = () => {
   return new Promise((resolve) => {
     const candidatePaths = [
       '/programers-logo-BLACCK.png',
-      '/programers-logo-black.png',
-      '/programers-logo-BLACCK.PNG',
-      '/programers-logo-black.PNG'
+      '/programers-logo-black.png'
     ];
 
     let current = 0;
@@ -137,7 +135,7 @@ const renderInvoiceCopy = (doc, invoice, x0, copyLabel, logoInfo, user) => {
   doc.setTextColor(30, 30, 30);
   doc.text('Order No :', xLeft, 62);
   doc.setFont('helvetica', 'normal');
-  doc.text(String(invoice.orderId || '2609-08-200'), xLeft + 48, 62);
+  doc.text(String(invoice.orderId || '—'), xLeft + 48, 62);
 
   doc.setFont('helvetica', 'bold');
   doc.text('Date       :', xLeft, 74);
@@ -147,7 +145,7 @@ const renderInvoiceCopy = (doc, invoice, x0, copyLabel, logoInfo, user) => {
   doc.setFont('helvetica', 'bold');
   doc.text('To          :', xLeft, 86);
   doc.setFont('helvetica', 'normal');
-  const custName = String(invoice.customer || '');
+  const custName = String(invoice.customer || '—');
   const custLines = doc.splitTextToSize(custName, 160);
   doc.text(custLines, xLeft + 48, 86);
 
@@ -166,7 +164,7 @@ const renderInvoiceCopy = (doc, invoice, x0, copyLabel, logoInfo, user) => {
   doc.text(copyLabel, xRight, 72, { align: 'right' });
 
   // Invoice No
-  const invIdStr = String(invoice.invoiceId || '207');
+  const invIdStr = String(invoice.invoiceId || '—');
   const invLabelStr = 'Invoice No: ';
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
@@ -202,37 +200,40 @@ const renderInvoiceCopy = (doc, invoice, x0, copyLabel, logoInfo, user) => {
 
   // Table Items
   let yItem = 130;
-  const items = invoice.items && invoice.items.length > 0 ? invoice.items : [
-    { name: 'Domain Registration', quantity: 1, price: 3000 },
-    { name: 'Web Design', quantity: 1, price: 10000 },
-    { name: 'Website Programming Dynamic Section', quantity: 1, price: 2000 }
-  ];
+  const items = invoice.items && invoice.items.length > 0 ? invoice.items : [];
 
-  items.forEach((it, idx) => {
+  if (items.length === 0) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
-    doc.setTextColor(30, 30, 30);
+    doc.setTextColor(120, 120, 120);
+    doc.text('No items listed', xLeft + 115, yItem, { align: 'center' });
+  } else {
+    items.forEach((it, idx) => {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(30, 30, 30);
 
-    // #
-    doc.text(String(idx + 1), xLeft + 9, yItem, { align: 'center' });
+      // #
+      doc.text(String(idx + 1), xLeft + 9, yItem, { align: 'center' });
 
-    // Description (uppercase)
-    const descName = (it.name || '').toUpperCase();
-    const descLines = doc.splitTextToSize(descName, 200);
-    doc.text(descLines, xCol1 + 5, yItem);
+      // Description (uppercase)
+      const descName = (it.name || '').toUpperCase();
+      const descLines = doc.splitTextToSize(descName, 200);
+      doc.text(descLines, xCol1 + 5, yItem);
 
-    // Qty
-    doc.text(String(it.quantity ?? 1), xCol3 - 4, yItem, { align: 'right' });
+      // Qty
+      doc.text(String(it.quantity ?? 1), xCol3 - 4, yItem, { align: 'right' });
 
-    // Rate
-    doc.text(fmtAmount(it.price), xCol4 - 5, yItem, { align: 'right' });
+      // Rate
+      doc.text(fmtAmount(it.price), xCol4 - 5, yItem, { align: 'right' });
 
-    // Amount
-    const lineAmt = (it.price * (it.quantity ?? 1)) - (it.discount || 0);
-    doc.text(fmtAmount(lineAmt), xRight - 5, yItem, { align: 'right' });
+      // Amount
+      const lineAmt = (it.price * (it.quantity ?? 1)) - (it.discount || 0);
+      doc.text(fmtAmount(lineAmt), xRight - 5, yItem, { align: 'right' });
 
-    yItem += Math.max(1, descLines.length) * 12 + 8;
-  });
+      yItem += Math.max(1, descLines.length) * 12 + 8;
+    });
+  }
 
   // Calculate Subtotal & Total
   const subtotal = invoice.subtotal ?? items.reduce((s, it) => s + (it.price * (it.quantity ?? 1)), 0);
