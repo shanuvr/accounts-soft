@@ -1,7 +1,28 @@
 import { useSyncExternalStore } from 'react'
 import { login as apiLogin, logout as apiLogout, register as apiRegister } from '../api/auth'
 
-let current = { email: '', name: '', role: '', company: null, token: null }
+function loadInitial() {
+  try {
+    const token = localStorage.getItem('access_token')
+    const userStr = localStorage.getItem('user')
+    if (token && userStr) {
+      const user = JSON.parse(userStr)
+      return {
+        email: user.email || '',
+        name: user.name || '',
+        role: user.role || '',
+        company: user.company || null,
+        organizations: user.organizations || [],
+        permissions: user.permissions || [],
+        enabledApps: user.enabled_apps || [],
+        token,
+      }
+    }
+  } catch {}
+  return { email: '', name: '', role: '', company: null, organizations: [], permissions: [], enabledApps: [], token: null }
+}
+
+let current = loadInitial()
 const listeners = new Set()
 
 function emit() {
@@ -22,7 +43,10 @@ export function useAuth() {
 }
 
 export function setUser(user) {
-  current = { ...user, token: current.token }
+  current = { ...current, ...user, token: current.token }
+  if (user) {
+    localStorage.setItem('user', JSON.stringify({ ...user, token: undefined }))
+  }
   emit()
 }
 
@@ -40,9 +64,15 @@ export async function login(email, password) {
       name: data.user?.name || '',
       role: data.user?.role || '',
       company: data.user?.company || null,
+      organizations: data.user?.organizations || [],
+      permissions: data.user?.permissions || [],
+      enabledApps: data.user?.enabled_apps || [],
       token: data.access,
     }
     localStorage.setItem('access_token', data.access)
+    if (data.user) {
+      localStorage.setItem('user', JSON.stringify(data.user))
+    }
     emit()
     return { success: true }
   } catch (err) {
@@ -62,9 +92,15 @@ export async function register(admin, company) {
       name: data.user?.name || admin.name,
       role: data.user?.role || '',
       company: data.user?.company || null,
+      organizations: data.user?.organizations || [],
+      permissions: data.user?.permissions || [],
+      enabledApps: data.user?.enabled_apps || [],
       token: data.access,
     }
     localStorage.setItem('access_token', data.access)
+    if (data.user) {
+      localStorage.setItem('user', JSON.stringify(data.user))
+    }
     emit()
     return { success: true }
   } catch (err) {
@@ -82,9 +118,17 @@ export async function register(admin, company) {
 }
 
 export function logout() {
-  current = { email: '', name: '', role: '', company: null, token: null }
+  current = { email: '', name: '', role: '', company: null, organizations: [], permissions: [], enabledApps: [], token: null }
+  localStorage.removeItem('user')
   apiLogout()
   emit()
+}
+
+export function hasPermission(permKey) {
+  if (!current.token) return false
+  if (current.role === 'admin' || current.role === 'owner') return true
+  const perms = current.permissions || []
+  return perms.includes(permKey)
 }
 
 export function getUserByEmail(email) {

@@ -4,6 +4,7 @@ from django.conf import settings
 
 class Company(models.Model):
     name = models.CharField(max_length=200, unique=True)
+    core_org_id = models.IntegerField(null=True, blank=True, unique=True, db_index=True)
     contact_no = models.CharField(max_length=20, blank=True)
     email = models.EmailField(blank=True)
     address = models.TextField(blank=True)

@@ -234,7 +234,16 @@ def user_payload(core_user, access_token):
     default = next((o for o in organizations if o.get('status') == 'active'), None)
     if default is None and organizations:
         default = organizations[0]
-    company = {'id': default.get('id'), 'name': default.get('name')} if default else None
+
+    from .scoping import get_or_sync_company
+    company = None
+    if default:
+        local_comp = get_or_sync_company(default.get('id'), default.get('name'))
+        company = {
+            'id': local_comp.id if local_comp else default.get('id'),
+            'core_org_id': default.get('id'),
+            'name': default.get('name'),
+        }
 
     return {
         'id': user_id,

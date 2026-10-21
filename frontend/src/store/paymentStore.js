@@ -46,23 +46,27 @@ export function getPaymentById(id) {
 }
 
 export function getPaymentsFor(orderId) {
+  if (!orderId) return [];
+  const target = String(orderId).trim().toLowerCase();
   return store
     .all()
-    .filter((r) => r.orderId === orderId)
+    .filter((r) => String(r.orderId || '').trim().toLowerCase() === target)
     .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
 }
 
 export function getOrderPaymentSummary(orderId) {
-  const orderValue = getOrderById(orderId)?.value ?? 0;
+  const order = getOrderById(orderId);
+  const orderValue = order?.value ?? 0;
   const payments = getPaymentsFor(orderId);
   const received = payments.reduce((s, p) => s + p.amount, 0);
   const pending = Math.max(0, orderValue - received);
-  const overpaid = Math.max(0, received - orderValue);
+  const overpaid = orderValue > 0 ? Math.max(0, received - orderValue) : 0;
   let status;
   if (received <= 0) status = 'Unpaid';
-  else if (received < orderValue) status = 'Partially Paid';
-  else if (received === orderValue) status = 'Paid';
-  else status = 'Overpaid';
+  else if (orderValue > 0 && received < orderValue) status = 'Partially Paid';
+  else if (orderValue > 0 && received === orderValue) status = 'Paid';
+  else if (orderValue > 0 && received > orderValue) status = 'Overpaid';
+  else status = 'Paid';
   return { orderValue, received, pending, overpaid, status, payments };
 }
 

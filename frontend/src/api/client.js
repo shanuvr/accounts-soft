@@ -13,6 +13,16 @@ client.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
+  try {
+    const userStr = localStorage.getItem('user')
+    if (userStr) {
+      const user = JSON.parse(userStr)
+      const orgId = user?.company?.core_org_id || user?.company?.id
+      if (orgId) {
+        config.headers['X-Organization-ID'] = orgId
+      }
+    }
+  } catch {}
   return config
 })
 

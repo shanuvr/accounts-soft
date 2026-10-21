@@ -80,14 +80,16 @@ class IncomeExpenseHeadViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = super().get_queryset()
-        company_id = self.request.query_params.get('company_id')
+        company_id = self.request.query_params.get('company_id') or getattr(self.request.user, 'company_id', None)
         if company_id:
             qs = qs.filter(Q(company_id__isnull=True) | Q(company_id=company_id))
         return qs
 
     def _company_id_from_request(self):
         raw = self.request.query_params.get('company_id')
-        return int(raw) if raw and str(raw).strip().isdigit() else None
+        if raw and str(raw).strip().isdigit():
+            return int(raw)
+        return getattr(self.request.user, 'company_id', None)
 
     def perform_create(self, serializer):
         serializer.save(company_id=self._company_id_from_request())

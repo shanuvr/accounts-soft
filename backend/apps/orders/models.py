@@ -3,6 +3,14 @@ from django.db import models
 
 class Order(models.Model):
     order_id = models.CharField(max_length=20, unique=True)
+    company = models.ForeignKey(
+        'users.Company',
+        on_delete=models.CASCADE,
+        related_name='orders',
+        null=True,
+        blank=True,
+        db_index=True,
+    )
     lead_soft_ref = models.CharField(max_length=50, blank=True, help_text='Original Lead Soft reference')
     customer = models.CharField(max_length=200, blank=True, null=True, default='')
     order_date = models.DateField()
@@ -34,8 +42,13 @@ class Order(models.Model):
         return self.order_id
 
     def save(self, *args, **kwargs):
-        self.final_amount = self.subtotal - self.discount + self.tax_amount
-        self.pending_amount = self.final_amount - self.total_received
+        from decimal import Decimal
+        subtotal = Decimal(str(self.subtotal or 0))
+        discount = Decimal(str(self.discount or 0))
+        tax_amount = Decimal(str(self.tax_amount or 0))
+        total_received = Decimal(str(self.total_received or 0))
+        self.final_amount = subtotal - discount + tax_amount
+        self.pending_amount = self.final_amount - total_received
         super().save(*args, **kwargs)
 
 
