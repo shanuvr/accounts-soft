@@ -1,0 +1,84 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Deploy Backend",
+            "type": "shell",
+            "command": "powershell",
+            "args": [
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                "${workspaceFolder}\\deploy.ps1",
+                "backend"
+            ],
+            "problemMatcher": [],
+            "group": "build"
+        },
+        {
+            "label": "Deploy Frontend",
+            "type": "shell",
+            "command": "powershell",
+            "args": [
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                "${workspaceFolder}\\deploy.ps1",
+                "frontend"
+            ],
+            "problemMatcher": [],
+            "group": "build"
+        },
+        {
+            "label": "Deploy Full",
+            "type": "shell",
+            "command": "powershell",
+            "args": [
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                "${workspaceFolder}\\deploy.ps1",
+                "full"
+            ],
+            "problemMatcher": [],
+            "group": "build"
+        },
+        {
+            "label": "Run Backend",
+            "type": "shell",
+            "command": "powershell",
+            "args": [
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                "${workspaceFolder}\\deploy.ps1",
+                "run-backend"
+            ],
+            "isBackground": true,
+            "problemMatcher": []
+        },
+        {
+            "label": "Run Frontend",
+            "type": "shell",
+            "command": "powershell",
+            "args": [
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                "${workspaceFolder}\\deploy.ps1",
+                "run-frontend"
+            ],
+            "isBackground": true,
+            "problemMatcher": []
+        },
+        {
+            "label": "Run Full",
+            "dependsOn": [
+                "Run Backend",
+                "Run Frontend"
+            ],
+            "dependsOrder": "parallel",
+            "problemMatcher": []
+        }
+    ]
+}
