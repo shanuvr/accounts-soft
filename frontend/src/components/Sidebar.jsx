@@ -203,15 +203,21 @@ function NavItem({ icon, label, active, onClick }) {
   );
 }
 
-let savedSidebarScroll = 0;
-try {
-  savedSidebarScroll = Number(sessionStorage.getItem('account_soft_sidebar_scroll') || 0);
-} catch {}
+const getSavedScroll = () => {
+  try {
+    return Number(sessionStorage.getItem('account_soft_sidebar_scroll') || 0);
+  } catch {
+    return 0;
+  }
+};
 
-let savedReportsOpen = false;
-try {
-  savedReportsOpen = sessionStorage.getItem('account_soft_reports_open') === 'true';
-} catch {}
+const saveScroll = (pos) => {
+  try {
+    sessionStorage.setItem('account_soft_sidebar_scroll', String(pos));
+  } catch {
+    // ignore storage errors
+  }
+};
 
 function Sidebar({ active = 'dashboard', mobileOpen = false, onClose }) {
   const { mastersOpen } = useUi();
@@ -220,69 +226,61 @@ function Sidebar({ active = 'dashboard', mobileOpen = false, onClose }) {
   const user = useAuth();
   const mastersRef = useRef(null);
   const navRef = useRef(null);
+  const scrollPosRef = useRef(getSavedScroll());
 
   const reportsActive = active === 'reports' || REPORTS_NAV.some((r) => r.id === active);
-  const [reportsOpen, setReportsOpen] = useState(() => reportsActive || savedReportsOpen);
-  const [prevActive, setPrevActive] = useState(active);
-
-  if (active !== prevActive) {
-    setPrevActive(active);
-    if (reportsActive && !reportsOpen) {
-      setReportsOpen(true);
-      savedReportsOpen = true;
-      try {
-        sessionStorage.setItem('account_soft_reports_open', 'true');
-      } catch {}
+  const [reportsManualOpen, setReportsManualOpen] = useState(() => {
+    try {
+      return sessionStorage.getItem('account_soft_reports_open') === 'true';
+    } catch {
+      return false;
     }
-  }
+  });
+
+  const reportsOpen = reportsActive || reportsManualOpen;
 
   const handleScroll = (e) => {
-    savedSidebarScroll = e.currentTarget.scrollTop;
-    try {
-      sessionStorage.setItem('account_soft_sidebar_scroll', String(savedSidebarScroll));
-    } catch {}
+    scrollPosRef.current = e.currentTarget.scrollTop;
+    saveScroll(scrollPosRef.current);
   };
 
   const handleNavigate = (path) => {
     if (navRef.current) {
-      savedSidebarScroll = navRef.current.scrollTop;
-      try {
-        sessionStorage.setItem('account_soft_sidebar_scroll', String(savedSidebarScroll));
-      } catch {}
+      scrollPosRef.current = navRef.current.scrollTop;
+      saveScroll(scrollPosRef.current);
     }
     navigate(path);
   };
 
   const toggleReports = () => {
     if (navRef.current) {
-      savedSidebarScroll = navRef.current.scrollTop;
-      try {
-        sessionStorage.setItem('account_soft_sidebar_scroll', String(savedSidebarScroll));
-      } catch {}
+      scrollPosRef.current = navRef.current.scrollTop;
+      saveScroll(scrollPosRef.current);
     }
-    setReportsOpen((prev) => {
+    setReportsManualOpen((prev) => {
       const next = !prev;
-      savedReportsOpen = next;
       try {
         sessionStorage.setItem('account_soft_reports_open', String(next));
-      } catch {}
+      } catch {
+        // ignore storage errors
+      }
       return next;
     });
   };
 
   useLayoutEffect(() => {
     if (navRef.current) {
-      navRef.current.scrollTop = savedSidebarScroll;
+      navRef.current.scrollTop = scrollPosRef.current;
     }
   });
 
   useEffect(() => {
     if (navRef.current) {
-      navRef.current.scrollTop = savedSidebarScroll;
+      navRef.current.scrollTop = scrollPosRef.current;
     }
     const raf = requestAnimationFrame(() => {
       if (navRef.current) {
-        navRef.current.scrollTop = savedSidebarScroll;
+        navRef.current.scrollTop = scrollPosRef.current;
       }
     });
     return () => cancelAnimationFrame(raf);
@@ -392,10 +390,8 @@ function Sidebar({ active = 'dashboard', mobileOpen = false, onClose }) {
               type="button"
               onClick={() => {
                 if (navRef.current) {
-                  savedSidebarScroll = navRef.current.scrollTop;
-                  try {
-                    sessionStorage.setItem('account_soft_sidebar_scroll', String(savedSidebarScroll));
-                  } catch {}
+                  scrollPosRef.current = navRef.current.scrollTop;
+                  saveScroll(scrollPosRef.current);
                 }
                 const next = !mastersOpen;
                 setMastersOpen(next);

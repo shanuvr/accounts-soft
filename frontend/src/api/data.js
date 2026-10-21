@@ -79,18 +79,6 @@ export const createReportConfig = (data) => client.post('/reports/reportconfigs/
 export const updateReportConfig = (id, data) => client.patch(`/reports/reportconfigs/${id}/`, data).then(r => r.data)
 export const deleteReportConfig = (id) => client.delete(`/reports/reportconfigs/${id}/`)
 
-export const getMasters = (type) => {
-  const unwrap = (r) => (r.data?.results ?? r.data);
-  const endpoints = {
-    paymentMethods: '/masters/paymentmethods/',
-    paymentTerms: '/masters/paymentterms/',
-    taxes: '/masters/taxes/',
-    deliveryTypes: '/masters/deliverytypes/',
-    orderStatuses: '/masters/orderstatuses/',
-    paymentStatuses: '/masters/paymentstatuses/',
-  }
-  return client.get(endpoints[type] || `/masters/${type}/`).then(unwrap)
-}
 const MASTER_ENDPOINTS = {
   paymentMethods: '/masters/paymentmethods/',
   paymentTerms: '/masters/paymentterms/',
@@ -99,9 +87,7 @@ const MASTER_ENDPOINTS = {
   orderStatuses: '/masters/orderstatuses/',
   paymentStatuses: '/masters/paymentstatuses/',
 }
+
 export const getMastersAll = (type) =>
   client.get(MASTER_ENDPOINTS[type] || `/masters/${type}/`, { params: { page_size: 500 } }).then((r) => r.data?.results ?? r.data)
-export const getProducts = () => client.get('/customers/products/').then(r => r.data?.results ?? r.data)
-export const getProductCategories = () => client.get('/customers/productcategories/').then(r => r.data?.results ?? r.data)
-export const getEmployees = () => client.get('/customers/employees/').then(r => r.data?.results ?? r.data)
-export const getDepartments = () => client.get('/customers/departments/').then(r => r.data?.results ?? r.data)
+

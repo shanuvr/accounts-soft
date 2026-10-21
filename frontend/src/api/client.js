@@ -22,7 +22,9 @@ client.interceptors.request.use((config) => {
         config.headers['X-Organization-ID'] = orgId
       }
     }
-  } catch {}
+  } catch {
+    // ignore storage errors
+  }
   return config
 })
 

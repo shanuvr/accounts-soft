@@ -18,7 +18,9 @@ function loadInitial() {
         token,
       }
     }
-  } catch {}
+  } catch {
+    // ignore storage parse error
+  }
   return { email: '', name: '', role: '', company: null, organizations: [], permissions: [], enabledApps: [], token: null }
 }
 
