@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Layout from '../layouts/Layout';
 import { fmtINR, fmtDate } from '../data/mockData';
@@ -7,8 +7,8 @@ import { useOrders, useOrdersLoaded, useOrdersError, ensureLocalOrder } from '..
 import { useOrderServices, addOrderService, removeOrderService } from '../store/orderServiceStore';
 import { useServices, getServiceByName } from '../store/serviceStore';
 import { useDepartments } from '../store/departmentStore';
-import { usePtds, createOrUpdatePtd, deletePtdFor } from '../store/ptdStore';
-import { useAssignments, createAssignment, deleteAssignmentFor } from '../store/assignmentStore';
+import { usePtds, createOrUpdatePtd, deletePtdFor, reloadPtds } from '../store/ptdStore';
+import { useAssignments, createAssignment, deleteAssignmentFor, reloadAssignments } from '../store/assignmentStore';
 import { usePayments, getOrderPaymentSummary, createPayment } from '../store/paymentStore';
 import { usePaymentPlans, getPlanView, createPaymentPlan } from '../store/paymentPlanStore';
 import { useInvoices, getInvoicesFor, saveInvoice, getInvoiceStatus, syncAutoDraftInvoice, removeInvoice, getAutoDraftFor } from '../store/invoiceStore';
@@ -29,6 +29,9 @@ const SERVICE_STATUS = {
   'On Hold': 'border-orange-200 bg-orange-50 text-orange-700',
   Cancelled: 'border-red-200 bg-red-50 text-red-700',
   Overdue: 'border-red-200 bg-red-50 text-red-700',
+  Pending: 'border-amber-200 bg-amber-50 text-amber-700',
+  Accepted: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  Rejected: 'border-rose-200 bg-rose-50 text-rose-700',
 };
 
 const PTD_STATUS = {
@@ -36,6 +39,9 @@ const PTD_STATUS = {
   'Not Created': 'border-slate-200 bg-slate-100 text-slate-600',
   Draft: 'border-amber-200 bg-amber-50 text-amber-700',
   Completed: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  Pending: 'border-amber-200 bg-amber-50 text-amber-700',
+  Accepted: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  Rejected: 'border-rose-200 bg-rose-50 text-rose-700',
 };
 
 const PAYMENT_STATUS = {
@@ -1005,6 +1011,15 @@ function OrderDetail() {
     setPtdService(null);
   };
 
+  useEffect(() => {
+    // Poll for assignment / PTD status updates from Project Soft decisions
+    const timer = setInterval(() => {
+      reloadAssignments();
+      reloadPtds();
+    }, 4000);
+    return () => clearInterval(timer);
+  }, []);
+
   const assignServiceHandler = async (serviceId, payload) => {
     const svc = services.find((s) => s.id === serviceId);
     if (!svc) return;
@@ -1013,12 +1028,13 @@ function OrderDetail() {
       customer: order.customer,
       serviceName: svc.name,
       ...payload,
+      status: 'Pending',
       assignedBy: user.name,
     });
     setToast(
       res && res.ok === false
         ? { type: 'error', message: 'Could not assign the service.' }
-        : { type: 'success', message: `${svc.name} assigned.` }
+        : { type: 'success', message: `${svc.name} assigned. Sent to Project Soft for PM review.` }
     );
     setAssignService(null);
   };
@@ -1305,7 +1321,7 @@ function OrderDetail() {
                     <p className="truncate text-[14px] font-semibold text-slate-800">{s.name}</p>
                     <div className="flex shrink-0 items-center gap-2">
                       <span className="text-[14px] font-semibold text-slate-800">{s.ptd && s.ptd.billable === false ? '—' : fmtINR(s.price || 0)}</span>
-                      <Badge status={s.assignment ? s.assignment.status : s.status} map={SERVICE_STATUS} />
+                      <Badge status={s.assignment ? (s.assignment.status === 'Assigned' ? 'Pending' : s.assignment.status) : s.status} map={SERVICE_STATUS} />
                       <button
                         type="button"
                         onClick={() => deleteServiceEntry(s)}
@@ -1328,34 +1344,20 @@ function OrderDetail() {
                           <span className="text-[12px] font-semibold text-emerald-700">{s.assignment.id}</span>
                           <span className="text-[12px] text-slate-400">·</span>
                           <span className="text-[12px] font-medium text-slate-700">{s.assignment.assignedTo}</span>
-                          <Badge status={s.assignment.status} map={SERVICE_STATUS} />
+                          <Badge status={s.assignment.status === 'Assigned' ? 'Pending' : s.assignment.status} map={SERVICE_STATUS} />
                         </div>
                       ) : (
                         <Badge status="Not Assigned" map={{ 'Not Assigned': 'border-slate-200 bg-slate-100 text-slate-500' }} />
                       )}
                     </div>
 
-                    {/* {s.assignment ? (
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/assignments/${s.assignment.id}`)}
-                        className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[12px] font-medium text-emerald-700 transition-colors hover:bg-emerald-100"
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Z" />
-                          <path d="M14 2v6h6" />
-                        </svg>
-                        View Assignment
-                      </button>
-                    ) : ( */}
-
-                    {!s.assignment && (!s.ptdRequired || s.ptdStatus === 'Completed') && (
+                    {(!s.assignment || s.assignment.status === 'Rejected') && (!s.ptdRequired || s.ptdStatus === 'Completed' || s.assignment?.status === 'Rejected') && (
                       <button
                         type="button"
                         onClick={() => setAssignService(s)}
                         className="rounded-lg bg-emerald-600 px-3 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-emerald-500"
                       >
-                        Assign
+                        {s.assignment?.status === 'Rejected' ? 'Reassign' : 'Assign'}
                       </button>
                     )}
                   </div>
@@ -1368,6 +1370,29 @@ function OrderDetail() {
                     </p>
                   )}
 
+                  {s.assignment && (s.assignment.status === 'Pending' || s.assignment.status === 'Assigned') && (
+                    <div className="mt-2 flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50/70 px-2.5 py-1 text-[11.5px] text-amber-700">
+                      <span>⏳</span>
+                      <span>Pending — Awaiting review in Project Soft</span>
+                    </div>
+                  )}
+
+                  {s.assignment && s.assignment.status === 'Accepted' && (
+                    <div className="mt-2 flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50/70 px-2.5 py-1 text-[11.5px] text-emerald-700">
+                      <span>✓</span>
+                      <span>Accepted by Project Soft PM</span>
+                    </div>
+                  )}
+
+                  {s.assignment && s.assignment.status === 'Rejected' && (
+                    <div className="mt-2 rounded-lg border border-rose-200 bg-rose-50/70 p-2.5 text-[11.5px] text-rose-700">
+                      <div className="font-semibold flex items-center gap-1"><span>✕</span> Rejected in Project Soft</div>
+                      {s.assignment.instructions && (
+                        <div className="mt-0.5 text-rose-600">PM Remark: {s.assignment.instructions.replace(/^Rejected:\s*/i, '')}</div>
+                      )}
+                    </div>
+                  )}
+
                   <p className="mt-2 text-[12.5px] text-slate-500">
                     Delivery: <span className="font-medium text-slate-600">{fmtDate(s.deliveryDate || order.deliveryDate)}</span>
                   </p>
@@ -1376,7 +1401,7 @@ function OrderDetail() {
                     <div className="flex items-center gap-2">
                       <span className="text-[12px] text-slate-500">PTD:</span>
                       {s.ptdRequired ? (
-                        <Badge status={s.ptdStatus} map={PTD_STATUS} />
+                        <Badge status={s.assignment ? (s.assignment.status === 'Assigned' ? 'Pending' : s.assignment.status) : s.ptdStatus} map={PTD_STATUS} />
                       ) : (
                         <Badge status="Not Required" map={PTD_STATUS} />
                       )}

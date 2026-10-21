@@ -57,13 +57,17 @@ export function getAssignmentFor(orderId, serviceName) {
   return store.all().find((r) => r.orderId === orderId && r.serviceName === serviceName);
 }
 
+export function reloadAssignments() {
+  return store.load();
+}
+
 export function deleteAssignmentFor(orderId, serviceName) {
   const rec = getAssignmentFor(orderId, serviceName);
   if (!rec) return null;
   return store.run(() => api.deleteAssignment(rec.id));
 }
 
-export async function createAssignment({ orderId, serviceName, assignedTo, assignedTeam, assignedOn, expectedDelivery, priority, instructions, status = 'Assigned', allocatedHours }) {
+export async function createAssignment({ orderId, serviceName, assignedTo, assignedTeam, assignedOn, expectedDelivery, priority, instructions, status = 'Pending', allocatedHours }) {
   const orderServiceId = await resolveOrderServiceId(orderId, serviceName);
   if (!orderServiceId) return { ok: false, reason: 'notfound' };
   const existing = store.all().find((r) => r.orderId === orderId && r.serviceName === serviceName);
