@@ -88,7 +88,7 @@ export const numberToWords = (num) => {
   return words ? `${words} Rupees Only` : '';
 };
 
-// Render one copy of the receipt at horizontal offset x0
+// Render one copy of the receipt at horizontal offset x0 (Exact invoice mirror)
 const renderReceiptCopy = (doc, payment, summary, x0, copyLabel, logoInfo, user) => {
   const copyW = 396;
   const xFrameLeft = x0 + 12;
@@ -99,7 +99,7 @@ const renderReceiptCopy = (doc, payment, summary, x0, copyLabel, logoInfo, user)
   const yTopFrame = 12;
   const yBottomFrame = 536;
 
-  // 1. Outer Frame Box (Solid Border)
+  // 1. Outer Frame Box (Solid Border - identical to invoice)
   doc.setDrawColor(30, 30, 30);
   doc.setLineWidth(1);
   doc.setLineDashPattern([], 0);
@@ -130,7 +130,7 @@ const renderReceiptCopy = (doc, payment, summary, x0, copyLabel, logoInfo, user)
   doc.setTextColor(15, 23, 42);
   doc.text('Programers International', xRight, 24, { align: 'right' });
   doc.setFontSize(9.5);
-  doc.text('[ PAYMENT RECEIPT ]', xRight, 37, { align: 'right' });
+  doc.text('[ Cash Receipt ]', xRight, 37, { align: 'right' });
 
   // 3. Metadata Header Section
   doc.setFont('helvetica', 'bold');
@@ -138,7 +138,7 @@ const renderReceiptCopy = (doc, payment, summary, x0, copyLabel, logoInfo, user)
   doc.setTextColor(30, 30, 30);
   doc.text('Order No :', xLeft, 62);
   doc.setFont('helvetica', 'normal');
-  doc.text(String(payment.orderId || '—'), xLeft + 48, 62);
+  doc.text(String(payment.orderId || '2609-08-200'), xLeft + 48, 62);
 
   doc.setFont('helvetica', 'bold');
   doc.text('Date       :', xLeft, 74);
@@ -146,19 +146,19 @@ const renderReceiptCopy = (doc, payment, summary, x0, copyLabel, logoInfo, user)
   doc.text(fmtReceiptDate(payment.date), xLeft + 48, 74);
 
   doc.setFont('helvetica', 'bold');
-  doc.text('From      :', xLeft, 86);
+  doc.text('To          :', xLeft, 86);
   doc.setFont('helvetica', 'normal');
   const custName = String(payment.customer || '');
   const custLines = doc.splitTextToSize(custName, 160);
   doc.text(custLines, xLeft + 48, 86);
 
-  // Receipt / Voucher Box (Right metadata)
+  // Proforma / Receipt Box (Right metadata)
   doc.setLineWidth(0.8);
   doc.setDrawColor(30, 30, 30);
   doc.rect(xRight - 98, 44, 98, 14);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(6.5);
-  doc.text('RECEIPT / VOUCHER', xRight - 49, 54, { align: 'center' });
+  doc.text('PAYMENT RECEIPT', xRight - 49, 54, { align: 'center' });
 
   // Original / Duplicate label
   doc.setFont('helvetica', 'bold');
@@ -166,8 +166,8 @@ const renderReceiptCopy = (doc, payment, summary, x0, copyLabel, logoInfo, user)
   doc.setTextColor(15, 23, 42);
   doc.text(copyLabel, xRight, 72, { align: 'right' });
 
-  // Receipt No
-  const rcpIdStr = String(payment.paymentId ? `RCP-${payment.paymentId}` : 'RECEIPT');
+  // Receipt No (matches Invoice No format)
+  const rcpIdStr = String(payment.paymentId ? `RCP-${payment.paymentId}` : 'RCP-1');
   const rcpLabelStr = 'Receipt No: ';
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
@@ -181,111 +181,126 @@ const renderReceiptCopy = (doc, payment, summary, x0, copyLabel, logoInfo, user)
   doc.setFont('helvetica', 'bold');
   doc.text(rcpIdStr, xRight - valW, 86);
 
-  // 4. Main Body Table
+  // 4. Main Table Section (Exact same dimensions as invoice)
   const yTableTop = 98;
   const yTableBottom = 380;
-  const xColLabel = xLeft + 120; // dividing point between label & details
 
-  // Table Header
+  const xCol1 = xLeft + 18;  // # column ends (width 18)
+  const xCol2 = xLeft + 225; // Description column ends (width 207)
+  const xCol3 = xLeft + 252; // Qty column ends (width 27)
+  const xCol4 = xLeft + 306; // Rate column ends (width 54)
+  // Amount column: xCol4 to xRight (width 54)
+
+  // Table Headers
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.5);
   doc.setTextColor(30, 30, 30);
-  doc.text('PARTICULARS', xLeft + 8, 110);
-  doc.text('DETAILS', xColLabel + 8, 110);
+  doc.text('#', xLeft + 9, 110, { align: 'center' });
+  doc.text('Description', xLeft + 115, 110, { align: 'center' });
+  doc.text('Qty', xCol3 - 4, 110, { align: 'right' });
+  doc.text('Rate', xCol4 - 5, 110, { align: 'right' });
+  doc.text('Amount', xRight - 5, 110, { align: 'right' });
 
-  // Dashed lines setup
+  // Items: Item 1 is the Payment Receipt Item
+  let yItem = 130;
+  const stageStr = payment.planStage ? ` (${payment.planStage.toUpperCase()})` : '';
+  const mainDesc = `PAYMENT RECEIVED - ORDER #${payment.orderId}${stageStr}`;
+  const descLines = doc.splitTextToSize(mainDesc, 200);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  doc.setTextColor(30, 30, 30);
+
+  // #
+  doc.text('1', xLeft + 9, yItem, { align: 'center' });
+
+  // Description
+  doc.text(descLines, xCol1 + 5, yItem);
+
+  // Qty
+  doc.text('1', xCol3 - 4, yItem, { align: 'right' });
+
+  // Rate
+  doc.text(fmtAmount(payment.amount), xCol4 - 5, yItem, { align: 'right' });
+
+  // Amount
+  doc.text(fmtAmount(payment.amount), xRight - 5, yItem, { align: 'right' });
+
+  yItem += Math.max(1, descLines.length) * 12 + 8;
+
+  // Additional payment metadata lines inside description column
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(60, 60, 60);
+
+  const subLines = [
+    `Payment Mode: ${(payment.method || 'Cash').toUpperCase()}`,
+    payment.reference ? `Txn / Ref No: ${payment.reference.toUpperCase()}` : null,
+    payment.invoiceId ? `Invoice Reference: ${payment.invoiceId}` : null,
+    payment.notes ? `Remarks: ${payment.notes}` : null,
+  ].filter(Boolean);
+
+  subLines.forEach((line) => {
+    doc.text(`• ${line}`, xCol1 + 8, yItem);
+    yItem += 11;
+  });
+
+  // Ledger summary snapshot line if order value exists
+  if (summary && summary.orderValue > 0) {
+    yItem += 4;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.2);
+    doc.setTextColor(80, 80, 80);
+    const prevReceived = Math.max(0, (summary.received || payment.amount) - payment.amount);
+    const balPending = summary.pending ?? Math.max(0, summary.orderValue - summary.received);
+    doc.text(`[ Order Value: Rs. ${fmtAmount(summary.orderValue)} | Prev. Paid: Rs. ${fmtAmount(prevReceived)} | Balance: Rs. ${fmtAmount(balPending)} ]`, xCol1 + 8, yItem);
+  }
+
+  // Calculate Subtotal & Total (matches payment amount)
+  const total = payment.amount || 0;
+
+  // Sub Total Row
+  const ySubTotalLine = 344;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(30, 30, 30);
+  doc.text('Sub Total', xCol4 - 5, ySubTotalLine + 10, { align: 'right' });
+  doc.text(fmtAmount(total), xRight - 5, ySubTotalLine + 10, { align: 'right' });
+
+  // Total & Amount in words Row
+  const yTotalLine = 360;
+  const wordsStr = numberToWords(total);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.text(wordsStr, xLeft + 5, yTotalLine + 11);
+
+  doc.setFontSize(8);
+  doc.text('Total', xCol4 - 5, yTotalLine + 11, { align: 'right' });
+  doc.text(fmtAmount(total), xRight - 5, yTotalLine + 11, { align: 'right' });
+
+  // Table Dashed Borders (Exact match to invoice)
   doc.setLineDashPattern([2.5, 2], 0);
   doc.setDrawColor(40, 40, 40);
   doc.setLineWidth(0.75);
 
   // Outer Table Box
   doc.rect(xLeft, yTableTop, contentW, yTableBottom - yTableTop);
-  // Header bottom line
-  doc.line(xLeft, 114, xRight, 114);
-  // Vertical column divider
-  doc.line(xColLabel, yTableTop, xColLabel, 240);
 
-  // Rows of Payment Information
-  const infoRows = [
-    ['Received Towards', payment.planStage ? `${payment.planStage} (Order #${payment.orderId})` : `Payment for Order #${payment.orderId}`],
-    ['Invoice Reference', payment.invoiceId || '—'],
-    ['Payment Mode', payment.method || 'Cash'],
-    ['Transaction / Ref No.', payment.reference || '—'],
-    ['Payment Status', payment.status || 'Received'],
-    ['Received By', payment.receivedBy || (user && user.name) || 'Authorized Staff'],
-  ];
+  // Horizontal Dashed Lines
+  doc.line(xLeft, 112, xRight, 112);                     // Header bottom
+  doc.line(xLeft, ySubTotalLine, xRight, ySubTotalLine); // Subtotal top
+  doc.line(xLeft, yTotalLine, xRight, yTotalLine);       // Total top
 
-  let yRow = 127;
-  infoRows.forEach(([lbl, val]) => {
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
-    doc.setTextColor(40, 40, 40);
-    doc.text(lbl, xLeft + 8, yRow);
-
-    doc.setFont('helvetica', 'normal');
-    doc.text(String(val), xColLabel + 8, yRow);
-
-    yRow += 18;
-  });
-
-  // Account Status / Summary Box inside table (y = 240 to 344)
-  doc.line(xLeft, 240, xRight, 240);
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
-  doc.setTextColor(60, 60, 60);
-  doc.text('ORDER PAYMENT SUMMARY', xLeft + 8, 252);
-
-  const orderVal = summary?.orderValue ?? 0;
-  const thisAmt = payment.amount || 0;
-  const totReceived = summary?.received ?? thisAmt;
-  const prevReceived = Math.max(0, totReceived - thisAmt);
-  const balPending = summary?.pending ?? Math.max(0, orderVal - totReceived);
-
-  const summaryGrid = [
-    ['Total Order Value:', `Rs. ${fmtAmount(orderVal)}`],
-    ['Previously Received:', `Rs. ${fmtAmount(prevReceived)}`],
-    ['Amount Received This Receipt:', `Rs. ${fmtAmount(thisAmt)}`],
-    ['Total Received to Date:', `Rs. ${fmtAmount(totReceived)}`],
-    ['Balance Pending:', `Rs. ${fmtAmount(balPending)}`],
-  ];
-
-  let ySum = 266;
-  summaryGrid.forEach(([label, value], idx) => {
-    doc.setFont('helvetica', idx === 2 ? 'bold' : 'normal');
-    doc.setFontSize(7.8);
-    doc.setTextColor(30, 30, 30);
-    doc.text(label, xLeft + 12, ySum);
-    doc.text(value, xRight - 12, ySum, { align: 'right' });
-    ySum += 14;
-  });
-
-  // Amount Received Highlights (Total bar)
-  const ySubTotalLine = 344;
-  const yTotalLine = 360;
-
-  doc.line(xLeft, ySubTotalLine, xRight, ySubTotalLine);
-  doc.line(xLeft, yTotalLine, xRight, yTotalLine);
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
-  doc.text('Amount Received', xRight - 90, ySubTotalLine + 10, { align: 'right' });
-  doc.text(`Rs. ${fmtAmount(thisAmt)}`, xRight - 8, ySubTotalLine + 10, { align: 'right' });
-
-  // Amount in words
-  const wordsStr = numberToWords(thisAmt);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7.5);
-  doc.text(wordsStr, xLeft + 8, yTotalLine + 11);
-
-  doc.setFontSize(8.5);
-  doc.text('NET RECEIVED', xRight - 90, yTotalLine + 11, { align: 'right' });
-  doc.text(`Rs. ${fmtAmount(thisAmt)}`, xRight - 8, yTotalLine + 11, { align: 'right' });
+  // Vertical Dashed Lines
+  doc.line(xCol1, yTableTop, xCol1, ySubTotalLine);
+  doc.line(xCol2, yTableTop, xCol2, ySubTotalLine);
+  doc.line(xCol3, yTableTop, xCol3, ySubTotalLine);
+  doc.line(xCol4, yTableTop, xCol4, yTableBottom);
 
   // Reset line dash to solid
   doc.setLineDashPattern([], 0);
 
-  // 5. Receipt Notice Box & Signature Section
+  // 5. Payment Info Notice Box & Signature Section (Exact match to invoice)
   const yFooterBox = 392;
   const hFooterBox = 75;
   const wNoticeBox = 192;
@@ -296,15 +311,15 @@ const renderReceiptCopy = (doc, payment, summary, x0, copyLabel, logoInfo, user)
   doc.setLineDashPattern([], 0);
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(6.5);
+  doc.setFontSize(6.2);
   doc.setTextColor(50, 50, 50);
   const noticeLines = [
-    'Thank you for your business!',
-    'Receipt is issued subject to realization of funds.',
-    'For any queries, please quote the Receipt & Order No.'
+    'All Payments should be made by cash/cheque/UPI payable to',
+    'Programers International. Claims are accepted only before',
+    'delivery.'
   ];
   noticeLines.forEach((line, i) => {
-    doc.text(line, xLeft + (wNoticeBox / 2), yFooterBox + 28 + (i * 11), { align: 'center' });
+    doc.text(line, xLeft + (wNoticeBox / 2), yFooterBox + 28 + (i * 10.5), { align: 'center' });
   });
 
   // Right Side (Digital Signature)
@@ -316,12 +331,13 @@ const renderReceiptCopy = (doc, payment, summary, x0, copyLabel, logoInfo, user)
   doc.text('For Programers International', xSigCenter, yFooterBox + 12, { align: 'center' });
 
   doc.setFontSize(8);
-  doc.text('Authorized Signatory Valid', xSigCenter, yFooterBox + 25, { align: 'center' });
+  doc.text('Authorized Signature Valid', xSigCenter, yFooterBox + 25, { align: 'center' });
 
+  // Digitally signed details
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6.8);
   doc.setTextColor(60, 60, 60);
-  const signer = (user && user.name) || payment.receivedBy || 'Husna M S';
+  const signer = (user && user.name) ? user.name : 'Husna M S';
   doc.text(`Digitally signed by ${signer}`, xSigCenter, yFooterBox + 37, { align: 'center' });
 
   const dateNow = new Date();
@@ -329,7 +345,7 @@ const renderReceiptCopy = (doc, payment, summary, x0, copyLabel, logoInfo, user)
   doc.text(`Date: ${dateStamp}`, xSigCenter, yFooterBox + 48, { align: 'center' });
   doc.text('Location: Thrissur', xSigCenter, yFooterBox + 58, { align: 'center' });
 
-  // 6. Bottom Address Footer Banner
+  // 6. Bottom Address Footer Banner (Exact match to invoice)
   const yFooter = 492;
   doc.setLineWidth(0.8);
   doc.setDrawColor(30, 30, 30);
@@ -356,7 +372,7 @@ export const downloadReceiptPdf = async (payment, summary, user) => {
   const logoInfo = await getLogoInfo();
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
 
-  // Copy 1 (Left): Original for Customer
+  // Copy 1 (Left): Original
   renderReceiptCopy(doc, payment, summary, 0, 'Original', logoInfo, user);
 
   // Middle Dashed Divider Cut-Line
@@ -365,8 +381,8 @@ export const downloadReceiptPdf = async (payment, summary, user) => {
   doc.setLineWidth(0.75);
   doc.line(420.94, 10, 420.94, 536);
 
-  // Copy 2 (Right): Duplicate for Office
+  // Copy 2 (Right): Duplicate / Copy
   renderReceiptCopy(doc, payment, summary, 421, 'Duplicate', logoInfo, user);
 
-  doc.save(`Receipt-${payment.paymentId || 'Payment'}.pdf`);
+  doc.save(`${payment.paymentId ? `Receipt-${payment.paymentId}` : 'Receipt'}.pdf`);
 };
