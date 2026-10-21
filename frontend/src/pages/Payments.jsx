@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../layouts/Layout';
+import ReceiptModal from '../components/ReceiptModal';
 import { usePayments, getGlobalSummary } from '../store/paymentStore';
 import { usePaymentPlans, getScheduledStages } from '../store/paymentPlanStore';
 import { usePaymentMethods } from '../store/paymentMethodStore';
@@ -42,6 +43,7 @@ function Payments() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [tab, setTab] = useState('payments');
+  const [selectedPaymentForReceipt, setSelectedPaymentForReceipt] = useState(null);
 
   const global = getGlobalSummary();
   const customers = useMemo(() => [...new Set(payments.map((p) => p.customer))], [payments]);
@@ -249,17 +251,37 @@ function Payments() {
                   <td className="whitespace-nowrap px-2 py-2 text-slate-600">{p.invoiceId || '—'}</td>
                   <td className="whitespace-nowrap px-2 py-2"><Badge status={p.status} /></td>
                   <td className="whitespace-nowrap px-2 py-2 text-right">
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); navigate(`/payments/${p.paymentId}`); }}
-                      aria-label={`View ${p.paymentId}`}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-600"
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12Z" />
-                        <circle cx="12" cy="12" r="2.5" />
-                      </svg>
-                    </button>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedPaymentForReceipt(p);
+                        }}
+                        aria-label={`Print Receipt for ${p.paymentId}`}
+                        title="View / Print Receipt"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                          <polyline points="14 2 14 8 20 8" />
+                          <line x1="16" y1="13" x2="8" y2="13" />
+                          <line x1="16" y1="17" x2="8" y2="17" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); navigate(`/payments/${p.paymentId}`); }}
+                        aria-label={`View ${p.paymentId}`}
+                        title="View Payment Details"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-600"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12Z" />
+                          <circle cx="12" cy="12" r="2.5" />
+                        </svg>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -277,6 +299,12 @@ function Payments() {
         </div>
           </div>
         </>
+      )}
+      {selectedPaymentForReceipt && (
+        <ReceiptModal
+          payment={selectedPaymentForReceipt}
+          onClose={() => setSelectedPaymentForReceipt(null)}
+        />
       )}
     </Layout>
   );

@@ -20,6 +20,7 @@ import { useOrderHours, setOrderHours } from '../store/orderHoursStore';
 import PtdFields from '../components/PtdFields';
 import ConfirmDialog from '../components/ConfirmDialog';
 import Toast from '../components/Toast';
+import ReceiptModal from '../components/ReceiptModal';
 
 const SERVICE_STATUS = {
   'Not Started': 'border-slate-200 bg-slate-100 text-slate-600',
@@ -891,6 +892,7 @@ function OrderDetail() {
   const catalog = useServices();
   useOrderHours();
   const [editingHours, setEditingHours] = useState(false);
+  const [selectedPaymentForReceipt, setSelectedPaymentForReceipt] = useState(null);
 
   const orderServices = useOrderServices();
   const ptds = usePtds();
@@ -1495,23 +1497,39 @@ function OrderDetail() {
             <p className="mb-3 text-[12px] font-semibold uppercase tracking-wider text-slate-400">Payment History</p>
             <div className="overflow-hidden rounded-lg border border-slate-200">
               {pSummary.payments.map((p, i) => (
-                <button
+                <div
                   key={p.paymentId}
-                  type="button"
-                  onClick={() => navigate(`/payments/${p.paymentId}`)}
-                  className={`flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50 ${i > 0 ? 'border-t border-slate-100' : ''}`}
+                  className={`flex w-full items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-slate-50 ${i > 0 ? 'border-t border-slate-100' : ''}`}
                 >
-                  <div className="flex min-w-0 items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/payments/${p.paymentId}`)}
+                    className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                  >
                     <span className="text-[13px] font-semibold text-emerald-700 hover:underline">{p.paymentId}</span>
                     <span className="whitespace-nowrap text-[12.5px] text-slate-500">{fmtDate(p.date)}</span>
                     <span className="hidden text-[12.5px] text-slate-500 sm:inline">{p.method}</span>
                     {p.planStage && <span className="text-[12.5px] text-slate-500">· {p.planStage}</span>}
-                  </div>
+                  </button>
                   <div className="flex shrink-0 items-center gap-3">
                     <span className="text-[13px] font-semibold text-slate-800">{fmtINR(p.amount)}</span>
                     <Badge status={p.status} map={PAYMENT_TXN_STATUS} />
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPaymentForReceipt(p)}
+                      aria-label={`Print Receipt for ${p.paymentId}`}
+                      title="View / Print Receipt"
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                        <line x1="16" y1="13" x2="8" y2="13" />
+                        <line x1="16" y1="17" x2="8" y2="17" />
+                      </svg>
+                    </button>
                   </div>
-                </button>
+                </div>
               ))}
             </div>
           </div>
@@ -1718,6 +1736,12 @@ function OrderDetail() {
         onCancel={() => setConfirm(null)}
       />
       <Toast toast={toast} onClose={() => setToast(null)} />
+      {selectedPaymentForReceipt && (
+        <ReceiptModal
+          payment={selectedPaymentForReceipt}
+          onClose={() => setSelectedPaymentForReceipt(null)}
+        />
+      )}
     </Layout>
   );
 }

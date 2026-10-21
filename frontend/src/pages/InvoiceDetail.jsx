@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Layout from '../layouts/Layout';
 import Toast from '../components/Toast';
+import ReceiptModal from '../components/ReceiptModal';
 import { useInvoices, getInvoiceById, saveInvoice, setInvoiceStatus, getInvoicePaymentSummary, getInvoiceStatus, sendInvoiceEmail } from '../store/invoiceStore';
 import { usePayments, createPayment } from '../store/paymentStore';
 import { usePaymentMethods } from '../store/paymentMethodStore';
@@ -274,6 +275,7 @@ function InvoiceDetail() {
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState('');
   const [toast, setToast] = useState(null);
+  const [selectedPaymentForReceipt, setSelectedPaymentForReceipt] = useState(null);
 
   const invoice = getInvoiceById(invoiceId);
 
@@ -485,22 +487,38 @@ function InvoiceDetail() {
               ) : (
                 <div className="space-y-2">
                   {summary.payments.map((p) => (
-                    <button
+                    <div
                       key={p.paymentId}
-                      type="button"
-                      onClick={() => navigate(`/payments/${p.paymentId}`)}
-                      className="flex w-full items-center justify-between gap-3 rounded-lg border border-slate-200 px-4 py-2.5 text-left transition-colors hover:bg-slate-50"
+                      className="flex w-full items-center justify-between gap-3 rounded-lg border border-slate-200 px-4 py-2.5 transition-colors hover:bg-slate-50"
                     >
-                      <span className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/payments/${p.paymentId}`)}
+                        className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                      >
                         <span className="text-[13px] font-semibold text-emerald-700 hover:underline">{p.paymentId}</span>
                         <span className="text-[12.5px] text-slate-500">{fmtDate(p.date)}</span>
                         <span className="text-[12.5px] text-slate-500">{p.method}</span>
-                      </span>
-                      <span className="flex items-center gap-3">
+                      </button>
+                      <div className="flex items-center gap-3">
                         <span className="text-[13px] font-semibold text-slate-800">{fmtINR(p.amount)}</span>
                         <Badge status={p.status} map={PAYMENT_TXN_STATUS} />
-                      </span>
-                    </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedPaymentForReceipt(p)}
+                          aria-label={`Print Receipt for ${p.paymentId}`}
+                          title="View / Print Receipt"
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                            <line x1="16" y1="13" x2="8" y2="13" />
+                            <line x1="16" y1="17" x2="8" y2="17" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}
@@ -579,6 +597,12 @@ function InvoiceDetail() {
 
       {editing && <EditModal invoice={invoice} onClose={() => setEditing(false)} onSave={save} />}
       {paying && <RecordPayment invoice={invoice} user={user} onClose={() => setPaying(false)} onRecord={recordPayment} />}
+      {selectedPaymentForReceipt && (
+        <ReceiptModal
+          payment={selectedPaymentForReceipt}
+          onClose={() => setSelectedPaymentForReceipt(null)}
+        />
+      )}
       <Toast toast={toast} onClose={() => setToast(null)} />
     </Layout>
   );

@@ -2,9 +2,12 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Layout from '../layouts/Layout';
 import Toast from '../components/Toast';
+import ReceiptModal from '../components/ReceiptModal';
 import { usePayments, getPaymentById, getOrderPaymentSummary, updatePayment } from '../store/paymentStore';
 import { usePaymentMethods } from '../store/paymentMethodStore';
+import { useAuth } from '../store/authStore';
 import { fmtINR, fmtDate } from '../data/mockData';
+import { downloadReceiptPdf } from '../utils/receiptPdf';
 
 const PAYMENT_STATUS = {
   Received: 'border-emerald-200 bg-emerald-50 text-emerald-700',
@@ -138,7 +141,10 @@ function EditModal({ payment, onClose, onSave }) {
 function PaymentDetail() {
   const { paymentId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [editing, setEditing] = useState(false);
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [toast, setToast] = useState(null);
   usePayments();
 
@@ -159,6 +165,18 @@ function PaymentDetail() {
   const previouslyReceived = summary.received - payment.amount;
   const balance = summary.pending;
   const overpaid = summary.overpaid;
+
+  const handleDownloadPdf = async () => {
+    try {
+      setDownloading(true);
+      await downloadReceiptPdf(payment, summary, user);
+      setToast({ type: 'success', message: 'Receipt PDF downloaded.' });
+    } catch {
+      setToast({ type: 'error', message: 'Failed to generate receipt PDF.' });
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const save = async (patch) => {
     const res = await updatePayment(payment.paymentId, patch);
@@ -195,7 +213,29 @@ function PaymentDetail() {
               <p className="mt-1 text-[13px] text-slate-500">{fmtINR(payment.amount)} received · {payment.method} · {fmtDate(payment.date)}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleDownloadPdf}
+              disabled={downloading}
+              className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-[12px] font-medium text-emerald-700 transition-colors hover:bg-emerald-100 disabled:opacity-50"
+            >
+              <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+              </svg>
+              {downloading ? 'Downloading…' : 'Download PDF'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowReceipt(true)}
+              className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3.5 py-2 text-[12px] font-medium text-slate-600 transition-colors hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"
+            >
+              <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                <path d="M6 14h12v8H6z" />
+              </svg>
+              Print Receipt
+            </button>
             <button type="button" onClick={() => setEditing(true)} className="rounded-lg border border-slate-200 px-3.5 py-2 text-[12px] font-medium text-slate-600 transition-colors hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700">Edit</button>
             <button
               type="button"
@@ -264,6 +304,12 @@ function PaymentDetail() {
           payment={payment}
           onClose={() => setEditing(false)}
           onSave={save}
+        />
+      )}
+      {showReceipt && (
+        <ReceiptModal
+          payment={payment}
+          onClose={() => setShowReceipt(false)}
         />
       )}
       <Toast toast={toast} onClose={() => setToast(null)} />

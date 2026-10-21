@@ -59,7 +59,7 @@ body {
 
 @media print {
   .no-print { display: none !important; }
-  #ptd-print-area { display: block !important; }
-  #ptd-print-area * { visibility: visible !important; }
+  #ptd-print-area, #receipt-print-area { display: block !important; }
+  #ptd-print-area *, #receipt-print-area * { visibility: visible !important; }
   body { margin: 0; padding: 0; }
 }
