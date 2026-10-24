@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { login } from '../store/authStore';
 
 function Login() {
@@ -137,11 +137,10 @@ function Login() {
                   placeholder="you@company.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className={`h-10 w-full rounded-lg border bg-white pl-10 pr-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:ring-4 ${
-                    errors.email
+                  className={`h-10 w-full rounded-lg border bg-white pl-10 pr-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:ring-4 ${errors.email
                       ? 'border-red-300 focus:border-red-400 focus:ring-red-100'
                       : 'border-slate-200 focus:border-emerald-500 focus:ring-emerald-100'
-                  }`}
+                    }`}
                 />
               </div>
               {errors.email && <p className="mt-1.5 text-xs font-medium text-red-500">{errors.email}</p>}
@@ -171,11 +170,10 @@ function Login() {
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className={`h-10 w-full rounded-lg border bg-white pl-10 pr-10 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:ring-4 ${
-                    errors.password
+                  className={`h-10 w-full rounded-lg border bg-white pl-10 pr-10 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:ring-4 ${errors.password
                       ? 'border-red-300 focus:border-red-400 focus:ring-red-100'
                       : 'border-slate-200 focus:border-emerald-500 focus:ring-emerald-100'
-                  }`}
+                    }`}
                 />
                 <button
                   type="button"
@@ -230,20 +228,20 @@ function Login() {
                 'Sign in'
               )}
             </button>
-</form>
+          </form>
 
-{errors.submit && <p className="mt-4 text-center text-xs text-red-500">{errors.submit}</p>}
+          {errors.submit && <p className="mt-4 text-center text-xs text-red-500">{errors.submit}</p>}
 
-<p className="mt-6 text-center text-[13px] text-slate-500">
-  New to Account Soft?{' '}
-  <Link to="/register" className="font-medium text-emerald-600 hover:text-emerald-700">
-    Register your company
-  </Link>
-</p>
+          <p className="mt-6 text-center text-[13px] text-slate-500">
+            New to Account Soft?{' '}
+            <a
+              href="https://systemsoft.programersglobal.com/register"
+              className="font-medium text-emerald-600 hover:text-emerald-700"
+            >
+              Register your company
+            </a>
+          </p>
 
-<p className="mt-6 text-center text-[13px] text-slate-500">
-  Demo: <span className="font-mono text-slate-600">admin@accountsoft.com</span> / <span className="font-mono text-slate-600">admin123</span>
-</p>
 
           <p className="mt-8 text-center text-xs text-slate-400">© {new Date().getFullYear()} Account Soft · Integrated with Lead Soft</p>
         </div>
