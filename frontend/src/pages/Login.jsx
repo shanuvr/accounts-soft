@@ -22,7 +22,7 @@ function Login() {
 
     if (Object.keys(newErrors).length === 0) {
       setIsSubmitting(true);
-      const result = await login(email, password);
+      const result = await login(email, password, rememberMe);
       if (result.success) {
         setTimeout(() => navigate('/dashboard'), 700);
       } else {

@@ -1,27 +1,26 @@
 import client from './client'
+import { getAuthItem, setAuthItem, clearAuthStorage, getAuthStorage } from '../utils/authStorage'
 
-export const login = async (email, password) => {
+export const login = async (email, password, rememberMe = true) => {
   const { data } = await client.post('/auth/token/', { email, password })
-  localStorage.setItem('access_token', data.access)
-  if (data.refresh) localStorage.setItem('refresh_token', data.refresh)
+  setAuthItem('access_token', data.access, rememberMe)
+  if (data.refresh) setAuthItem('refresh_token', data.refresh, rememberMe)
   return data
 }
 
 export const register = async (payload) => {
   const { data } = await client.post('/auth/register/', payload)
-  localStorage.setItem('access_token', data.access)
-  if (data.refresh) localStorage.setItem('refresh_token', data.refresh)
+  setAuthItem('access_token', data.access, true)
+  if (data.refresh) setAuthItem('refresh_token', data.refresh, true)
   return data
 }
 
 export const logout = () => {
-  localStorage.removeItem('access_token')
-  localStorage.removeItem('refresh_token')
-  localStorage.removeItem('user')
+  clearAuthStorage()
 }
 
 export const getCurrentUser = async () => {
-  const token = localStorage.getItem('access_token')
+  const token = getAuthItem('access_token')
   if (!token) return null
   try {
     const { data } = await client.get('/auth/me/')
@@ -32,10 +31,12 @@ export const getCurrentUser = async () => {
 }
 
 export const refreshToken = async () => {
-  const token = localStorage.getItem('refresh_token')
+  const token = getAuthItem('refresh_token')
   if (!token) return null
   const { data } = await client.post('/auth/token/refresh/', { refresh: token })
-  localStorage.setItem('access_token', data.access)
-  if (data.refresh) localStorage.setItem('refresh_token', data.refresh)
+  const storage = getAuthStorage()
+  storage.setItem('access_token', data.access)
+  if (data.refresh) storage.setItem('refresh_token', data.refresh)
   return data
 }
+

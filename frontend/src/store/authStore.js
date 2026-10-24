@@ -1,10 +1,11 @@
 import { useSyncExternalStore } from 'react'
 import { login as apiLogin, logout as apiLogout, register as apiRegister } from '../api/auth'
+import { getAuthItem, getAuthStorage, setAuthItem, clearAuthStorage } from '../utils/authStorage'
 
 function loadInitial() {
   try {
-    const token = localStorage.getItem('access_token')
-    const userStr = localStorage.getItem('user')
+    const token = getAuthItem('access_token')
+    const userStr = getAuthItem('user')
     if (token && userStr) {
       const user = JSON.parse(userStr)
       return {
@@ -47,20 +48,20 @@ export function useAuth() {
 export function setUser(user) {
   current = { ...current, ...user, token: current.token }
   if (user) {
-    localStorage.setItem('user', JSON.stringify({ ...user, token: undefined }))
+    getAuthStorage().setItem('user', JSON.stringify({ ...user, token: undefined }))
   }
   emit()
 }
 
 export function setToken(token) {
   current = { ...current, token }
-  localStorage.setItem('access_token', token)
+  getAuthStorage().setItem('access_token', token)
   emit()
 }
 
-export async function login(email, password) {
+export async function login(email, password, rememberMe = true) {
   try {
-    const data = await apiLogin(email, password)
+    const data = await apiLogin(email, password, rememberMe)
     current = {
       email,
       name: data.user?.name || '',
@@ -71,9 +72,8 @@ export async function login(email, password) {
       enabledApps: data.user?.enabled_apps || [],
       token: data.access,
     }
-    localStorage.setItem('access_token', data.access)
     if (data.user) {
-      localStorage.setItem('user', JSON.stringify(data.user))
+      setAuthItem('user', JSON.stringify(data.user), rememberMe)
     }
     emit()
     return { success: true }
@@ -99,9 +99,8 @@ export async function register(admin, company) {
       enabledApps: data.user?.enabled_apps || [],
       token: data.access,
     }
-    localStorage.setItem('access_token', data.access)
     if (data.user) {
-      localStorage.setItem('user', JSON.stringify(data.user))
+      setAuthItem('user', JSON.stringify(data.user), true)
     }
     emit()
     return { success: true }
@@ -121,7 +120,7 @@ export async function register(admin, company) {
 
 export function logout() {
   current = { email: '', name: '', role: '', company: null, organizations: [], permissions: [], enabledApps: [], token: null }
-  localStorage.removeItem('user')
+  clearAuthStorage()
   apiLogout()
   emit()
 }
