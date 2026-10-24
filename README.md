@@ -164,20 +164,75 @@ core. Imported orders retain their original Lead Soft reference.
 
 
 
-## Run
+## Installation
 
-### Backend
-
-```bash
-$ENV:ENV = "dev"
-cd ~\Desktop\Codebase\Systemsoft_suite\accounts-soft\backend
+```
+cd backend
+python -m venv venv
 venv\Scripts\activate
-python manage.py runserver 8001
+pip install -r requirements.txt
 ```
 
-### Frontend
+## Run
 
-```bash
-cd ~\Desktop\Codebase\Systemsoft_suite\accounts-soft\frontend
-npm run dev
+```
+$rootFile = ".acco_root"
+$dir = Get-Item (Get-Location)
+while ($dir -and -not (Test-Path (Join-Path $dir.FullName $rootFile))) {
+    $dir = $dir.Parent
+}
+if (-not $dir) {
+    throw "Could not find $rootFile"
+}
+$root = $dir.FullName
+```
+
+Backend
+```
+$env:ENV = "dev"
+cd $root/backend
+venv\Scripts\activate
+Python manage.py runserver 8002
+```
+
+frontend
+```
+cd $root/frontend
+npm run dev -- --mode dev
+```
+
+
+---
+migrate
+```
+$env:ENV = "dev"
+cd $root/backend
+venv\Scripts\activate
+Python manage.py migrate
+```
+
+
+## Deploy
+
+> [!NOTE]
+> Backend Deployment works from last committed version
+
+
+Backend
+```
+cd $root
+git archive HEAD backend -o backend.zip
+scp backend.zip acc:/home/accountsoftprogr/
+ssh acc "cd /home/accountsoftprogr && unzip -o backend.zip && rm backend.zip"
+ssh acc "source /home/accountsoftprogr/virtualenv/backend/3.13/bin/activate && cd /home/accountsoftprogr/backend && python manage.py migrate"
+```
+
+Frontend
+```
+cd $root/frontend
+npm run build -- --mode prod
+ssh acc "rm -rf ~/public_html/assets"
+scp -r .\dist\* acc:/home/accountsoftprogr/public_html/
+scp .\dist\.htaccess acc:/home/accountsoftprogr/public_html/
+ssh acc "chmod -R 755 ~/public_html/assets && chmod 755 ~/public_html/v1"
 ```

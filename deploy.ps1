@@ -1,7 +1,7 @@
 $rootFile = ".acco_root"
 
-$sshAlias = "accounts"
-$remoteHome = "/home/accountsprograme"
+$sshAlias = "acc"
+$remoteHome = "/home/accountsoftprogr"
 $pythonVersion = "3.13"
 $backendPort = 8001
 

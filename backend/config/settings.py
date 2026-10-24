@@ -9,6 +9,10 @@ from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+import sys
+sys.path.insert(0, BASE_DIR)
+sys.path.insert(0, os.path.join(BASE_DIR, "apps"))
+
 env = os.getenv("ENV", "prod")
 print(f"Loading settings for environment: {env}")
 load_dotenv(BASE_DIR.parent / f".env.{env}")
