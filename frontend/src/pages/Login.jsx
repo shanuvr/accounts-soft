@@ -1,15 +1,24 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { login } from '../store/authStore';
+import { login, useAuth } from '../store/authStore';
 
 function Login() {
   const navigate = useNavigate();
+  const { token } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    if (token) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [token, navigate]);
+
+  if (token) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
