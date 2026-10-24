@@ -80,7 +80,7 @@ export async function login(email, password) {
   } catch (err) {
     const noResponse = !err.response
     const error = noResponse
-      ? 'Cannot reach the server. Is the backend running on port 8000?'
+      ? 'Unable to reach the server. Please check your network connection and try again.'
       : err.response?.data?.detail || 'Invalid email or password'
     return { success: false, error }
   }
@@ -108,7 +108,7 @@ export async function register(admin, company) {
   } catch (err) {
     const noResponse = !err.response
     if (noResponse) {
-      return { success: false, error: 'Cannot reach the server. Is the backend running on port 8000?' }
+      return { success: false, error: 'Unable to reach the server. Please check your network connection and try again.' }
     }
     const data = err.response?.data
     const error =
