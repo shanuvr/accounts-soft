@@ -50,6 +50,7 @@ const PAYMENT_STATUS = {
   'Partially Paid': 'border-amber-200 bg-amber-50 text-amber-700',
   Paid: 'border-emerald-200 bg-emerald-50 text-emerald-700',
   Overpaid: 'border-violet-200 bg-violet-50 text-violet-700',
+  'Not Applicable': 'border-slate-200 bg-slate-50 text-slate-500',
 };
 
 const PAYMENT_TXN_STATUS = {
@@ -1183,10 +1184,11 @@ function OrderDetail() {
         <div className="grid grid-cols-1 gap-x-10 px-6 py-2 sm:grid-cols-2">
           <div className="divide-y divide-slate-100">
             <InfoRow label="Order Date">{fmtDate(order.orderDate)}</InfoRow>
-            <InfoRow label="Sales Person">{order.salesPerson}</InfoRow>
+            <InfoRow label="Billing">{order.isBillable === false ? 'Non-Billable' : 'Billable'}</InfoRow>
+            <InfoRow label="Sales Person">{order.salesPerson || '—'}</InfoRow>
           </div>
           <div className="divide-y divide-slate-100">
-            <InfoRow label="Order Value"><span className="text-emerald-700">{fmtINR(order.value)}</span></InfoRow>
+            <InfoRow label="Order Value"><span className="text-emerald-700">{order.isBillable === false ? '—' : fmtINR(order.value)}</span></InfoRow>
             <InfoRow label="Delivery Date">{fmtDate(order.deliveryDate)}</InfoRow>
             <InfoRow label="Customer">{order.customer}</InfoRow>
           </div>

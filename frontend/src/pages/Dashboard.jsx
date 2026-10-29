@@ -29,7 +29,7 @@ const compactINR = (v) => (Math.abs(v) >= 1000 ? `₹${(v / 1000).toFixed(0)}k` 
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
-const PAYMENT_STATUS_ORDER = ['Paid', 'Partially Paid', 'Unpaid', 'Overdue', 'Refunded'];
+const PAYMENT_STATUS_ORDER = ['Paid', 'Partially Paid', 'Unpaid', 'Overdue', 'Refunded', 'Not Applicable'];
 
 function StatCard({ label, value, sub, icon, tone }) {
   const tones = {

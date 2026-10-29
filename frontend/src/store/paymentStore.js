@@ -62,7 +62,8 @@ export function getOrderPaymentSummary(orderId) {
   const pending = Math.max(0, orderValue - received);
   const overpaid = orderValue > 0 ? Math.max(0, received - orderValue) : 0;
   let status;
-  if (received <= 0) status = 'Unpaid';
+  if (order && order.isBillable === false) status = 'Not Applicable';
+  else if (received <= 0) status = 'Unpaid';
   else if (orderValue > 0 && received < orderValue) status = 'Partially Paid';
   else if (orderValue > 0 && received === orderValue) status = 'Paid';
   else if (orderValue > 0 && received > orderValue) status = 'Overpaid';

@@ -25,6 +25,7 @@ function mapRecord(r) {
     orderStatus: isExternal ? 'Pending' : r.order_status || 'Pending',
     paymentStatus: isExternal ? 'Unpaid' : r.payment_status || 'Unpaid',
     salesPerson: r.sales_person || '',
+    isBillable: r.is_billable !== false,
     projectHours: parseAmount(r.project_hours),
   };
 }
@@ -113,24 +114,16 @@ export function getOrderById(orderId) {
   return store.all().find((o) => String(o.orderId || '').trim().toLowerCase() === target);
 }
 
-function nextOrderId() {
-  const maxNum = store.all().reduce((m, o) => {
-    const n = parseInt((o.orderId || '').replace(/\D/g, ''), 10);
-    return Number.isFinite(n) ? Math.max(m, n) : m;
-  }, 1000);
-  return `ORD-${maxNum + 1}`;
-}
-
-export async function addOrder({ customer, value, orderDate, deliveryDate, orderStatus, paymentStatus, salesPerson }) {
+export async function addOrder({ customer, isBillable = true, value, orderDate, deliveryDate, orderStatus, paymentStatus }) {
+  const billable = isBillable !== false;
   const payload = {
-    order_id: nextOrderId(),
     customer,
+    is_billable: billable,
     order_date: orderDate,
     delivery_date: deliveryDate,
     order_status: orderStatus || 'Pending',
-    payment_status: paymentStatus || 'Unpaid',
-    sales_person: salesPerson,
-    subtotal: Number(value) || 0,
+    payment_status: billable ? (paymentStatus || 'Unpaid') : 'Not Applicable',
+    subtotal: billable ? (Number(value) || 0) : 0,
     discount: 0,
     tax_amount: 0,
   };
@@ -148,6 +141,7 @@ export async function ensureLocalOrder(orderId) {
     order_date: order.orderDate || String(order.createdAt || '').slice(0, 10) || new Date().toISOString().slice(0, 10),
     delivery_date: order.deliveryDate || new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10),
     sales_person: order.salesPerson || '',
+    is_billable: order.isBillable !== false,
     subtotal: order.value || 0,
     discount: 0,
     tax_amount: 0,

@@ -34,6 +34,7 @@ const PAYMENT_STATUS_COLORS = {
   Unpaid: 'border-slate-200 bg-slate-100 text-slate-500',
   Overdue: 'border-red-200 bg-red-50 text-red-700',
   Refunded: 'border-slate-200 bg-slate-100 text-slate-500',
+  'Not Applicable': 'border-slate-200 bg-slate-50 text-slate-500',
 };
 
 const PTD_STATUS_COLORS = {

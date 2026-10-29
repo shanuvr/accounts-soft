@@ -7,7 +7,6 @@ import { ORDER_STATUSES, ORDER_STATUS_COLORS, isActiveOrder } from '../data/orde
 import { usePtds } from '../store/ptdStore';
 import { useOrders, addOrder, useOrdersError, useOrdersStatus } from '../store/orderStore';
 import { usePayments, getOrderPaymentSummary } from '../store/paymentStore';
-import { useEmployees } from '../store/employeeStore';
 
 const PAYMENT_STATUS_COLORS = {
   'Unpaid': 'border-slate-200 bg-slate-100 text-slate-600',
@@ -15,6 +14,12 @@ const PAYMENT_STATUS_COLORS = {
   'Paid': 'border-emerald-200 bg-emerald-50 text-emerald-700',
   'Overdue': 'border-red-200 bg-red-50 text-red-700',
   'Refunded': 'border-indigo-200 bg-indigo-50 text-indigo-700',
+  'Not Applicable': 'border-slate-200 bg-slate-50 text-slate-500',
+};
+
+const BILLING_STATUS_COLORS = {
+  'Billable': 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  'Non-Billable': 'border-slate-200 bg-slate-100 text-slate-600',
 };
 
 function Badge({ status, map }) {
@@ -44,28 +49,41 @@ function todayISO(offsetDays = 0) {
 }
 
 function NewOrderModal({ onClose, onNotify }) {
-  const employees = useEmployees();
   const [form, setForm] = useState({
     customer: '',
+    billingType: 'Billable',
     value: '',
     orderDate: todayISO(),
     deliveryDate: todayISO(30),
     orderStatus: 'Pending',
     paymentStatus: 'Unpaid',
-    salesPerson: '',
   });
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
-  const valid = form.customer && Number(form.value) > 0 && form.orderDate && form.deliveryDate && form.salesPerson;
+  const billable = form.billingType === 'Billable';
+  const valid = Boolean(form.customer) && Boolean(form.orderDate) && Boolean(form.deliveryDate)
+    && (!billable || Number(form.value) > 0);
 
   const submit = async () => {
     if (!valid) return;
-    const res = await addOrder(form);
+    const res = await addOrder({
+      customer: form.customer,
+      isBillable: billable,
+      value: billable ? form.value : 0,
+      orderDate: form.orderDate,
+      deliveryDate: form.deliveryDate,
+      orderStatus: form.orderStatus,
+      paymentStatus: billable ? form.paymentStatus : 'Not Applicable',
+    });
     if (res && res.ok === false) {
       onNotify({ type: 'error', message: 'Could not create the order. Please try again.' });
       return;
     }
-    onNotify({ type: 'success', message: `Order for ${form.customer} created.` });
+    const orderId = res?.record?.order_id;
+    onNotify({
+      type: 'success',
+      message: orderId ? `Order ${orderId} created for ${form.customer}.` : `Order for ${form.customer} created.`,
+    });
     onClose();
   };
 
@@ -93,21 +111,33 @@ function NewOrderModal({ onClose, onNotify }) {
             <input value={form.customer} onChange={set('customer')} placeholder="Enter customer name" className={fieldCls} />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <p className={labelCls}>Order Value</p>
-              <input type="number" min="0" placeholder="0.00" value={form.value} onChange={set('value')} className={fieldCls} />
-            </div>
-            <div>
-              <p className={labelCls}>Sales Person</p>
-              <select value={form.salesPerson} onChange={set('salesPerson')} className={fieldCls}>
-                <option value="">Select…</option>
-                {employees.map((e) => (
-                  <option key={e.name} value={e.name}>{e.name}</option>
-                ))}
-              </select>
-            </div>
+          <div>
+            <p className={labelCls}>Billing Type</p>
+            <select value={form.billingType} onChange={set('billingType')} className={fieldCls}>
+              <option value="Billable">Billable</option>
+              <option value="Non-Billable">Non-Billable</option>
+            </select>
+            {!billable && (
+              <p className="mt-1.5 text-[12px] text-slate-500">
+                Non-billable orders carry no order value and no payment status.
+              </p>
+            )}
           </div>
+
+          {billable && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className={labelCls}>Order Value</p>
+                <input type="number" min="0" placeholder="0.00" value={form.value} onChange={set('value')} className={fieldCls} />
+              </div>
+              <div>
+                <p className={labelCls}>Payment Status</p>
+                <select value={form.paymentStatus} onChange={set('paymentStatus')} className={fieldCls}>
+                  {Object.keys(PAYMENT_STATUS_COLORS).filter((s) => s !== 'Not Applicable').map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -120,19 +150,11 @@ function NewOrderModal({ onClose, onNotify }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <p className={labelCls}>Order Status</p>
-              <select value={form.orderStatus} onChange={set('orderStatus')} className={fieldCls}>
-                {ORDER_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
-            <div>
-              <p className={labelCls}>Payment Status</p>
-              <select value={form.paymentStatus} onChange={set('paymentStatus')} className={fieldCls}>
-                {Object.keys(PAYMENT_STATUS_COLORS).map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
+          <div>
+            <p className={labelCls}>Order Status</p>
+            <select value={form.orderStatus} onChange={set('orderStatus')} className={fieldCls}>
+              {ORDER_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
           </div>
         </div>
 
@@ -343,6 +365,7 @@ function Orders() {
               <tr className="border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500">
                 <th className="px-2 py-1.5 font-semibold leading-tight"><span className="block">Order</span><span className="block">ID</span></th>
                 <th className="px-2 py-1.5 font-semibold">Customer</th>
+                <th className="px-2 py-1.5 font-semibold leading-tight"><span className="block">Billing</span><span className="block">Type</span></th>
                 <th className="px-2 py-1.5 text-right font-semibold leading-tight"><span className="block">Order</span><span className="block">Value</span></th>
                 <th className="px-2 py-1.5 font-semibold leading-tight"><span className="block">Order</span><span className="block">Date</span></th>
                 <th className="px-2 py-1.5 font-semibold">Age</th>
@@ -361,7 +384,12 @@ function Orders() {
                     <span className="font-semibold text-emerald-700 hover:underline">{o.orderId}</span>
                   </td>
                   <td className="max-w-[200px] truncate px-2 py-2 text-slate-800">{o.customer}</td>
-                  <td className="whitespace-nowrap px-2 py-2 font-semibold text-slate-800">{fmtINR(o.value)}</td>
+                  <td className="whitespace-nowrap px-2 py-2">
+                    <Badge status={o.isBillable === false ? 'Non-Billable' : 'Billable'} map={BILLING_STATUS_COLORS} />
+                  </td>
+                  <td className="whitespace-nowrap px-2 py-2 font-semibold text-slate-800">
+                    {o.isBillable === false ? '—' : fmtINR(o.value)}
+                  </td>
                   <td className="whitespace-nowrap px-2 py-2 text-slate-600">{fmtDate(o.orderDate)}</td>
                   <td className="whitespace-nowrap px-2 py-2">
                     <span className={`font-semibold ${orderAge(o).cls}`}>{orderAge(o).label}</span>
