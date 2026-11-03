@@ -50,6 +50,7 @@ function todayISO(offsetDays = 0) {
 
 function NewOrderModal({ onClose, onNotify }) {
   const [form, setForm] = useState({
+    title: '',
     customer: '',
     billingType: 'Billable',
     value: '',
@@ -68,6 +69,7 @@ function NewOrderModal({ onClose, onNotify }) {
     if (!valid) return;
     const res = await addOrder({
       customer: form.customer,
+      title: form.title.trim(),
       isBillable: billable,
       value: billable ? form.value : 0,
       orderDate: form.orderDate,
@@ -106,6 +108,11 @@ function NewOrderModal({ onClose, onNotify }) {
         </div>
 
         <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
+          <div>
+            <p className={labelCls}>Order Name</p>
+            <input value={form.title} onChange={set('title')} placeholder="e.g. Corporate website redesign - Phase 1" className={fieldCls} />
+          </div>
+
           <div>
             <p className={labelCls}>Customer</p>
             <input value={form.customer} onChange={set('customer')} placeholder="Enter customer name" className={fieldCls} />
@@ -208,7 +215,7 @@ function Orders() {
   ];
 
   const filtered = orders.filter((o) => {
-    if (search && !`${o.orderId} ${o.customer} ${o.salesPerson}`.toLowerCase().includes(search.toLowerCase())) return false;
+    if (search && !`${o.orderId} ${o.title} ${o.customer} ${o.salesPerson}`.toLowerCase().includes(search.toLowerCase())) return false;
     if (status) {
       if (status === '__overdue') {
         if (!(isActiveOrder(o.orderStatus) && new Date(o.deliveryDate) < new Date())) return false;
@@ -331,7 +338,7 @@ function Orders() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search order, customer..."
+              placeholder="Search order, name, customer..."
               className={`${inputCls} pl-9`}
             />
           </div>
@@ -360,10 +367,11 @@ function Orders() {
       {/* Table */}
       <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] text-left text-[12.5px]">
+          <table className="w-full min-w-[1040px] text-left text-[12.5px]">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500">
                 <th className="px-2 py-1.5 font-semibold leading-tight"><span className="block">Order</span><span className="block">ID</span></th>
+                <th className="px-2 py-1.5 font-semibold">Order Name</th>
                 <th className="px-2 py-1.5 font-semibold">Customer</th>
                 <th className="px-2 py-1.5 font-semibold leading-tight"><span className="block">Billing</span><span className="block">Type</span></th>
                 <th className="px-2 py-1.5 text-right font-semibold leading-tight"><span className="block">Order</span><span className="block">Value</span></th>
@@ -383,6 +391,7 @@ function Orders() {
                   <td className="whitespace-nowrap px-2 py-2">
                     <span className="font-semibold text-emerald-700 hover:underline">{o.orderId}</span>
                   </td>
+                  <td className="max-w-[180px] truncate px-2 py-2 text-slate-700" title={o.title || ''}>{o.title || '—'}</td>
                   <td className="max-w-[200px] truncate px-2 py-2 text-slate-800">{o.customer}</td>
                   <td className="whitespace-nowrap px-2 py-2">
                     <Badge status={o.isBillable === false ? 'Non-Billable' : 'Billable'} map={BILLING_STATUS_COLORS} />
@@ -420,7 +429,7 @@ function Orders() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan="12" className="px-4 py-12 text-center text-sm text-slate-400">
+                  <td colSpan="13" className="px-4 py-12 text-center text-sm text-slate-400">
                     {ordersError
                       ? "Couldn't fetch orders — please try again later."
                       : 'No orders match your filters.'}

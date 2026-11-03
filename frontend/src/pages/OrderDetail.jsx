@@ -1169,6 +1169,9 @@ function OrderDetail() {
             <span className="text-slate-400">/</span>
             <span className="text-[15px] text-slate-600">{order.customer}</span>
           </div>
+          {order.title && (
+            <p className="mt-1 text-[14px] font-medium text-slate-700">{order.title}</p>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <Badge status={order.orderStatus} map={ORDER_STATUS_COLORS} />
@@ -1184,6 +1187,7 @@ function OrderDetail() {
         <div className="grid grid-cols-1 gap-x-10 px-6 py-2 sm:grid-cols-2">
           <div className="divide-y divide-slate-100">
             <InfoRow label="Order Date">{fmtDate(order.orderDate)}</InfoRow>
+            <InfoRow label="Order Name">{order.title || '—'}</InfoRow>
             <InfoRow label="Billing">{order.isBillable === false ? 'Non-Billable' : 'Billable'}</InfoRow>
             <InfoRow label="Sales Person">{order.salesPerson || '—'}</InfoRow>
           </div>

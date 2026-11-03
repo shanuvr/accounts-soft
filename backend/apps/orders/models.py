@@ -13,6 +13,7 @@ class Order(models.Model):
     )
     lead_soft_ref = models.CharField(max_length=50, blank=True, help_text='Original Lead Soft reference')
     customer = models.CharField(max_length=200, blank=True, null=True, default='')
+    title = models.CharField(max_length=200, blank=True, default='')
     order_date = models.DateField()
     delivery_date = models.DateField()
     subtotal = models.DecimalField(max_digits=14, decimal_places=2, default=0)

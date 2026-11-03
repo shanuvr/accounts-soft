@@ -17,6 +17,7 @@ function mapRecord(r) {
     id: r.id ?? null,
     source: isExternal ? 'external' : 'local',
     orderId: r.order_id,
+    title: String(r.title || r.order_title || r.order_name || '').trim(),
     customer: (isExternal ? r.company : r.customer) || r.customer || (typeof r.company === 'string' ? r.company : '') || '',
     value,
     orderDate: r.order_date || '',
@@ -114,10 +115,11 @@ export function getOrderById(orderId) {
   return store.all().find((o) => String(o.orderId || '').trim().toLowerCase() === target);
 }
 
-export async function addOrder({ customer, isBillable = true, value, orderDate, deliveryDate, orderStatus, paymentStatus }) {
+export async function addOrder({ customer, title = '', isBillable = true, value, orderDate, deliveryDate, orderStatus, paymentStatus }) {
   const billable = isBillable !== false;
   const payload = {
     customer,
+    title: (title || '').trim(),
     is_billable: billable,
     order_date: orderDate,
     delivery_date: deliveryDate,
@@ -138,6 +140,7 @@ export async function ensureLocalOrder(orderId) {
   const payload = {
     order_id: order.orderId,
     customer: order.customer || '',
+    title: order.title || '',
     order_date: order.orderDate || String(order.createdAt || '').slice(0, 10) || new Date().toISOString().slice(0, 10),
     delivery_date: order.deliveryDate || new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10),
     sales_person: order.salesPerson || '',

@@ -16,6 +16,8 @@ class OrderSerializer(serializers.ModelSerializer):
         }
 
     def validate(self, attrs):
+        if 'title' in attrs:
+            attrs['title'] = (attrs.get('title') or '').strip()
         if attrs.get('is_billable') is False:
             attrs['subtotal'] = 0
             attrs['discount'] = 0
