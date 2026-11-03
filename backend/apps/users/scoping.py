@@ -35,12 +35,6 @@ def get_or_sync_company(core_org_id, org_name=None):
             except Exception as exc:
                 logger.warning('Could not create Company for org %s: %s', core_org_id, exc)
                 company = Company.objects.filter(core_org_id=core_org_id).first() or Company.objects.filter(name=name).first()
-    if company:
-        try:
-            from customers.seeder import seed_company_defaults
-            seed_company_defaults(company)
-        except Exception as exc:
-            logger.warning('Could not seed defaults for company %s: %s', getattr(company, 'id', None), exc)
     return company
 
 

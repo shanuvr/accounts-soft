@@ -1,4 +1,8 @@
+import logging
+from django.db import IntegrityError, transaction
 from .models import Product, ProductCategory
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_CATEGORIES = [
     ('Domain', 'Domain registration and management services'),
@@ -22,34 +26,47 @@ DEFAULT_PRODUCTS = [
 
 
 def seed_company_defaults(company):
-    """Seed default product categories and products for a company if it has none."""
+    """Seed default product categories and products for a company safely and idempotently."""
     if not company:
+        return
+
+    # Check if products already exist for this company
+    if Product.objects.filter(company=company).exists():
         return
 
     category_map = {}
     for name, desc in DEFAULT_CATEGORIES:
-        cat, _ = ProductCategory.objects.get_or_create(
-            company=company,
-            name=name,
-            defaults={'description': desc},
-        )
-        category_map[name] = cat
-
-    if Product.objects.filter(company=company).exists():
-        return
+        cat = ProductCategory.objects.filter(company=company, name=name).first()
+        if not cat:
+            try:
+                with transaction.atomic():
+                    cat, _ = ProductCategory.objects.get_or_create(
+                        company=company,
+                        name=name,
+                        defaults={'description': desc},
+                    )
+            except IntegrityError:
+                cat = ProductCategory.objects.filter(company=company, name=name).first()
+        if cat:
+            category_map[name] = cat
 
     for index, (name, cat_name, price, requires_ptda, template, hours) in enumerate(DEFAULT_PRODUCTS, start=1):
+        if Product.objects.filter(company=company, name=name).exists():
+            continue
         cat = category_map.get(cat_name) or ProductCategory.objects.filter(company=company, name=cat_name).first()
-        Product.objects.get_or_create(
-            company=company,
-            name=name,
-            defaults={
-                'code': f'PRD{index:03d}',
-                'category': cat,
-                'default_price': price,
-                'requires_ptda': requires_ptda,
-                'ptda_template': template,
-                'default_hours': hours,
-            },
-        )
-
+        try:
+            with transaction.atomic():
+                Product.objects.get_or_create(
+                    company=company,
+                    name=name,
+                    defaults={
+                        'code': f'PRD{index:03d}',
+                        'category': cat,
+                        'default_price': price,
+                        'requires_ptda': requires_ptda,
+                        'ptda_template': template,
+                        'default_hours': hours,
+                    },
+                )
+        except IntegrityError:
+            pass

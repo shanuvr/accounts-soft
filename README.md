@@ -189,8 +189,8 @@ $root = $dir.FullName
 
 Backend
 ```
-$env:ENV = "dev"
 cd $root/backend
+$env:ENV = "dev"
 venv\Scripts\activate
 Python manage.py runserver 8002
 ```

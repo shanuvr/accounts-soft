@@ -1,5 +1,6 @@
 import django.db.models.deletion
-from django.db import migrations, models
+from django.db import migrations, models, transaction
+from django.db.utils import IntegrityError
 
 
 def seed_all_companies(apps, schema_editor):
@@ -30,28 +31,39 @@ def seed_all_companies(apps, schema_editor):
     for company in Company.objects.all():
         cat_map = {}
         for name, desc in DEFAULT_CATEGORIES:
-            cat, _ = ProductCategory.objects.get_or_create(
-                company=company,
-                name=name,
-                defaults={'description': desc},
-            )
-            cat_map[name] = cat
+            cat = ProductCategory.objects.filter(company=company, name=name).first()
+            if not cat:
+                try:
+                    with transaction.atomic():
+                        cat = ProductCategory.objects.create(
+                            company=company,
+                            name=name,
+                            description=desc,
+                        )
+                except IntegrityError:
+                    cat = ProductCategory.objects.filter(company=company, name=name).first()
+            if cat:
+                cat_map[name] = cat
 
         if not Product.objects.filter(company=company).exists():
             for idx, (name, cat_name, price, requires_ptda, template, hours) in enumerate(DEFAULT_PRODUCTS, start=1):
-                cat = cat_map.get(cat_name)
-                Product.objects.get_or_create(
-                    company=company,
-                    name=name,
-                    defaults={
-                        'code': f'PRD{idx:03d}',
-                        'category': cat,
-                        'default_price': price,
-                        'requires_ptda': requires_ptda,
-                        'ptda_template': template,
-                        'default_hours': hours,
-                    },
-                )
+                if Product.objects.filter(company=company, name=name).exists():
+                    continue
+                cat = cat_map.get(cat_name) or ProductCategory.objects.filter(company=company, name=cat_name).first()
+                try:
+                    with transaction.atomic():
+                        Product.objects.create(
+                            company=company,
+                            name=name,
+                            code=f'PRD{idx:03d}',
+                            category=cat,
+                            default_price=price,
+                            requires_ptda=requires_ptda,
+                            ptda_template=template,
+                            default_hours=hours,
+                        )
+                except IntegrityError:
+                    pass
 
 
 def noop(apps, schema_editor):
@@ -108,4 +120,3 @@ class Migration(migrations.Migration):
         ),
         migrations.RunPython(seed_all_companies, noop),
     ]
-
