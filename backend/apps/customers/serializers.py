@@ -21,7 +21,7 @@ class ProductSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = ['id', 'name', 'code', 'category', 'category_name', 'description', 'default_price', 'unit', 'requires_ptda', 'ptda_template', 'default_hours', 'is_active', 'created_at', 'updated_at']
+        fields = ['id', 'company', 'name', 'code', 'category', 'category_name', 'description', 'default_price', 'unit', 'requires_ptda', 'ptda_template', 'default_hours', 'is_active', 'created_at', 'updated_at']
 
     def get_category(self, obj):
         return obj.category.name if obj.category else ''
@@ -40,7 +40,13 @@ class ProductSerializer(serializers.ModelSerializer):
 
     def _apply_category(self, instance, category_name):
         if category_name:
-            category = ProductCategory.objects.filter(name=category_name).first()
+            from django.db.models import Q
+            qs = ProductCategory.objects.filter(name=category_name)
+            if instance.company:
+                qs = qs.filter(Q(company=instance.company) | Q(company__isnull=True))
+            category = qs.first()
+            if not category and instance.company:
+                category = ProductCategory.objects.create(company=instance.company, name=category_name)
             if category:
                 instance.category = category
                 instance.save(update_fields=['category'])

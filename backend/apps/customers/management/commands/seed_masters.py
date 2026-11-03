@@ -148,25 +148,9 @@ class Command(BaseCommand):
                 entry_type='Expense', name=name, company_id=None, defaults={'sort_order': idx}
             )
 
-        product_data = [
-            ('Domain Registration', 'Domain', 1500, True, 'domain', 2),
-            ('Web Hosting', 'Hosting', 8000, True, 'hosting', 4),
-            ('SSL Certificate', 'SSL', 2500, True, 'ssl', 1.5),
-            ('Website Development', 'Development', 110000, True, 'website', 100),
-            ('Maintenance', 'Maintenance', 3500, False, '', 10),
-        ]
-        for index, (name, category, price, requires_ptda, template, hours) in enumerate(product_data, start=1):
-            cat = ProductCategory.objects.filter(name=category).first()
-            Product.objects.get_or_create(
-                name=name,
-                defaults={
-                    'code': f'PRD{index:03d}',
-                    'category': cat,
-                    'default_price': price,
-                    'requires_ptda': requires_ptda,
-                    'ptda_template': template,
-                    'default_hours': hours,
-                },
-            )
+        from users.models import Company
+        from customers.seeder import seed_company_defaults
+        for comp in Company.objects.all():
+            seed_company_defaults(comp)
 
         self.stdout.write(self.style.SUCCESS('Seeded masters and product catalogue.'))

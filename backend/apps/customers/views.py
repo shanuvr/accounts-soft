@@ -7,6 +7,7 @@ from .models import Customer, CustomerType, Product, ProductCategory, Department
 from .serializers import CustomerSerializer, CustomerTypeSerializer, ProductSerializer, ProductCategorySerializer, CoreEmployeeSerializer, DepartmentSerializer, UOMSerializer
 from .services import client as systemsoft
 from .services import SystemSoftUnavailable
+from users.scoping import scoped_queryset
 from users.services import (
     CoreApiError,
     CoreUnavailable,
@@ -242,16 +243,38 @@ class CustomerTypeViewSet(viewsets.ModelViewSet):
 
 class ProductViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
-    queryset = Product.objects.all()
     serializer_class = ProductSerializer
     search_fields = ['name', 'code']
+
+    def get_queryset(self):
+        user = self.request.user
+        company = getattr(user, 'company', None)
+        if company:
+            from .seeder import seed_company_defaults
+            if not Product.objects.filter(company=company).exists():
+                seed_company_defaults(company)
+        return scoped_queryset(Product.objects.all(), user)
+
+    def perform_create(self, serializer):
+        serializer.save(company=getattr(self.request.user, 'company', None))
 
 
 class ProductCategoryViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
-    queryset = ProductCategory.objects.all()
     serializer_class = ProductCategorySerializer
     search_fields = ['name']
+
+    def get_queryset(self):
+        user = self.request.user
+        company = getattr(user, 'company', None)
+        if company:
+            from .seeder import seed_company_defaults
+            if not ProductCategory.objects.filter(company=company).exists():
+                seed_company_defaults(company)
+        return scoped_queryset(ProductCategory.objects.all(), user)
+
+    def perform_create(self, serializer):
+        serializer.save(company=getattr(self.request.user, 'company', None))
 
 
 class UOMViewSet(viewsets.ModelViewSet):

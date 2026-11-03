@@ -941,8 +941,20 @@ function OrderDetail() {
   const [toast, setToast] = useState(null);
 
   const openForm = () => {
+    if (catalog.length === 0) {
+      setConfirm({
+        title: 'No Services in Catalogue',
+        message: 'Your product and service catalogue is empty. Please add services in the Product / Service Master before adding them to an order.',
+        confirmLabel: 'Go to Service Master',
+        destructive: false,
+        onConfirm: () => {
+          setConfirm(null);
+          navigate('/products-services');
+        },
+      });
+      return;
+    }
     const first = catalog[0];
-    if (!first) return;
     setForm({ name: first.name, deliveryDate: order?.deliveryDate || todayISO() });
     setShowForm(true);
   };
@@ -953,7 +965,12 @@ function OrderDetail() {
 
   const addService = async (e) => {
     e.preventDefault();
-    if (!form.name || addingService) return;
+    if (!form.name || addingService) {
+      if (!form.name) {
+        setToast({ type: 'error', message: 'Please select a service or configure services in Product / Service Master.' });
+      }
+      return;
+    }
     setAddingService(true);
     const cat = catalog.find((c) => c.name === form.name);
     const orderPk = await ensureLocalOrder(order.orderId);
@@ -1318,9 +1335,24 @@ function OrderDetail() {
           {services.length === 0 ? (
             <div className="rounded-xl border border-dashed border-slate-300 py-10 text-center">
               <p className="text-sm text-slate-400">No services added yet.</p>
-              <button type="button" onClick={openForm} className="mt-3 text-[13px] font-medium text-emerald-600 hover:text-emerald-700">
-                + Add the first service
-              </button>
+              {catalog.length === 0 ? (
+                <div className="mt-3 flex flex-col items-center gap-2">
+                  <p className="text-[12.5px] text-amber-600">
+                    No services configured in your catalogue yet.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/products-services')}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-[13px] font-medium text-emerald-700 transition-colors hover:bg-emerald-100"
+                  >
+                    + Add Services in Product Master
+                  </button>
+                </div>
+              ) : (
+                <button type="button" onClick={openForm} className="mt-3 text-[13px] font-medium text-emerald-600 hover:text-emerald-700">
+                  + Add the first service
+                </button>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

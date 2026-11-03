@@ -140,13 +140,22 @@ class Customer(models.Model):
 
 
 class ProductCategory(models.Model):
-    name = models.CharField(max_length=100, unique=True)
+    company = models.ForeignKey(
+        'users.Company',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='product_categories',
+        db_index=True,
+    )
+    name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ['-created_at']
+        unique_together = ('company', 'name')
         db_table = 'product_categories'
         app_label = 'customers'
 
@@ -155,8 +164,16 @@ class ProductCategory(models.Model):
 
 
 class Product(models.Model):
+    company = models.ForeignKey(
+        'users.Company',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='products',
+        db_index=True,
+    )
     name = models.CharField(max_length=200)
-    code = models.CharField(max_length=20, unique=True, blank=True)
+    code = models.CharField(max_length=20, blank=True)
     category = models.ForeignKey(ProductCategory, on_delete=models.SET_NULL, null=True, blank=True)
     description = models.TextField(blank=True)
     default_price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
@@ -170,6 +187,7 @@ class Product(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        unique_together = ('company', 'name')
         db_table = 'products'
         app_label = 'customers'
 
