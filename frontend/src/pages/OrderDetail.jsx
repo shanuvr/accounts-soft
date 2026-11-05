@@ -950,6 +950,10 @@ function OrderDetail() {
   };
 
   const onSelectService = (name) => {
+    if (name === '__NEW_SERVICE__') {
+      navigate('/products-services');
+      return;
+    }
     setForm((f) => ({ ...f, name }));
   };
 
@@ -1290,7 +1294,10 @@ function OrderDetail() {
                     className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[13px] text-slate-700 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
                   >
                     {catalog.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
-                    {catalog.length === 0 && <option value="">No services available</option>}
+                    {catalog.length === 0 && <option value="" disabled>No services available</option>}
+                    <option value="__NEW_SERVICE__" className="font-medium text-emerald-600">
+                      + New service
+                    </option>
                   </select>
                 </div>
                 <div>
