@@ -6,7 +6,6 @@ import { ORDER_STATUS_COLORS } from '../data/orderStatus';
 import { useOrders, useOrdersLoaded, useOrdersError, ensureLocalOrder } from '../store/orderStore';
 import { useOrderServices, addOrderService, removeOrderService } from '../store/orderServiceStore';
 import { useServices, getServiceByName } from '../store/serviceStore';
-import { useDepartments } from '../store/departmentStore';
 import { usePtds, createOrUpdatePtd, deletePtdFor, reloadPtds } from '../store/ptdStore';
 import { useAssignments, createAssignment, deleteAssignmentFor, reloadAssignments } from '../store/assignmentStore';
 import { usePayments, getOrderPaymentSummary, createPayment } from '../store/paymentStore';
@@ -240,22 +239,20 @@ function PtdModal({ order, service, onClose, onSave }) {
 }
 
 function AssignModal({ order, service, assigner, hoursSummary, onClose, onAssign }) {
-  const departments = useDepartments();
   const defaultHours = getServiceByName(service.name)?.hours ?? 0;
-  const [department, setDepartment] = useState('');
   const [assignedOn, setAssignedOn] = useState(new Date().toISOString().slice(0, 10));
   const [expectedDelivery, setExpectedDelivery] = useState(service.deliveryDate || order.deliveryDate || '');
   const [allocatedHours, setAllocatedHours] = useState(defaultHours);
   const [priority, setPriority] = useState('Normal');
   const [instructions, setInstructions] = useState('');
 
-  const valid = department && assignedOn && expectedDelivery;
+  const valid = assignedOn && expectedDelivery;
   const newUsed = hoursSummary.used + (Number(allocatedHours) || 0);
   const wouldExceed = hoursSummary.total > 0 && newUsed > hoursSummary.total;
 
   const submit = () => {
     if (!valid) return;
-    onAssign(service.id, { assignedTo: department, assignedTeam: `${department} Team`, assignedOn, expectedDelivery, allocatedHours: Number(allocatedHours) || 0, priority, instructions });
+    onAssign(service.id, { assignedTo: '', assignedTeam: '', assignedOn, expectedDelivery, allocatedHours: Number(allocatedHours) || 0, priority, instructions });
   };
 
   const fieldCls = 'h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[13px] text-slate-700 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100';
@@ -289,13 +286,6 @@ function AssignModal({ order, service, assigner, hoursSummary, onClose, onAssign
         {/* Body */}
         <div className="max-h-[55vh] overflow-y-auto px-6 py-5">
           <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
-            <div>
-              <label htmlFor="asn-department" className="mb-1 block text-[12px] font-medium text-slate-600">Assign To <span className="text-red-400">*</span></label>
-              <select id="asn-department" value={department} onChange={(e) => setDepartment(e.target.value)} className={fieldCls}>
-                <option value="">Select Department</option>
-                {departments.map((d) => <option key={d} value={d}>{d}</option>)}
-              </select>
-            </div>
             <div>
               <label htmlFor="asn-assignedon" className="mb-1 block text-[12px] font-medium text-slate-600">Assigned On <span className="text-red-400">*</span></label>
               <input id="asn-assignedon" type="date" value={assignedOn} onChange={(e) => setAssignedOn(e.target.value)} className={fieldCls} />
@@ -1383,8 +1373,12 @@ function OrderDetail() {
                       {s.assignment ? (
                         <div className="flex items-center gap-2">
                           <span className="text-[12px] font-semibold text-emerald-700">{s.assignment.id}</span>
-                          <span className="text-[12px] text-slate-400">·</span>
-                          <span className="text-[12px] font-medium text-slate-700">{s.assignment.assignedTo}</span>
+                          {s.assignment.assignedTo && (
+                            <>
+                              <span className="text-[12px] text-slate-400">·</span>
+                              <span className="text-[12px] font-medium text-slate-700">{s.assignment.assignedTo}</span>
+                            </>
+                          )}
                           <Badge status={s.assignment.status === 'Assigned' ? 'Pending' : s.assignment.status} map={SERVICE_STATUS} />
                         </div>
                       ) : (
