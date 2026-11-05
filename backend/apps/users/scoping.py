@@ -49,6 +49,10 @@ def scoped_queryset(qs, user, company_field='company'):
         return qs.none()
 
     company = getattr(user, 'company', None)
+    company_id = getattr(company, 'id', None) or getattr(user, 'company_id', None)
+    if company_id is not None:
+        lookup = company_field if company_field.endswith('_id') else f'{company_field}_id'
+        return qs.filter(**{lookup: company_id})
     if company is not None:
         return qs.filter(**{company_field: company})
 

@@ -30,34 +30,38 @@ def seed_company_defaults(company):
     if not company:
         return
 
+    company_id = getattr(company, 'id', None) or (company if isinstance(company, int) else None)
+    if not company_id:
+        return
+
     # Check if products already exist for this company
-    if Product.objects.filter(company=company).exists():
+    if Product.objects.filter(company_id=company_id).exists():
         return
 
     category_map = {}
     for name, desc in DEFAULT_CATEGORIES:
-        cat = ProductCategory.objects.filter(company=company, name=name).first()
+        cat = ProductCategory.objects.filter(company_id=company_id, name=name).first()
         if not cat:
             try:
                 with transaction.atomic():
                     cat, _ = ProductCategory.objects.get_or_create(
-                        company=company,
+                        company_id=company_id,
                         name=name,
                         defaults={'description': desc},
                     )
             except IntegrityError:
-                cat = ProductCategory.objects.filter(company=company, name=name).first()
+                cat = ProductCategory.objects.filter(company_id=company_id, name=name).first()
         if cat:
             category_map[name] = cat
 
     for index, (name, cat_name, price, requires_ptda, template, hours) in enumerate(DEFAULT_PRODUCTS, start=1):
-        if Product.objects.filter(company=company, name=name).exists():
+        if Product.objects.filter(company_id=company_id, name=name).exists():
             continue
-        cat = category_map.get(cat_name) or ProductCategory.objects.filter(company=company, name=cat_name).first()
+        cat = category_map.get(cat_name) or ProductCategory.objects.filter(company_id=company_id, name=cat_name).first()
         try:
             with transaction.atomic():
                 Product.objects.get_or_create(
-                    company=company,
+                    company_id=company_id,
                     name=name,
                     defaults={
                         'code': f'PRD{index:03d}',

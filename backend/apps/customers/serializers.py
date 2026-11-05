@@ -42,11 +42,11 @@ class ProductSerializer(serializers.ModelSerializer):
         if category_name:
             from django.db.models import Q
             qs = ProductCategory.objects.filter(name=category_name)
-            if instance.company:
-                qs = qs.filter(Q(company=instance.company) | Q(company__isnull=True))
+            if instance.company_id:
+                qs = qs.filter(Q(company_id=instance.company_id) | Q(company_id__isnull=True))
             category = qs.first()
-            if not category and instance.company:
-                category = ProductCategory.objects.create(company=instance.company, name=category_name)
+            if not category and instance.company_id:
+                category = ProductCategory.objects.create(company_id=instance.company_id, name=category_name)
             if category:
                 instance.category = category
                 instance.save(update_fields=['category'])

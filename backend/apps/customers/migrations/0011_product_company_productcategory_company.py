@@ -77,7 +77,7 @@ def seed_all_companies(apps, schema_editor):
     Company = apps.get_model('users', 'Company')
     from customers.seeder import seed_company_defaults
     for company in Company.objects.all():
-        seed_company_defaults(company)
+        seed_company_defaults(company.id)
 
 
 def noop(apps, schema_editor):

@@ -249,14 +249,17 @@ class ProductViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         company = getattr(user, 'company', None)
-        if company:
+        company_id = getattr(company, 'id', None) or getattr(user, 'company_id', None)
+        if company_id:
             from .seeder import seed_company_defaults
-            if not Product.objects.filter(company=company).exists():
-                seed_company_defaults(company)
+            if not Product.objects.filter(company_id=company_id).exists():
+                seed_company_defaults(company_id)
         return scoped_queryset(Product.objects.all(), user)
 
     def perform_create(self, serializer):
-        serializer.save(company=getattr(self.request.user, 'company', None))
+        company = getattr(self.request.user, 'company', None)
+        company_id = getattr(company, 'id', None) or getattr(self.request.user, 'company_id', None)
+        serializer.save(company_id=company_id)
 
 
 class ProductCategoryViewSet(viewsets.ModelViewSet):
@@ -267,14 +270,17 @@ class ProductCategoryViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         company = getattr(user, 'company', None)
-        if company:
+        company_id = getattr(company, 'id', None) or getattr(user, 'company_id', None)
+        if company_id:
             from .seeder import seed_company_defaults
-            if not ProductCategory.objects.filter(company=company).exists():
-                seed_company_defaults(company)
+            if not ProductCategory.objects.filter(company_id=company_id).exists():
+                seed_company_defaults(company_id)
         return scoped_queryset(ProductCategory.objects.all(), user)
 
     def perform_create(self, serializer):
-        serializer.save(company=getattr(self.request.user, 'company', None))
+        company = getattr(self.request.user, 'company', None)
+        company_id = getattr(company, 'id', None) or getattr(self.request.user, 'company_id', None)
+        serializer.save(company_id=company_id)
 
 
 class UOMViewSet(viewsets.ModelViewSet):
