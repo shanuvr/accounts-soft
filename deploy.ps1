@@ -61,46 +61,94 @@ function Invoke-WithRetry {
 
 
 function Deploy-Backend {
-    return Invoke-WithRetry "Backend deployment" {
 
-        Set-Location $root
+    Set-Location $root
 
-        git archive HEAD backend -o backend.zip
-        if ($LASTEXITCODE -ne 0) { throw "git archive failed" }
+    # Create archive
+    git archive HEAD backend -o backend.zip
+    if ($LASTEXITCODE -ne 0) {
+        throw "Git archive failed"
+    }
 
+    # Upload archive
+    if (-not (Invoke-WithRetry "Upload backend" {
         scp backend.zip "${sshAlias}:${remoteHome}/"
-        if ($LASTEXITCODE -ne 0) { throw "scp failed" }
+        if ($LASTEXITCODE -ne 0) { throw "SCP failed" }
+    })) {
+        return $false
+    }
 
+    # Extract archive
+    if (-not (Invoke-WithRetry "Extract backend" {
         ssh $sshAlias "cd $remoteHome && unzip -o backend.zip && rm backend.zip"
         if ($LASTEXITCODE -ne 0) { throw "Remote unzip failed" }
+    })) {
+        return $false
+    }
 
+    # Run migrations
+    if (-not (Invoke-WithRetry "Backend migrations" {
         ssh $sshAlias "source $remoteHome/virtualenv/backend/$pythonVersion/bin/activate && cd $remoteHome/backend && python manage.py migrate"
         if ($LASTEXITCODE -ne 0) { throw "Migration failed" }
+    })) {
+        return $false
     }
+
+    Remove-Item backend.zip -ErrorAction SilentlyContinue
+
+    Write-Host "Backend deployment completed successfully." -ForegroundColor Green
+    return $true
 }
 
 
 function Deploy-Frontend {
-    return Invoke-WithRetry "Frontend deployment" {
 
-        Set-Location "$root/frontend"
+    Set-Location "$root/frontend"
 
+    # Build
+    if (-not (Invoke-WithRetry "Frontend build" {
         npm run build -- --mode prod
-        if ($LASTEXITCODE -ne 0) { throw "Frontend build failed" }
+        if ($LASTEXITCODE -ne 0) { throw "Build failed" }
+    })) {
+        return $false
+    }
 
+    # Remove old assets
+    if (-not (Invoke-WithRetry "Remove remote assets" {
         ssh $sshAlias "rm -rf $remoteHome/public_html/assets"
-        if ($LASTEXITCODE -ne 0) { throw "Remote assets removal failed" }
+        if ($LASTEXITCODE -ne 0) { throw "Assets removal failed" }
+    })) {
+        return $false
+    }
 
+    # Upload frontend
+    if (-not (Invoke-WithRetry "Upload frontend" {
         scp -r .\dist\* "${sshAlias}:$remoteHome/public_html/"
-        if ($LASTEXITCODE -ne 0) { throw "Frontend upload failed" }
+        if ($LASTEXITCODE -ne 0) { throw "Upload failed" }
+    })) {
+        return $false
+    }
 
+    # Upload .htaccess
+    if (-not (Invoke-WithRetry "Upload .htaccess" {
         scp .\dist\.htaccess "${sshAlias}:$remoteHome/public_html/"
         if ($LASTEXITCODE -ne 0) { throw ".htaccess upload failed" }
+    })) {
+        return $false
+    }
 
+    # Permissions
+    if (-not (Invoke-WithRetry "Update permissions" {
         ssh $sshAlias "chmod -R 755 $remoteHome/public_html/assets && chmod 755 $remoteHome/public_html/v1"
         if ($LASTEXITCODE -ne 0) { throw "Permission update failed" }
+    })) {
+        return $false
     }
+
+    Write-Host "Frontend deployment completed successfully." -ForegroundColor Green
+    return $true
 }
+
 
 
 function Run-Backend {
@@ -115,7 +163,7 @@ function Run-Backend {
 function Run-Frontend {
     Set-Location "$root/frontend"
 
-    npm run dev -- --mode dev
+    npm run dev
 }
 
 
@@ -134,18 +182,38 @@ switch ($args[0]) {
     }
 
     "full" {
-        if (-not (Deploy-Backend)) {
-            Write-Host "Backend failed. Frontend will NOT be deployed." -ForegroundColor Red
+        Write-Host "`nStarting full deployment..." -ForegroundColor Cyan
+
+        $backendSuccess = Deploy-Backend
+
+        if (-not $backendSuccess) {
+            Write-Host "Backend deployment failed. Frontend deployment skipped." -ForegroundColor Red
             exit 1
         }
 
-        if (-not (Deploy-Frontend)) {
-            Write-Host "Frontend failed." -ForegroundColor Red
+        $frontendSuccess = Deploy-Frontend
+
+        if (-not $frontendSuccess) {
+            Write-Host "Frontend deployment failed." -ForegroundColor Red
             exit 1
         }
 
-        Write-Host "Full deployment succeeded." -ForegroundColor Green
+        Write-Host "Full deployment completed successfully." -ForegroundColor Green
     }
+
+    # "full" {
+    #     if (-not (Deploy-Backend)) {
+    #         Write-Host "Backend failed. Frontend will NOT be deployed." -ForegroundColor Red
+    #         exit 1
+    #     }
+
+    #     if (-not (Deploy-Frontend)) {
+    #         Write-Host "Frontend failed." -ForegroundColor Red
+    #         exit 1
+    #     }
+
+    #     Write-Host "Full deployment succeeded." -ForegroundColor Green
+    # }
 
     "run-backend" {
         Run-Backend

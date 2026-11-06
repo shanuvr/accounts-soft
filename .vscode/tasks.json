@@ -77,7 +77,7 @@
                 "Run Backend",
                 "Run Frontend"
             ],
-            "dependsOrder": "parallel",
+            "dependsOrder": "sequence",
             "problemMatcher": []
         }
     ]
