@@ -239,10 +239,9 @@ function PtdModal({ order, service, onClose, onSave }) {
 }
 
 function AssignModal({ order, service, assigner, hoursSummary, onClose, onAssign }) {
-  const defaultHours = getServiceByName(service.name)?.hours ?? 0;
   const [assignedOn, setAssignedOn] = useState(new Date().toISOString().slice(0, 10));
   const [expectedDelivery, setExpectedDelivery] = useState(service.deliveryDate || order.deliveryDate || '');
-  const [allocatedHours, setAllocatedHours] = useState(defaultHours);
+  const [allocatedHours, setAllocatedHours] = useState(hoursSummary.total > 0 ? hoursSummary.remaining : getServiceByName(service.name)?.hours ?? 0);
   const [priority, setPriority] = useState('Normal');
   const [instructions, setInstructions] = useState('');
 
