@@ -6,6 +6,8 @@ if pymysql.version_info < (2, 2, 1):
 from pathlib import Path
 from dotenv import load_dotenv
 
+backend_version = "3"
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
