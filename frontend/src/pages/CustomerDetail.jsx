@@ -99,8 +99,8 @@ function CustomerDetail() {
     const serviceRows = [
       ...orders.flatMap((o) =>
         orderServices.filter((s) => s.orderId === o.orderId).map((s) => {
-          const ptd = customerPtds.find((p) => p.orderId === o.orderId && p.serviceName === s.serviceName);
-          const asn = assignments.find((a) => a.orderId === o.orderId && a.serviceName === s.serviceName);
+          const ptd = customerPtds.find((p) => (p.orderServiceId != null ? p.orderServiceId === s.id : (p.orderId === o.orderId && p.serviceName === s.serviceName)));
+          const asn = assignments.find((a) => (a.orderServiceId != null ? a.orderServiceId === s.id : (a.orderId === o.orderId && a.serviceName === s.serviceName)));
           return { ...s, name: s.serviceName, amount: s.unitPrice, order: o, ptd, asn };
         })
       ),

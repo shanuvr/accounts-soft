@@ -45,7 +45,7 @@ function DeliveryDetail() {
   const deliveryTypes = useDeliveryTypes();
 
   const delivery = getDeliveryById(deliveryId);
-  const assignment = delivery ? getAssignmentFor(delivery.orderId, delivery.serviceName) ?? null : null;
+  const assignment = delivery ? getAssignmentFor(delivery.orderId, delivery.serviceName, delivery.orderServiceId) ?? null : null;
 
   const deliveryTypeName = delivery?.deliveryType
     ? (deliveryTypes.find((t) => String(t.id) === String(delivery.deliveryType))?.name ?? '')

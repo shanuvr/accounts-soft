@@ -156,7 +156,7 @@ function AssignmentDetail() {
     );
   }
 
-  const ptd = getPtdFor(assignment.orderId, assignment.serviceName);
+  const ptd = getPtdFor(assignment.orderId, assignment.serviceName, assignment.orderServiceId);
 
   const startEdit = () => {
     setDraft({
@@ -178,7 +178,7 @@ function AssignmentDetail() {
 
   const save = async () => {
     if (!draft.assignedTo || !draft.assignedTeam || !draft.assignedOn || !draft.expectedDelivery) return;
-    const res = await createAssignment({ orderId: assignment.orderId, customer: assignment.customer, serviceName: assignment.serviceName, ...draft });
+    const res = await createAssignment({ orderId: assignment.orderId, customer: assignment.customer, serviceName: assignment.serviceName, orderServiceId: assignment.orderServiceId, ...draft });
     setToast(
       res && res.ok === false
         ? { type: 'error', message: 'Could not update the assignment. Please try again.' }

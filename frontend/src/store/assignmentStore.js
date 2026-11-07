@@ -53,7 +53,11 @@ export function getAssignmentById(id) {
   return store.all().find((r) => String(r.id) === String(id));
 }
 
-export function getAssignmentFor(orderId, serviceName) {
+export function getAssignmentFor(orderId, serviceName, orderServiceId) {
+  if (orderServiceId) {
+    const found = store.all().find((r) => r.orderServiceId === orderServiceId);
+    if (found) return found;
+  }
   return store.all().find((r) => r.orderId === orderId && r.serviceName === serviceName);
 }
 
@@ -61,16 +65,22 @@ export function reloadAssignments() {
   return store.load();
 }
 
-export function deleteAssignmentFor(orderId, serviceName) {
-  const rec = getAssignmentFor(orderId, serviceName);
+export function deleteAssignmentFor(orderId, serviceName, orderServiceId) {
+  const rec = orderServiceId
+    ? store.all().find((r) => r.orderServiceId === orderServiceId)
+    : getAssignmentFor(orderId, serviceName);
   if (!rec) return null;
   return store.run(() => api.deleteAssignment(rec.id));
 }
 
-export async function createAssignment({ orderId, serviceName, assignedTo, assignedTeam, assignedOn, expectedDelivery, priority, instructions, status = 'Pending', allocatedHours }) {
-  const orderServiceId = await resolveOrderServiceId(orderId, serviceName);
-  if (!orderServiceId) return { ok: false, reason: 'notfound' };
-  const existing = store.all().find((r) => r.orderId === orderId && r.serviceName === serviceName);
+export async function createAssignment({ orderId, serviceName, orderServiceId, assignedTo, assignedTeam, assignedOn, expectedDelivery, priority, instructions, status = 'Pending', allocatedHours }) {
+  const resolvedId = orderServiceId || (await resolveOrderServiceId(orderId, serviceName));
+  if (!resolvedId) return { ok: false, reason: 'notfound' };
+  const existing = store.all().find((r) =>
+    orderServiceId
+      ? r.orderServiceId === orderServiceId
+      : (r.orderId === orderId && r.serviceName === serviceName)
+  );
   if (existing) {
     const changes = {};
     if (assignedTo !== undefined) changes.employee = assignedTo;
@@ -85,7 +95,7 @@ export async function createAssignment({ orderId, serviceName, assignedTo, assig
   }
   return store.run(() =>
     api.createAssignment({
-      order_service: orderServiceId,
+      order_service: resolvedId,
       employee: assignedTo || '',
       department: assignedTeam || '',
       title: serviceName,

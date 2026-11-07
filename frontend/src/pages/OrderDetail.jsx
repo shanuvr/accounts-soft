@@ -893,8 +893,8 @@ function OrderDetail() {
       .filter((os) => os.orderId === orderId)
       .map((os) => {
         const name = os.serviceName;
-        const ptd = ptds.find((p) => p.orderId === orderId && p.serviceName === name);
-        const asn = assignments.find((a) => a.orderId === orderId && a.serviceName === name);
+        const ptd = ptds.find((p) => (p.orderServiceId != null ? p.orderServiceId === os.id : (p.orderId === orderId && p.serviceName === name)));
+        const asn = assignments.find((a) => (a.orderServiceId != null ? a.orderServiceId === os.id : (a.orderId === orderId && a.serviceName === name)));
         const cat = catalog.find((c) => c.name === name);
         const requiresPtd = cat?.ptdRequired ?? os.requiresPtda ?? false;
         return {
@@ -981,7 +981,13 @@ function OrderDetail() {
       status: 'Not Started',
     }, orderPk);
     if (res?.ok) {
-      createOrSyncDelivery({ orderId: order.orderId, customer: order.customer, serviceName: form.name, expectedDeliveryDate: form.deliveryDate });
+      createOrSyncDelivery({
+        orderId: order.orderId,
+        customer: order.customer,
+        serviceName: form.name,
+        expectedDeliveryDate: form.deliveryDate,
+        orderServiceId: res.record?.id,
+      });
       setToast({ type: 'success', message: `${form.name} added to the order.` });
     } else {
       setToast({ type: 'error', message: 'Could not add the service to this order.' });
@@ -1005,6 +1011,7 @@ function OrderDetail() {
       orderId: order.orderId,
       customer: order.customer,
       serviceName: svc.name,
+      orderServiceId: svc.id,
       template: cat?.template ?? 'generic',
       status: targetStatus,
       data,
@@ -1041,6 +1048,7 @@ function OrderDetail() {
       orderId: order.orderId,
       customer: order.customer,
       serviceName: svc.name,
+      orderServiceId: svc.id,
       ...payload,
       status: 'Pending',
       assignedBy: user.name,
@@ -1144,9 +1152,9 @@ function OrderDetail() {
       confirmLabel: 'Delete',
       destructive: true,
       onConfirm: async () => {
-        await deletePtdFor(order.orderId, s.name);
-        await deleteAssignmentFor(order.orderId, s.name);
-        await deleteDeliveryFor(order.orderId, s.name);
+        await deletePtdFor(order.orderId, s.name, s.id);
+        await deleteAssignmentFor(order.orderId, s.name, s.id);
+        await deleteDeliveryFor(order.orderId, s.name, s.id);
         const res = await removeOrderService(s.id);
         setToast(
           res && res.ok === false

@@ -45,6 +45,8 @@ class PTDASerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         order_service = attrs.get('order_service')
         if order_service is None:
+            if self.instance and self.instance.order_service:
+                return attrs
             order_id = self.initial_data.get('order_id')
             service_name = self.initial_data.get('service_name')
             if order_id and service_name:

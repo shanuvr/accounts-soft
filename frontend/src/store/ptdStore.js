@@ -6,6 +6,7 @@ const store = createApiStore({
   mapRecord: (r) => ({
     id: r.id,
     orderId: r.order_id,
+    orderServiceId: r.order_service,
     customer: r.customer,
     serviceName: r.service_name,
     template: r.template || 'generic',
@@ -37,17 +38,25 @@ export function getPtdById(id) {
   return store.all().find((r) => String(r.id) === String(id));
 }
 
-export function getPtdFor(orderId, serviceName) {
+export function getPtdFor(orderId, serviceName, orderServiceId) {
+  if (orderServiceId) {
+    const found = store.all().find((r) => r.orderServiceId === orderServiceId);
+    if (found) return found;
+  }
   return store.all().find((r) => r.orderId === orderId && r.serviceName === serviceName);
 }
 
-export async function deletePtdFor(orderId, serviceName) {
-  const existing = store.all().find((r) => r.orderId === orderId && r.serviceName === serviceName);
+export async function deletePtdFor(orderId, serviceName, orderServiceId) {
+  const existing = store.all().find((r) =>
+    orderServiceId
+      ? r.orderServiceId === orderServiceId
+      : (r.orderId === orderId && r.serviceName === serviceName)
+  );
   if (!existing) return null;
   return store.run(() => api.deletePtd(existing.id));
 }
 
-export async function createOrUpdatePtd({ orderId, serviceName, template, status, data, billable = true, price = 0 }) {
+export async function createOrUpdatePtd({ orderId, serviceName, orderServiceId, template, status, data, billable = true, price = 0 }) {
   const payload = {
     order_id: orderId,
     service_name: serviceName,
@@ -57,11 +66,20 @@ export async function createOrUpdatePtd({ orderId, serviceName, template, status
     status,
     billable: Boolean(billable),
     price: billable ? Math.max(0, Number(price) || 0) : 0,
+    ...(orderServiceId ? { order_service: orderServiceId } : {}),
   };
-  const existing = store.all().find((r) => r.orderId === orderId && r.serviceName === serviceName);
+  const existing = store.all().find((r) =>
+    orderServiceId
+      ? r.orderServiceId === orderServiceId
+      : (r.orderId === orderId && r.serviceName === serviceName)
+  );
   const result = existing
     ? await store.run(() => api.updatePtd(existing.id, payload))
     : await store.run(() => api.createPtd(payload));
   if (!result.ok) return null;
-  return store.all().find((r) => r.orderId === orderId && r.serviceName === serviceName) ?? null;
+  return store.all().find((r) =>
+    orderServiceId
+      ? r.orderServiceId === orderServiceId
+      : (r.orderId === orderId && r.serviceName === serviceName)
+  ) ?? null;
 }

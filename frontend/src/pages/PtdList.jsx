@@ -151,8 +151,8 @@ function PtdList() {
   const [expandedId, setExpandedId] = useState(null);
   const [viewing, setViewing] = useState(null);
 
-  const allocatedFor = (orderId, serviceName) =>
-    assignments.find((a) => a.orderId === orderId && a.serviceName === serviceName)?.allocatedHours ?? 0;
+  const allocatedFor = (orderId, serviceName, orderServiceId) =>
+    assignments.find((a) => (orderServiceId != null ? a.orderServiceId === orderServiceId : (a.orderId === orderId && a.serviceName === serviceName)))?.allocatedHours ?? 0;
 
   const orders = useMemo(() => {
     const idSet = new Set([...orderRecords.map((o) => o.orderId), ...ptds.map((p) => p.orderId)]);
@@ -364,7 +364,7 @@ function PtdList() {
                                     </thead>
                                     <tbody>
                                       {o.ptds.map((p) => {
-                                        const hours = allocatedFor(p.orderId, p.serviceName);
+                                        const hours = allocatedFor(p.orderId, p.serviceName, p.orderServiceId);
                                         return (
                                           <tr
                                             key={p.id}
@@ -432,7 +432,7 @@ function PtdList() {
         <PtdModal
           ptd={viewing}
           order={activeOrder}
-          hours={allocatedFor(viewing.orderId, viewing.serviceName)}
+          hours={allocatedFor(viewing.orderId, viewing.serviceName, viewing.orderServiceId)}
           onClose={() => setViewing(null)}
         />
       )}

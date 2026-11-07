@@ -44,29 +44,37 @@ export function getDeliveryById(id) {
   return store.all().find((r) => String(r.id) === String(id));
 }
 
-export function getDeliveryFor(orderId, serviceName) {
+export function getDeliveryFor(orderId, serviceName, orderServiceId) {
+  if (orderServiceId) {
+    const found = store.all().find((r) => r.orderServiceId === orderServiceId);
+    if (found) return found;
+  }
   return store.all().find((r) => r.orderId === orderId && r.serviceName === serviceName);
 }
 
-export function deleteDeliveryFor(orderId, serviceName) {
-  const rec = getDeliveryFor(orderId, serviceName);
+export function deleteDeliveryFor(orderId, serviceName, orderServiceId) {
+  const rec = orderServiceId
+    ? store.all().find((r) => r.orderServiceId === orderServiceId)
+    : getDeliveryFor(orderId, serviceName);
   if (!rec) return null;
   return store.run(() => api.deleteDelivery(rec.id));
 }
 
-export async function createOrSyncDelivery({ orderId, serviceName, expectedDeliveryDate }) {
-  const existing = getDeliveryFor(orderId, serviceName);
+export async function createOrSyncDelivery({ orderId, serviceName, expectedDeliveryDate, orderServiceId }) {
+  const existing = orderServiceId
+    ? store.all().find((r) => r.orderServiceId === orderServiceId)
+    : getDeliveryFor(orderId, serviceName);
   if (existing) {
     if (expectedDeliveryDate && expectedDeliveryDate !== existing.expectedDeliveryDate) {
       return store.run(() => api.updateDelivery(existing.id, { scheduled_date: expectedDeliveryDate }));
     }
     return existing;
   }
-  const orderServiceId = await resolveOrderServiceId(orderId, serviceName);
-  if (!orderServiceId) return { ok: false, reason: 'notfound' };
+  const resolvedOrderServiceId = orderServiceId || (await resolveOrderServiceId(orderId, serviceName));
+  if (!resolvedOrderServiceId) return { ok: false, reason: 'notfound' };
   return store.run(() =>
     api.createDelivery({
-      order_service: orderServiceId,
+      order_service: resolvedOrderServiceId,
       scheduled_date: expectedDeliveryDate || todayISO(),
       status: 'Pending',
       notes: '',

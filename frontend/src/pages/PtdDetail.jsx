@@ -39,7 +39,9 @@ function PtdDetail() {
   usePtds();
   const assignments = useAssignments();
   const record = getPtdById(ptdId);
-  const allocatedHours = record ? assignments.find((a) => a.orderId === record.orderId && a.serviceName === record.serviceName)?.allocatedHours ?? 0 : 0;
+  const allocatedHours = record
+    ? assignments.find((a) => (a.orderServiceId != null ? a.orderServiceId === record.orderServiceId : (a.orderId === record.orderId && a.serviceName === record.serviceName)))?.allocatedHours ?? 0
+    : 0;
 
   const [editing, setEditing] = useState(searchParams.get('edit') === '1');
   const [draft, setDraft] = useState(() => (record ? { ...record.data } : {}));
@@ -89,6 +91,7 @@ function PtdDetail() {
       orderId: record.orderId,
       customer: record.customer,
       serviceName: record.serviceName,
+      orderServiceId: record.orderServiceId,
       template: record.template,
       status: targetStatus,
       data: draft,
