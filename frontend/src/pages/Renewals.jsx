@@ -266,15 +266,15 @@ function Renewals() {
 
   return (
     <Layout active="renewals">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
+      <div className="flex items-center justify-between gap-4">
+        <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Renewals</h1>
           <p className="mt-1 text-[13px] text-slate-500">Domains, hosting, email, SMS and more that need renewal — everything within 30 days of expiry shows up here so you can call the customer in time.</p>
         </div>
         <button
           type="button"
           onClick={() => setModalOpen(true)}
-          className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-emerald-500"
+          className="flex shrink-0 items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-emerald-500"
         >
           <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M12 5v14M5 12h14" />
