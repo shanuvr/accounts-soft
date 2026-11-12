@@ -256,7 +256,7 @@ function Renewals() {
     });
   };
 
-  const filterFieldCls = 'h-9 w-[150px] flex-none rounded-lg border border-slate-200 bg-white px-2.5 text-[13px] text-slate-700 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100';
+  const filterFieldCls = 'h-9 rounded-lg border border-slate-200 bg-white px-2.5 text-[12.5px] text-slate-700 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100';
 
   const stats = [
     { label: 'Total Items', count: records.length, color: 'bg-emerald-600' },
@@ -297,42 +297,40 @@ function Renewals() {
 
       {/* Filter + table */}
       <div className="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-6 py-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4 text-slate-400" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 9h16M6 13h12M10 17h4" />
-            </svg>
-            <select value={filter} onChange={(e) => setFilter(e.target.value)} className={filterFieldCls} aria-label="Filter by type">
-              <option value="">All Types</option>
-              {RENEWAL_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-            </select>
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className={filterFieldCls} aria-label="Filter by status">
-              <option value="">All Statuses</option>
-              <option value="Active">Active</option>
-              <option value="Expiring Soon">Expiring Soon</option>
-              <option value="Overdue">Overdue</option>
-            </select>
-            <select value={calledFilter} onChange={(e) => setCalledFilter(e.target.value)} className={filterFieldCls} aria-label="Filter by notified">
-              <option value="">All (Notified)</option>
-              <option value="called">Called / Notified</option>
-              <option value="not-called">Not Called Yet</option>
-            </select>
+        <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 px-4 py-2.5 sm:px-6">
+          <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4 shrink-0 text-slate-400" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 9h16M6 13h12M10 17h4" />
+          </svg>
+          <select value={filter} onChange={(e) => setFilter(e.target.value)} className={`${filterFieldCls} w-[115px]`} aria-label="Filter by type">
+            <option value="">All Types</option>
+            {RENEWAL_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className={`${filterFieldCls} w-[115px]`} aria-label="Filter by status">
+            <option value="">All Statuses</option>
+            <option value="Active">Active</option>
+            <option value="Expiring Soon">Expiring Soon</option>
+            <option value="Overdue">Overdue</option>
+          </select>
+          <select value={calledFilter} onChange={(e) => setCalledFilter(e.target.value)} className={`${filterFieldCls} w-[128px]`} aria-label="Filter by notified">
+            <option value="">All (Notified)</option>
+            <option value="called">Called / Notified</option>
+            <option value="not-called">Not Called Yet</option>
+          </select>
+          <div className="flex items-center gap-1.5 text-[12px] text-slate-500">
+            <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} aria-label="Expiry from" className={`${filterFieldCls} w-[122px] px-2`} />
+            <span className="text-slate-400">to</span>
+            <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} aria-label="Expiry to" className={`${filterFieldCls} w-[122px] px-2`} />
           </div>
-          <div className="flex flex-wrap items-center gap-2 text-[12px] text-slate-500">
-            <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} aria-label="Expiry from" className={filterFieldCls} />
-            <span>to</span>
-            <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} aria-label="Expiry to" className={filterFieldCls} />
-            {(filter || statusFilter || calledFilter || fromDate || toDate) && (
-              <button
-                type="button"
-                onClick={() => { setFilter(''); setStatusFilter(''); setCalledFilter(''); setFromDate(''); setToDate(''); }}
-                className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[12px] font-medium text-slate-500 transition-colors hover:bg-slate-50"
-              >
-                Clear Filters
-              </button>
-            )}
-            <span className="ml-1 rounded-lg bg-slate-100 px-2.5 py-1.5 font-medium text-slate-600">Showing {filtered.length} of {records.length}</span>
-          </div>
+          {(filter || statusFilter || calledFilter || fromDate || toDate) && (
+            <button
+              type="button"
+              onClick={() => { setFilter(''); setStatusFilter(''); setCalledFilter(''); setFromDate(''); setToDate(''); }}
+              className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[12px] font-medium text-slate-500 transition-colors hover:bg-slate-50"
+            >
+              Clear Filters
+            </button>
+          )}
+          <span className="ml-auto rounded-lg bg-slate-100 px-2.5 py-1.5 text-[12px] font-medium text-slate-600">Showing {filtered.length} of {records.length}</span>
         </div>
 
         <div className="overflow-x-auto">
