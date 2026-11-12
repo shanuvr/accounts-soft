@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Layout from '../layouts/Layout';
 import {
   useRenewables,
@@ -174,6 +175,10 @@ function RenewModal({ record, onClose, onSave }) {
 }
 
 function Renewals() {
+  const [searchParams] = useSearchParams();
+  const highlightId = searchParams.get('highlight');
+  const [highlightActive, setHighlightActive] = useState(Boolean(highlightId));
+
   const records = useRenewables();
   const customers = useCustomers();
   const [filter, setFilter] = useState('');
@@ -186,8 +191,27 @@ function Renewals() {
   const [confirm, setConfirm] = useState(null);
   const [toast, setToast] = useState(null);
 
+  useEffect(() => {
+    if (highlightId) {
+      const timer = setTimeout(() => {
+        const el = document.getElementById(`renewal-row-${highlightId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 150);
+      const clearTimer = setTimeout(() => {
+        setHighlightActive(false);
+      }, 4500);
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(clearTimer);
+      };
+    }
+  }, [highlightId, records]);
+
   const withStatus = records.map((r) => ({ ...r, status: getRenewalStatus(r) }));
   const filtered = withStatus.filter((r) => {
+    if (highlightId && String(r.id) === String(highlightId)) return true;
     if (filter && r.type !== filter) return false;
     if (statusFilter && r.status.key !== statusFilter) return false;
     if (calledFilter === 'called' && !r.notified) return false;
@@ -349,8 +373,19 @@ function Renewals() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((r) => (
-                <tr key={r.id} className="border-b border-slate-100 last:border-0">
+              {filtered.map((r) => {
+                const isHighlighted = highlightActive && String(r.id) === String(highlightId);
+
+                return (
+                  <tr
+                    key={r.id}
+                    id={`renewal-row-${r.id}`}
+                    className={`border-b border-slate-100 last:border-0 transition-colors duration-700 ${
+                      isHighlighted
+                        ? 'bg-amber-100/80 ring-2 ring-inset ring-amber-400'
+                        : 'hover:bg-slate-50/60'
+                    }`}
+                  >
                   <td className="whitespace-nowrap px-2.5 py-2 font-semibold text-slate-800">{r.name}</td>
                   <td className="whitespace-nowrap px-2.5 py-2"><Badge status={r.type} map={TYPE_COLORS} /></td>
                   <td className="max-w-[200px] truncate px-2.5 py-2 text-slate-600">{r.customer}</td>
@@ -414,7 +449,8 @@ function Renewals() {
                     </button>
                   </td>
                 </tr>
-              ))}
+              );
+            })}
               {filtered.length === 0 && (
                 <tr>
                   <td colSpan="9" className="px-4 py-12 text-center text-sm text-slate-400">
