@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Sidebar from '../components/Sidebar';
+import NotificationPopups from '../components/NotificationPopups';
 import { useAuth } from '../store/authStore';
 
 function Layout({ active, children }) {
@@ -9,6 +10,7 @@ function Layout({ active, children }) {
   return (
     <div className="no-print flex h-screen overflow-hidden bg-slate-50">
       <Sidebar active={active} mobileOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
+      <NotificationPopups />
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* Top bar */}

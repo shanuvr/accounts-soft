@@ -40,6 +40,10 @@ export function getAllRenewables() {
   return store.all();
 }
 
+export function loadRenewables() {
+  return store.load();
+}
+
 export function addRenewable(data) {
   const name = data?.name?.trim();
   if (!name) return Promise.resolve({ ok: false, reason: 'name' });

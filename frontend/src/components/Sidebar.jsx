@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth, logout } from '../store/authStore';
 import { useUi, setMastersOpen } from '../store/uiStore';
+import { useNotifications } from '../store/notificationStore';
 
 const stroke = { stroke: 'currentColor', strokeWidth: 1.7, fill: 'none', strokeLinecap: 'round', strokeLinejoin: 'round' };
 
@@ -97,6 +98,12 @@ const I = {
       <path d="M21 9V4l-2 2a8 8 0 1 0 1 4h1Z" />
     </svg>
   ),
+  notifications: (
+    <svg viewBox="0 0 24 24" {...stroke} className="h-[18px] w-[18px]">
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+    </svg>
+  ),
   reports: (
     <svg viewBox="0 0 24 24" {...stroke} className="h-[18px] w-[18px]">
       <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
@@ -151,6 +158,7 @@ const MAIN_NAV = [
   { id: 'payments', label: 'Payments', icon: 'payments' },
   { id: 'ledger', label: 'Ledger', icon: 'ledger' },
   { id: 'renewals', label: 'Renewals', icon: 'renewals' },
+  { id: 'notifications', label: 'Notifications', icon: 'notifications' },
 ];
 
 const PATHS = {
@@ -164,6 +172,7 @@ const PATHS = {
   ledger: '/ledger',
   invoices: '/invoices',
   renewals: '/renewals',
+  notifications: '/notifications',
 };
 
 const REPORTS_NAV = [
@@ -188,17 +197,30 @@ const MASTER_NAV = [
   { label: 'Department Master', path: '/department-master' },
 ];
 
-function NavItem({ icon, label, active, onClick }) {
+function NavItem({ icon, label, active, onClick, hasDot }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors ${
+      className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-[13px] font-medium transition-colors ${
         active ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
       }`}
     >
-      {I[icon]}
-      <span className="truncate">{label}</span>
+      <span className="flex min-w-0 items-center gap-3">
+        <span className="relative flex shrink-0 items-center justify-center">
+          {I[icon]}
+          {hasDot && (
+            <span className="absolute -top-1 -right-1 flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
+            </span>
+          )}
+        </span>
+        <span className="truncate">{label}</span>
+      </span>
+      {hasDot && (
+        <span className={`h-2 w-2 shrink-0 rounded-full ${active ? 'bg-white' : 'bg-red-500'}`} />
+      )}
     </button>
   );
 }
@@ -221,6 +243,7 @@ const saveScroll = (pos) => {
 
 function Sidebar({ active = 'dashboard', mobileOpen = false, onClose }) {
   const { mastersOpen } = useUi();
+  const { hasUnread } = useNotifications();
   const navigate = useNavigate();
   const location = useLocation();
   const user = useAuth();
@@ -334,6 +357,7 @@ function Sidebar({ active = 'dashboard', mobileOpen = false, onClose }) {
                 icon={item.icon}
                 label={item.label}
                 active={active === item.id}
+                hasDot={item.id === 'notifications' && hasUnread}
                 onClick={() => handleNavigate(PATHS[item.id])}
               />
             ))}
